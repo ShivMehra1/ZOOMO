@@ -1,7 +1,7 @@
 import { useState } from "react";
 import api from "../services/api";
 
-export default function DishForm({ initialData = {}, onSubmit }) {
+export default function DishForm({ initialData = {}, onSubmit, saving = false }) {
   const [form, setForm] = useState({
     name: initialData.name || "",
     description: initialData.description || "",
@@ -251,7 +251,7 @@ export default function DishForm({ initialData = {}, onSubmit }) {
       <div className="pt-2">
         <button
           type="submit"
-          disabled={uploading}
+          disabled={uploading || saving}
           className="
             w-full py-3 rounded-2xl
             bg-emerald-600 hover:bg-emerald-700
@@ -260,7 +260,7 @@ export default function DishForm({ initialData = {}, onSubmit }) {
             disabled:opacity-60
           "
         >
-          {uploading ? "Uploading image..." : "Save Dish"}
+          {uploading ? "Uploading image..." : saving ? "Saving dish..." : "Save Dish"}
         </button>
       </div>
     </form>
