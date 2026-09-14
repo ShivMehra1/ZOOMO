@@ -42,8 +42,8 @@ export function MascotLoader({ text = "Loading..." }) {
 
 /* ─── ICONS ──────────────────────────────────────── */
 const Icon = {
-  Search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  Search: ({ size = 18, style }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
       <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
     </svg>
   ),
@@ -181,6 +181,44 @@ function AddressModal({ onConfirm, onSkip }) {
         >
           Set later
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SEARCH RESULT ROW (used in overlay) ───────── */
+function SearchResultRow({ r, onSelect }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 14, padding: "10px 12px",
+        borderRadius: 14, cursor: "pointer",
+        background: hovered ? C.page : "transparent",
+        transition: "background 120ms"
+      }}
+    >
+      <img src={r.img} alt={r.name}
+        style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontWeight: 600, fontSize: 14, color: C.textMain,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+        }}>
+          {r.name}
+        </div>
+        <div style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>
+          {r.cuisine} · {r.eta}
+        </div>
+      </div>
+      <div style={{
+        fontSize: 12, fontWeight: 700, color: C.primary,
+        background: C.primary + "12", padding: "4px 10px", borderRadius: 8, flexShrink: 0
+      }}>
+        ₹{r.cost}
       </div>
     </div>
   );
@@ -724,6 +762,7 @@ export default function LandingPage() {
   const [address, setAddress] = useState(() => localStorage.getItem("ze_address") || "");
   const [showAddressModal, setShowAddressModal] = useState(!localStorage.getItem("ze_address") && !user);
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [category, setCategory] = useState("All");
   const [restaurants, setRestaurants] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -875,7 +914,7 @@ export default function LandingPage() {
               {address ? `Delivering to ${address}` : "Set your location to see restaurants near you"}
             </p>
 
-            {/* Search */}
+            {/* Search — clicking opens the full overlay */}
             <div style={{ position: "relative", maxWidth: 520 }}>
               <div style={{
                 position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
@@ -885,92 +924,16 @@ export default function LandingPage() {
               </div>
               <input
                 ref={searchRef}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
+                readOnly
+                onClick={() => setSearchOpen(true)}
                 placeholder="Search restaurants, cuisines, dishes..."
                 style={{
-                  width: "100%", height: 54, paddingLeft: 50, paddingRight: query ? 44 : 16,
+                  width: "100%", height: 54, paddingLeft: 50, paddingRight: 16,
                   borderRadius: 16, border: "2px solid transparent", background: "rgba(255,255,255,0.97)",
                   fontSize: 15, color: C.textMain, outline: "none", fontFamily: "inherit",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.25)", transition: "border-color 120ms"
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.25)", cursor: "pointer"
                 }}
-                onFocus={e => e.target.style.borderColor = C.accent}
-                onBlur={e => e.target.style.borderColor = "transparent"}
               />
-              {query && (
-                <button onClick={() => setQuery("")}
-                  style={{
-                    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-                    background: "none", border: "none", color: C.textMuted, cursor: "pointer",
-                    display: "flex", alignItems: "center"
-                  }}>
-                  <Icon.X size={15} />
-                </button>
-              )}
-
-              {/* ── LIVE SEARCH DROPDOWN ── */}
-              {query.trim() && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0, zIndex: 50,
-                  background: C.surface, borderRadius: 16,
-                  boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
-                  border: `1px solid ${C.border}`,
-                  overflow: "hidden", maxHeight: 320, overflowY: "auto",
-                }}>
-                  {filtered.length === 0 ? (
-                    <div style={{ padding: "20px 16px", textAlign: "center", color: C.textMuted, fontSize: 14 }}>
-                      No restaurants found for "{query}"
-                    </div>
-                  ) : (
-                    filtered.slice(0, 6).map(r => (
-                      <div
-                        key={r.id}
-                        onClick={() => navigate(`/restaurant/${r.id}`)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 12,
-                          padding: "10px 14px", cursor: "pointer",
-                          borderBottom: `1px solid ${C.borderSoft}`,
-                          transition: "background 120ms",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = C.page}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                      >
-                        <img
-                          src={r.img}
-                          alt={r.name}
-                          style={{ width: 44, height: 44, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
-                        />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontWeight: 600, fontSize: 14, color: C.textMain,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                          }}>
-                            {r.name}
-                          </div>
-                          <div style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>
-                            {r.cuisine} · {r.eta}
-                          </div>
-                        </div>
-                        <div style={{
-                          fontSize: 12, fontWeight: 700, color: C.primary,
-                          background: C.primary + "12", padding: "3px 8px", borderRadius: 6,
-                          flexShrink: 0
-                        }}>
-                          ₹{r.cost}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  {filtered.length > 6 && (
-                    <div style={{
-                      padding: "10px 16px", textAlign: "center", fontSize: 12,
-                      color: C.textMuted, borderTop: `1px solid ${C.borderSoft}`
-                    }}>
-                      +{filtered.length - 6} more results below
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1182,6 +1145,100 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── FULL SCREEN SEARCH OVERLAY ── */}
+      {searchOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200, display: "flex", flexDirection: "column",
+          background: "rgba(11,15,14,0.55)", backdropFilter: "blur(6px)"
+        }}
+          onClick={e => { if (e.target === e.currentTarget) { setSearchOpen(false); setQuery(""); } }}
+        >
+          <div style={{
+            background: C.surface, width: "100%", maxHeight: "90vh",
+            borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column",
+            overflow: "hidden"
+          }}>
+
+            {/* Search input row */}
+            <div style={{
+              padding: "16px 20px", borderBottom: `1px solid ${C.borderSoft}`,
+              display: "flex", alignItems: "center", gap: 12
+            }}>
+              <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
+                <Icon.Search size={18} style={{ position: "absolute", left: 14, color: C.textMuted, pointerEvents: "none" }} />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search restaurants, cuisines, dishes..."
+                  style={{
+                    width: "100%", height: 48, paddingLeft: 44, paddingRight: 16,
+                    borderRadius: 14, border: `1.5px solid ${C.border}`, background: C.page,
+                    fontSize: 15, color: C.textMain, outline: "none", fontFamily: "inherit",
+                    transition: "border-color 120ms"
+                  }}
+                  onFocus={e => e.target.style.borderColor = C.primary}
+                  onBlur={e => e.target.style.borderColor = C.border}
+                />
+              </div>
+              <button onClick={() => { setSearchOpen(false); setQuery(""); }}
+                style={{
+                  padding: "10px 16px", borderRadius: 12, border: `1.5px solid ${C.border}`,
+                  background: "transparent", color: C.textSub, fontSize: 13, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap"
+                }}>
+                Cancel
+              </button>
+            </div>
+
+            {/* Results */}
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {!query.trim() ? (
+                /* Empty state — show all restaurants */
+                <div style={{ padding: "16px 20px" }}>
+                  <p style={{
+                    fontSize: 12, fontWeight: 600, color: C.textMuted,
+                    letterSpacing: "0.08em", marginBottom: 12
+                  }}>ALL RESTAURANTS</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {restaurants.map(r => (
+                      <SearchResultRow key={r.id} r={r} onSelect={() => {
+                        setSearchOpen(false); setQuery(""); navigate(`/restaurant/${r.id}`);
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div style={{ padding: "48px 20px", textAlign: "center" }}>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
+                  <p style={{ fontSize: 16, fontWeight: 600, color: C.textMain, marginBottom: 6 }}>
+                    No results for "{query}"
+                  </p>
+                  <p style={{ fontSize: 13, color: C.textSub }}>Try a different name or cuisine</p>
+                </div>
+              ) : (
+                <div style={{ padding: "16px 20px" }}>
+                  <p style={{
+                    fontSize: 12, fontWeight: 600, color: C.textMuted,
+                    letterSpacing: "0.08em", marginBottom: 12
+                  }}>
+                    {filtered.length} RESULT{filtered.length !== 1 ? "S" : ""} FOR "{query.toUpperCase()}"
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {filtered.map(r => (
+                      <SearchResultRow key={r.id} r={r} onSelect={() => {
+                        setSearchOpen(false); setQuery(""); navigate(`/restaurant/${r.id}`);
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Profile Drawer */}
       {profileOpen && <ProfileDrawer user={user} onClose={() => setProfileOpen(false)} navigate={navigate} />}

@@ -53,6 +53,10 @@ export default function Restaurant() {
   const [addingId, setAddingId] = useState(null);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [id]);
+
+  useEffect(() => {
     async function load() {
       try {
         const [rest, menu] = await Promise.all([
