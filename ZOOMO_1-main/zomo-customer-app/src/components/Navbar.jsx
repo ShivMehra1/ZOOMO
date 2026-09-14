@@ -81,10 +81,12 @@ export default function Navbar() {
       boxShadow: scrolled ? "0 2px 20px rgba(15,61,46,0.07)" : "none",
       transition: "all 180ms ease-out",
       fontFamily: "'Poppins', system-ui, sans-serif",
+      overflow: "hidden", width: "100%",
     }}>
       <div style={{
-        maxWidth: 1152, margin: "0 auto", padding: "12px 20px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12
+        maxWidth: 1152, margin: "0 auto", padding: "10px 12px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 8, boxSizing: "border-box", width: "100%"
       }}>
 
         <Link to="/" style={{ flexShrink: 0, textDecoration: "none" }}>
@@ -93,32 +95,42 @@ export default function Navbar() {
 
         {address && (
           <div style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "8px 14px",
-            borderRadius: 12, background: "#F5F7F6", border: `1.5px solid ${C.border}`,
-            fontSize: 13, color: C.textMain, flex: 1, maxWidth: 320, minWidth: 0
+            display: "flex", alignItems: "center", gap: 6, padding: "7px 10px",
+            borderRadius: 10, background: "#F5F7F6", border: `1px solid ${C.border}`,
+            fontSize: 12, color: C.textMain,
+            flex: "1 1 0", minWidth: 0, maxWidth: 200, overflow: "hidden"
           }}>
-            <span style={{ color: C.accent, flexShrink: 0 }}><Icon.MapPin /></span>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{address}</span>
+            <span style={{
+              color: C.accent, flexShrink: 0,
+              display: "inline-flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <Icon.MapPin />
+            </span>
+            <span style={{
+              overflow: "hidden", textOverflow: "ellipsis",
+              whiteSpace: "nowrap", fontWeight: 500, minWidth: 0
+            }}>
+              {address}
+            </span>
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           {user ? (
             <>
               <button onClick={() => navigate("/orders")}
                 style={{
-                  display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+                  display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
                   borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface,
                   color: C.textMain, fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-                  transition: "all 120ms"
+                  transition: "all 120ms", flexShrink: 0
                 }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
               >
                 <Icon.User /> {user.name?.split(" ")[0]}
               </button>
-              <button onClick={logout}
-                title="Logout"
+              <button onClick={logout} title="Logout"
                 style={{
                   width: 36, height: 36, borderRadius: 10, border: "1.5px solid #FECACA",
                   background: "#FFF5F5", color: "#DC2626", cursor: "pointer",
@@ -128,7 +140,6 @@ export default function Navbar() {
                 onMouseEnter={e => e.currentTarget.style.background = "#FEE2E2"}
                 onMouseLeave={e => e.currentTarget.style.background = "#FFF5F5"}
               >
-                {/* Logout icon */}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
@@ -140,10 +151,10 @@ export default function Navbar() {
             <>
               <Link to="/login"
                 style={{
-                  display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+                  display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
                   borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface,
                   color: C.textSub, fontSize: 13, fontWeight: 500, textDecoration: "none",
-                  transition: "all 120ms"
+                  transition: "all 120ms", flexShrink: 0, whiteSpace: "nowrap"
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.color = C.primary; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSub; }}
@@ -152,10 +163,11 @@ export default function Navbar() {
               </Link>
               <Link to="/signup"
                 style={{
-                  display: "flex", alignItems: "center", gap: 6, padding: "9px 16px",
+                  display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
                   borderRadius: 10, background: `linear-gradient(135deg, ${C.primary} 0%, ${C.hover} 100%)`,
                   color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
-                  boxShadow: "0 2px 8px rgba(15,61,46,0.25)", transition: "all 120ms"
+                  boxShadow: "0 2px 8px rgba(15,61,46,0.25)", transition: "all 120ms",
+                  flexShrink: 0, whiteSpace: "nowrap"
                 }}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,61,46,0.35)"}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,61,46,0.25)"}
@@ -167,7 +179,7 @@ export default function Navbar() {
 
           <button onClick={() => navigate("/cart")}
             style={{
-              position: "relative", width: 40, height: 40, borderRadius: 10,
+              position: "relative", width: 38, height: 38, borderRadius: 10,
               border: `1.5px solid ${C.border}`, background: C.surface,
               display: "flex", alignItems: "center", justifyContent: "center",
               color: C.textSub, cursor: "pointer", transition: "all 120ms", flexShrink: 0
