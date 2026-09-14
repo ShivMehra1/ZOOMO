@@ -45,20 +45,24 @@ export class MerchantDishesService {
     return this.prisma.dish.create({
       data: {
         name: body.name,
-        description: body.description,
+        description: body.description || null,
         price: Number(body.price),
-        // ✅ FIX: was never read from body — every new dish had imageUrl = null
-        imageUrl: body.imageUrl ?? null,
-        ingredients: body.ingredients,
-        calories: body.calories,
-        preparationTime: body.preparationTime,
+        // ✅ FIX: Prisma schema has calories and preparationTime as Int?
+        // React inputs always return strings — "10" or "" — so we must
+        // coerce to integer or null. Sending "" to an Int? column causes
+        // a Prisma type validation error → 500 Internal Server Error.
+        imageUrl: body.imageUrl || null,
+        ingredients: body.ingredients || null,
+        calories: body.calories !== undefined && body.calories !== "" && body.calories !== null
+          ? parseInt(String(body.calories), 10) || null
+          : null,
+        preparationTime: body.preparationTime !== undefined && body.preparationTime !== "" && body.preparationTime !== null
+          ? parseInt(String(body.preparationTime), 10) || null
+          : null,
         isVegetarian: body.isVegetarian ?? false,
         isVegan: body.isVegan ?? false,
         isGlutenFree: body.isGlutenFree ?? false,
-        isAvailable:
-          body.isAvailable !== undefined
-            ? body.isAvailable
-            : true,
+        isAvailable: body.isAvailable !== undefined ? body.isAvailable : true,
         restaurantId: restaurant.id,
       },
     });
@@ -101,18 +105,21 @@ export class MerchantDishesService {
       where: { id: dishId },
       data: {
         name: body.name,
-        description: body.description,
-        price:
-          body.price !== undefined
-            ? Number(body.price)
-            : undefined,
-        // ✅ FIX: was never read from body — editing a dish could never
-        // change its image even if the frontend sent a real URL.
-        imageUrl:
-          body.imageUrl !== undefined ? body.imageUrl : undefined,
-        ingredients: body.ingredients,
-        calories: body.calories,
-        preparationTime: body.preparationTime,
+        description: body.description || null,
+        price: body.price !== undefined ? Number(body.price) : undefined,
+        imageUrl: body.imageUrl !== undefined ? body.imageUrl : undefined,
+        ingredients: body.ingredients || null,
+        // ✅ FIX: same Int? coercion needed on update
+        calories: body.calories !== undefined
+          ? (body.calories !== "" && body.calories !== null
+            ? parseInt(String(body.calories), 10) || null
+            : null)
+          : undefined,
+        preparationTime: body.preparationTime !== undefined
+          ? (body.preparationTime !== "" && body.preparationTime !== null
+            ? parseInt(String(body.preparationTime), 10) || null
+            : null)
+          : undefined,
         isVegetarian: body.isVegetarian,
         isVegan: body.isVegan,
         isGlutenFree: body.isGlutenFree,

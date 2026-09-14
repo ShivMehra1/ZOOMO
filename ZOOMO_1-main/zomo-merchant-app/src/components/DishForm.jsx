@@ -81,7 +81,16 @@ export default function DishForm({ initialData = {}, onSubmit, saving = false })
       setUploadError("Please wait for the image to finish uploading.");
       return;
     }
-    onSubmit(form);
+    // ✅ FIX: coerce empty string values for optional Int fields to null
+    // so Prisma doesn't receive "" for an Int? column → 500 error.
+    onSubmit({
+      ...form,
+      price: form.price,
+      calories: form.calories !== "" ? form.calories : null,
+      preparationTime: form.preparationTime !== "" ? form.preparationTime : null,
+      ingredients: form.ingredients !== "" ? form.ingredients : null,
+      description: form.description !== "" ? form.description : null,
+    });
   };
 
   return (
