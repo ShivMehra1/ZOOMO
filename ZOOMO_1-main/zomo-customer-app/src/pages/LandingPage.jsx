@@ -225,23 +225,15 @@ function SearchResultRow({ r, onSelect }) {
 }
 
 /* ─── NAVBAR ──────────────────────────────────────── */
+const LOGO_URL = "https://res.cloudinary.com/dx2qaarhy/image/upload/v1789420327/2bb606dc-2292-40ba-a4e8-df6720a3b700.png";
+
 function ZLogo() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <div style={{
-        width: 34, height: 34, borderRadius: 10, background: C.primary,
-        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-      }}>
-        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-          <path d="M6 10H22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-          <path d="M22 10L10 22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-          <path d="M10 22H26" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-        </svg>
-      </div>
-      <span style={{ fontWeight: 700, fontSize: 17, color: C.textMain, letterSpacing: "-0.01em" }}>
-        Zoomo <span style={{ color: C.accent }}>Eats</span>
-      </span>
-    </div>
+    <img
+      src={LOGO_URL}
+      alt="Zoomo Eats"
+      style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }}
+    />
   );
 }
 
