@@ -6,10 +6,14 @@ import {
 import { PrismaService } from "../common/prisma.service";
 import { MessageSender, OrderStatus, OrderType } from "@prisma/client";
 import { PROMO_CODES } from "../common/promo-codes";
+import { computeDeliveryFee, computeRevenueSplit } from "../common/revenue-split.util";
+import { haversineKm } from "../common/geo.util";
+import { resolveJourianCoords } from "../common/jourian-areas.util";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService, private realtime: RealtimeGateway) { }
 
   /* ===========================
      GET USER ORDERS
@@ -93,7 +97,7 @@ export class OrdersService {
 
     /* ── Promo ── */
     let discount = 0;
-    let deliveryFee = 29;
+    let deliveryFee = computeDeliveryFee(subtotal);
     let validatedPromoCode: string | null = null;
 
     if (promoCode) {
@@ -130,6 +134,26 @@ export class OrdersService {
       throw new BadRequestException("This restaurant is currently closed");
     }
 
+    /* ── Distance (real haversine, using real lat/lng where available, else
+       a Jourian-area-name fallback since Mapbox can't geocode a fictional
+       town) and revenue split ── */
+    let distanceKm: number | null = null;
+    if (addressId) {
+      const address = await this.prisma.address.findUnique({ where: { id: addressId } });
+      if (address) {
+        const origin =
+          restaurantDish.restaurant.lat != null && restaurantDish.restaurant.lng != null
+            ? { lat: restaurantDish.restaurant.lat, lng: restaurantDish.restaurant.lng }
+            : resolveJourianCoords(restaurantDish.restaurant.address);
+        const dest =
+          address.lat != null && address.lng != null
+            ? { lat: address.lat, lng: address.lng }
+            : resolveJourianCoords(`${address.street} ${address.city}`);
+        distanceKm = parseFloat(haversineKm(origin.lat, origin.lng, dest.lat, dest.lng).toFixed(2));
+      }
+    }
+    const { restaurantEarning, platformFee, driverCommission } = computeRevenueSplit(subtotal);
+
     /* ── Status ── */
     const orderStatus = scheduledFor
       ? OrderStatus.SCHEDULED
@@ -163,6 +187,10 @@ export class OrdersService {
           promisedAt,
           specialInstructions,
           status: orderStatus,
+          restaurantEarning,
+          platformFee,
+          driverCommission,
+          distanceKm,
           items: {
             create: cart.items.map((item) => ({
               dishId: item.dishId,
@@ -194,6 +222,12 @@ export class OrdersService {
       where: { cartId: cart.id },
     });
 
+    this.realtime.emitToRooms(
+      [`restaurant:${order.restaurantId}`, `user:${userId}`, "admin"],
+      "order:created",
+      order,
+    );
+
     return order;
   }
 
@@ -212,10 +246,19 @@ export class OrdersService {
     if (order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED) {
       throw new BadRequestException(`Order already ${order.status.toLowerCase()}`);
     }
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.CANCELLED },
     });
+    this.emitOrderUpdate(updated);
+    return updated;
+  }
+
+  /** Broadcast an order's current state to everyone with a stake in it. */
+  private emitOrderUpdate(order: { id: string; restaurantId: string; userId: string; driverId: string | null }) {
+    const rooms = [`order:${order.id}`, `restaurant:${order.restaurantId}`, `user:${order.userId}`, "admin"];
+    if (order.driverId) rooms.push(`driver:${order.driverId}`);
+    this.realtime.emitToRooms(rooms, "order:updated", order);
   }
 
   async rateOrder(orderId: string, userId: string, rating: number) {
@@ -271,11 +314,15 @@ export class OrdersService {
   }
 
   async sendMessage(orderId: string, userId: string, text: string) {
-    await this.ownedOrder(orderId, userId);
+    const order = await this.ownedOrder(orderId, userId);
     const trimmed = (text || "").trim();
     if (!trimmed) throw new BadRequestException("Message can't be empty");
-    return this.prisma.orderMessage.create({
+    const message = await this.prisma.orderMessage.create({
       data: { orderId, sender: MessageSender.CUSTOMER, text: trimmed.slice(0, 500) },
     });
+    const rooms = [`order:${orderId}`];
+    if (order.driverId) rooms.push(`driver:${order.driverId}`);
+    this.realtime.emitToRooms(rooms, "order:message", message);
+    return message;
   }
 }

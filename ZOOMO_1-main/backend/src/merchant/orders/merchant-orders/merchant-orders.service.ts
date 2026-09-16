@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma.service';
 import { OrderStatus } from '@prisma/client';
+import { RealtimeGateway } from '../../../realtime/realtime.gateway';
 
 const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
   SCHEDULED: OrderStatus.PENDING,        // ✅ ADDED
@@ -19,7 +20,7 @@ const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
 
 @Injectable()
 export class MerchantOrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService, private realtime: RealtimeGateway) { }
 
   // 🔐 ensure restaurant belongs to merchant
   private async assertRestaurantOwnership(
@@ -127,10 +128,18 @@ export class MerchantOrdersService {
       );
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: nextStatus },
     });
+    this.emitOrderUpdate(updated);
+    return updated;
+  }
+
+  private emitOrderUpdate(order: { id: string; restaurantId: string; userId: string; driverId: string | null }) {
+    const rooms = [`order:${order.id}`, `restaurant:${order.restaurantId}`, `user:${order.userId}`, 'admin'];
+    if (order.driverId) rooms.push(`driver:${order.driverId}`);
+    this.realtime.emitToRooms(rooms, 'order:updated', order);
   }
 
   // ✅ CANCEL ORDER
@@ -164,9 +173,11 @@ export class MerchantOrdersService {
       );
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.CANCELLED },
     });
+    this.emitOrderUpdate(updated);
+    return updated;
   }
 }

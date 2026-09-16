@@ -1,9 +1,144 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiChevronLeft, FiClock, FiPackage, FiTrendingUp } from "react-icons/fi";
+import { FiChevronLeft, FiClock, FiPackage, FiTrendingUp, FiDollarSign } from "react-icons/fi";
 import Header from "../components/Header";
 import BottomNav from "../components/BottomNav";
-import { fetchDeliveryHistory } from "../services/driverApi";
+import {
+  fetchDeliveryHistory,
+  fetchPayoutBalance,
+  fetchPayouts,
+  requestPayout,
+} from "../services/driverApi";
+import { useDriverSocket } from "../hooks/useDriverSocket";
+
+const METHODS = [
+  { id: "UPI", label: "UPI", placeholder: "your-id@upi" },
+  { id: "BANK_TRANSFER", label: "Bank transfer", placeholder: "Account number" },
+  { id: "CASH", label: "Cash", placeholder: null },
+];
+
+const PAYOUT_TONE = { PENDING: "tone-wait", COMPLETED: "tone-go", REJECTED: "tone-stop" };
+
+function CashOutCard() {
+  const socket = useDriverSocket();
+  const [balance, setBalance] = useState(null);
+  const [payouts, setPayouts] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("UPI");
+  const [detail, setDetail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = () => {
+    fetchPayoutBalance().then(setBalance).catch(() => {});
+    fetchPayouts().then(setPayouts).catch(() => {});
+  };
+
+  useEffect(() => {
+    load();
+    socket.on("payout:updated", load);
+    return () => socket.off("payout:updated", load);
+  }, [socket]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) return setError("Enter a valid amount");
+    setSubmitting(true);
+    try {
+      await requestPayout({ amount: amt, method, payoutDetail: detail || undefined });
+      setOpen(false);
+      setAmount("");
+      setDetail("");
+      load();
+    } catch (err) {
+      setError(err.message || "Failed to request payout");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const selectedMethod = METHODS.find((m) => m.id === method);
+
+  return (
+    <div className="rounded-card p-5 shadow-card bg-z-surface mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[11px] font-bold tracking-wide text-z-muted uppercase">Available to cash out</p>
+        <FiDollarSign className="text-z-primary" size={16} />
+      </div>
+      <p className="display text-3xl text-z-ink mb-4">
+        {balance ? `₹${balance.available.toFixed(0)}` : "—"}
+      </p>
+
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          disabled={!balance || balance.available <= 0}
+          className="btn-primary h-12 text-sm"
+        >
+          Cash out
+        </button>
+      ) : (
+        <form onSubmit={submit} className="space-y-3">
+          {error && <p className="text-xs text-z-danger">{error}</p>}
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={`Amount (max ₹${balance?.available.toFixed(0) ?? 0})`}
+            max={balance?.available}
+            className="field h-12"
+          />
+          <div className="flex gap-2">
+            {METHODS.map((m) => (
+              <button
+                type="button"
+                key={m.id}
+                onClick={() => setMethod(m.id)}
+                className={`selectable flex-1 h-11 ${method === m.id ? "selectable-on" : ""}`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {selectedMethod?.placeholder && (
+            <input
+              value={detail}
+              onChange={(e) => setDetail(e.target.value)}
+              placeholder={selectedMethod.placeholder}
+              className="field h-12"
+            />
+          )}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setOpen(false)} className="btn-ghost h-12 text-sm flex-1">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="btn-primary h-12 text-sm flex-1">
+              {submitting ? "Requesting..." : "Request payout"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {payouts.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-z-line-soft space-y-2">
+          <p className="text-[11px] font-bold tracking-wide text-z-muted uppercase mb-2">Payout history</p>
+          {payouts.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm">
+              <div>
+                <span className="font-bold text-z-ink">₹{p.amount.toFixed(0)}</span>{" "}
+                <span className="text-z-sub text-xs">· {p.method.replace("_", " ")}</span>
+              </div>
+              <span className={`badge ${PAYOUT_TONE[p.status]}`}>{p.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function dayKey(d) {
   return new Date(d).toISOString().slice(0, 10);
@@ -119,6 +254,8 @@ export default function Earnings() {
                 <p className="text-z-muted text-xs mt-1">All-time earnings</p>
               </div>
             </div>
+
+            <CashOutCard />
 
             <div className="mb-4">
               <EarningsChart days={stats.days} />

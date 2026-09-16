@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Trash2 } from "lucide-react";
+import { NotebookPen, ShoppingBag, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/zoomo/shell";
 import { BackBar } from "@/components/zoomo/back-bar";
 import { FoodImg } from "@/components/zoomo/food-img";
@@ -11,7 +12,8 @@ export const Route = createFileRoute("/cart")({ component: CartPage });
 
 function CartPage() {
   const nav = useNavigate();
-  const { cart, setQty, removeItem, user, clearBag, setActiveBag } = useZoomo();
+  const { cart, setQty, removeItem, user, clearBag, setActiveBag, setItemNote } = useZoomo();
+  const [editingNote, setEditingNote] = useState<string | null>(null);
 
   const groups = [...new Set(cart.map((i) => i.restaurantId))].map((rid) => {
     const items = cart.filter((i) => i.restaurantId === rid);
@@ -65,6 +67,38 @@ function CartPage() {
                         {j.forPerson && <p className="text-[11px] text-primary">For {j.forPerson}</p>}
                         <p className="text-xs text-muted tabular">{inr(j.price)} each</p>
                         <p className="mt-1 text-sm font-bold text-primary tabular">{inr(j.price * j.quantity)}</p>
+                        {editingNote === j.dishId ? (
+                          <input
+                            autoFocus
+                            defaultValue={j.note ?? ""}
+                            placeholder="e.g. no onions, extra spicy"
+                            onBlur={(e) => {
+                              setItemNote(j.dishId, e.target.value);
+                              setEditingNote(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                              if (e.key === "Escape") setEditingNote(null);
+                            }}
+                            className="mt-1.5 w-full rounded-lg border-0 bg-page px-2 py-1 text-xs text-ink outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(15,61,45,0.14)]"
+                          />
+                        ) : j.note ? (
+                          <button
+                            type="button"
+                            onClick={() => setEditingNote(j.dishId)}
+                            className="mt-1 flex items-center gap-1 text-left text-[11px] text-sub italic"
+                          >
+                            <NotebookPen className="size-3 shrink-0" /> {j.note}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEditingNote(j.dishId)}
+                            className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-primary"
+                          >
+                            <NotebookPen className="size-3" /> Add a note
+                          </button>
+                        )}
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <QtyStepper

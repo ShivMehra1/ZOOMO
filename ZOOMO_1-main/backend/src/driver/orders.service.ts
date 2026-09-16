@@ -2,13 +2,18 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, MessageSender } from "@prisma/client";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 
 @Injectable()
 export class DriverOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   /* ===========================
      RESOLVE DRIVER
@@ -118,11 +123,19 @@ export class DriverOrdersService {
     if (order.status !== OrderStatus.READY_FOR_PICKUP)
       throw new ForbiddenException("Order not ready for pickup");
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.OUT_FOR_DELIVERY },
-      select: { id: true, status: true },
+      select: { id: true, status: true, restaurantId: true, userId: true, driverId: true },
     });
+    this.emitOrderUpdate(updated);
+    return updated;
+  }
+
+  private emitOrderUpdate(order: { id: string; restaurantId: string; userId: string; driverId: string | null }) {
+    const rooms = [`order:${order.id}`, `restaurant:${order.restaurantId}`, `user:${order.userId}`, "admin"];
+    if (order.driverId) rooms.push(`driver:${order.driverId}`);
+    this.realtime.emitToRooms(rooms, "order:updated", order);
   }
 
   /* ===========================
@@ -149,7 +162,7 @@ export class DriverOrdersService {
       throw new ForbiddenException("Order not out for delivery");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
       // 1️⃣ Update order
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
@@ -173,6 +186,8 @@ export class DriverOrdersService {
 
       return updatedOrder;
     });
+    this.emitOrderUpdate(updatedOrder);
+    return updatedOrder;
   }
 
   /* ===========================
@@ -246,5 +261,28 @@ export class DriverOrdersService {
         },
       })),
     };
+  }
+
+  /* ===========================
+     RIDE CHAT (driver side)
+  ============================ */
+  async getMessages(orderId: string, userId: string) {
+    const driverId = await this.getDriverId(userId);
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, driverId } });
+    if (!order) throw new NotFoundException("Order not found or not assigned to you");
+    return this.prisma.orderMessage.findMany({ where: { orderId }, orderBy: { createdAt: "asc" } });
+  }
+
+  async sendMessage(orderId: string, userId: string, text: string) {
+    const driverId = await this.getDriverId(userId);
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, driverId } });
+    if (!order) throw new NotFoundException("Order not found or not assigned to you");
+    const trimmed = (text || "").trim();
+    if (!trimmed) throw new BadRequestException("Message can't be empty");
+    const message = await this.prisma.orderMessage.create({
+      data: { orderId, sender: MessageSender.DRIVER, text: trimmed.slice(0, 500) },
+    });
+    this.realtime.emitToRooms([`order:${orderId}`, `user:${order.userId}`], "order:message", message);
+    return message;
   }
 }

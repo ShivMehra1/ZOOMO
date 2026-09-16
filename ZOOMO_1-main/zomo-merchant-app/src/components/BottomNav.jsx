@@ -7,6 +7,7 @@ import {
   FiTag,
   FiStar,
   FiHome,
+  FiDollarSign,
 } from "react-icons/fi";
 
 const NAV_ITEMS = [
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { to: "/analytics", label: "Insights", icon: FiBarChart2 },
   { to: "/promotions", label: "Promos", icon: FiTag },
   { to: "/reviews", label: "Reviews", icon: FiStar },
+  { to: "/payouts", label: "Cash out", icon: FiDollarSign },
   { to: "/restaurant", label: "Store", icon: FiHome },
 ];
 

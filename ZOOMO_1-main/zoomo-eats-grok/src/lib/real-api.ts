@@ -183,6 +183,7 @@ export type RealCartItem = {
   quantity: number;
   dishId: string;
   dishSizeId: string | null;
+  specialInstructions?: string | null;
   dish: { id: string; name: string; price: number; imageUrl: string; isVegetarian: boolean; restaurantId: string; sizes?: { id: string; label: string; price: number }[] };
 };
 
@@ -191,12 +192,12 @@ export async function realGetCart(): Promise<RealCartItem[]> {
   return Array.isArray(res?.items) ? res.items : [];
 }
 
-export function realAddToCart(dishId: string, quantity: number, dishSizeId?: string) {
-  return realApi.post("/cart/items", { dishId, quantity, dishSizeId });
+export function realAddToCart(dishId: string, quantity: number, dishSizeId?: string, specialInstructions?: string) {
+  return realApi.post("/cart/items", { dishId, quantity, dishSizeId, specialInstructions });
 }
 
-export function realSetCartItemQty(cartItemId: string, quantity: number) {
-  return realApi.patch(`/cart/items/${cartItemId}`, { quantity });
+export function realSetCartItemQty(cartItemId: string, quantity: number, specialInstructions?: string) {
+  return realApi.patch(`/cart/items/${cartItemId}`, { quantity, specialInstructions });
 }
 
 export function realRemoveCartItem(cartItemId: string) {
@@ -431,6 +432,7 @@ export function toStoreOrder(o: any) {
     imageUrl: i.dish?.imageUrl ?? "",
     isVegetarian: Boolean(i.dish?.isVegetarian),
     quantity: i.quantity,
+    note: i.specialInstructions || undefined,
   }));
   return {
     id: o.id,

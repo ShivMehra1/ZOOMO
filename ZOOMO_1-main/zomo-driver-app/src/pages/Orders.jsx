@@ -4,10 +4,12 @@ import BottomNav from "../components/BottomNav";
 import Header from "../components/Header";
 import { fetchAssignedOrders } from "../services/driverApi";
 import { useDriverAuth } from "../context/DriverAuthContext";
+import { useDriverSocket } from "../hooks/useDriverSocket";
 
 export default function Orders() {
   const navigate = useNavigate();
   const { driver } = useDriverAuth();
+  const socket = useDriverSocket();
 
   const isOnline = Boolean(driver?.isAvailable);
 
@@ -33,7 +35,14 @@ export default function Orders() {
     };
 
     loadOrders();
-  }, [isOnline]);
+
+    // Live: a new assignment or a status change on one of ours — just
+    // refetch the (small) assigned-orders list rather than trying to
+    // patch individual entries.
+    const onOrderUpdated = () => loadOrders();
+    socket.on("order:updated", onOrderUpdated);
+    return () => socket.off("order:updated", onOrderUpdated);
+  }, [isOnline, socket]);
 
   if (!isOnline) {
     return (

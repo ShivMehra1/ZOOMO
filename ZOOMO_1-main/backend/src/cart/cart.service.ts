@@ -35,7 +35,7 @@ export class CartService {
   }
 
   /* ================= ADD ITEM ================= */
-  async addItem(userId: string, dishId: string, quantity: number = 1, dishSizeId?: string) {
+  async addItem(userId: string, dishId: string, quantity: number = 1, dishSizeId?: string, specialInstructions?: string) {
     if (!userId) throw new BadRequestException("❌ userId missing");
     if (!dishId) throw new BadRequestException("❌ dishId missing");
 
@@ -43,6 +43,7 @@ export class CartService {
     if (!dish) throw new NotFoundException("❌ Dish not found");
 
     let cart = await this.ensureCart(userId);
+    const note = specialInstructions?.trim() || null;
 
     /* ============ RESTAURANT CONFLICT ============ */
     if (cart.items.length > 0) {
@@ -56,9 +57,11 @@ export class CartService {
       }
     }
 
-    /* ============ ADD OR UPDATE ITEM ============ */
+    /* ============ ADD OR UPDATE ITEM ============
+       Same dish+size+note merges quantity; a different note is a separate
+       line (e.g. "no onions" vs "extra spicy" shouldn't collapse together). */
     const existing = await this.prisma.cartItem.findFirst({
-      where: { cartId: cart.id, dishId, dishSizeId: dishSizeId || null },
+      where: { cartId: cart.id, dishId, dishSizeId: dishSizeId || null, specialInstructions: note },
     });
 
     if (existing) {
@@ -68,15 +71,15 @@ export class CartService {
       });
     } else {
       await this.prisma.cartItem.create({
-        data: { cartId: cart.id, dishId, quantity, dishSizeId: dishSizeId || null },
+        data: { cartId: cart.id, dishId, quantity, dishSizeId: dishSizeId || null, specialInstructions: note },
       });
     }
 
     return this.getCart(userId); // 👈 CONSISTENT RETURN
   }
 
- /* ================= UPDATE QUANTITY ================= */
-async updateItem(id: string, quantity: number) {
+ /* ================= UPDATE QUANTITY / NOTE ================= */
+async updateItem(id: string, quantity: number, specialInstructions?: string) {
   if (!id) throw new BadRequestException("❌ item id missing");
 
   const item = await this.prisma.cartItem.findUnique({ where: { id } });
@@ -87,7 +90,10 @@ async updateItem(id: string, quantity: number) {
   } else {
     await this.prisma.cartItem.update({
       where: { id },
-      data: { quantity },
+      data: {
+        quantity,
+        ...(specialInstructions !== undefined ? { specialInstructions: specialInstructions.trim() || null } : {}),
+      },
     });
   }
 

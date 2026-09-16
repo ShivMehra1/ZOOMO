@@ -1,7 +1,8 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { socket, joinRoom, leaveRoom } from "../lib/socket";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -10,81 +11,96 @@ export default function Dashboard() {
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [restaurantId, setRestaurantId] = useState(null);
+  const [live, setLive] = useState(false);
+
+  const loadDashboard = useCallback(async (restId) => {
+    try {
+      const ordersRes = await api.get(`/merchant/restaurants/${restId}/orders`);
+      const dishesRes = await api.get("/merchant/dishes");
+
+      const orders = ordersRes.data ?? [];
+      const dishes = dishesRes.data ?? [];
+
+      const today = new Date().toDateString();
+      const todayOrders = orders.filter((o) => new Date(o.createdAt).toDateString() === today);
+      const pendingOrders = orders.filter((o) => o.status === "PENDING");
+      const revenueToday = todayOrders.reduce((sum, o) => sum + o.total, 0);
+
+      setStats({
+        totalOrdersToday: todayOrders.length,
+        pendingOrders: pendingOrders.length,
+        revenueToday,
+        activeDishes: dishes.filter((d) => d.isAvailable).length,
+      });
+
+      setRecentOrders(
+        orders.slice(0, 5).map((o) => ({
+          id: o.id,
+          customer: o.user?.name || "Customer",
+          total: o.total,
+          status: o.status,
+        }))
+      );
+      setLoadError(false);
+    } catch (err) {
+      console.error("Dashboard load failed:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadDashboard = async () => {
+    const init = async () => {
       try {
         const restaurantRes = await api.get("/merchant/restaurants/me");
-        const restaurantId = restaurantRes?.data?.id;
+        const restId = restaurantRes?.data?.id;
 
         // ✅ FIX: a brand-new merchant has no restaurant yet.
         // Instead of crashing on `.id` of an undefined object,
         // send them to onboarding to create one.
-        if (!restaurantId) {
+        if (!restId) {
           navigate("/onboarding", { replace: true });
           return;
         }
 
-        const ordersRes = await api.get(
-          `/merchant/restaurants/${restaurantId}/orders`
-        );
-
-        const dishesRes = await api.get("/merchant/dishes");
-
-        const orders = ordersRes.data ?? [];
-        const dishes = dishesRes.data ?? [];
-
-        const today = new Date().toDateString();
-
-        const todayOrders = orders.filter(
-          (o) =>
-            new Date(o.createdAt).toDateString() === today
-        );
-
-        const pendingOrders = orders.filter(
-          (o) => o.status === "PENDING"
-        );
-
-        const revenueToday = todayOrders.reduce(
-          (sum, o) => sum + o.total,
-          0
-        );
-
-        setStats({
-          totalOrdersToday: todayOrders.length,
-          pendingOrders: pendingOrders.length,
-          revenueToday,
-          activeDishes: dishes.filter(
-            (d) => d.isAvailable
-          ).length,
-        });
-
-        setRecentOrders(
-          orders.slice(0, 5).map((o) => ({
-            id: o.id,
-            customer: o.user?.name || "Customer",
-            total: o.total,
-            status: o.status,
-          }))
-        );
+        setRestaurantId(restId);
+        await loadDashboard(restId);
       } catch (err) {
         // ✅ FIX: if the restaurant lookup itself fails (404, network
         // error, etc.) treat it the same way — go to onboarding rather
         // than silently failing into a render crash.
-        const status = err?.response?.status;
-        if (status === 404) {
+        if (err?.response?.status === 404) {
           navigate("/onboarding", { replace: true });
           return;
         }
         console.error("Dashboard load failed:", err);
         setLoadError(true);
-      } finally {
         setLoading(false);
       }
     };
 
-    loadDashboard();
-  }, [navigate]);
+    init();
+  }, [navigate, loadDashboard]);
+
+  // Live: new orders / status changes refresh the dashboard without polling.
+  useEffect(() => {
+    if (!restaurantId) return;
+    const room = `restaurant:${restaurantId}`;
+    joinRoom(room);
+    setLive(true);
+
+    const refresh = () => loadDashboard(restaurantId).catch(() => {});
+    socket.on("order:created", refresh);
+    socket.on("order:updated", refresh);
+    return () => {
+      socket.off("order:created", refresh);
+      socket.off("order:updated", refresh);
+      leaveRoom(room);
+      setLive(false);
+    };
+  }, [restaurantId, loadDashboard]);
 
   if (loading) {
     return <p className="text-z-sub text-sm py-12 text-center">Loading dashboard...</p>;
@@ -110,10 +126,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="kicker mb-1">Overview</p>
-        <h1 className="display text-2xl text-z-ink">Dashboard</h1>
-        <p className="text-sm text-z-sub mt-1">Overview of today's activity</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="kicker mb-1">Overview</p>
+          <h1 className="display text-2xl text-z-ink">Dashboard</h1>
+          <p className="text-sm text-z-sub mt-1">Overview of today's activity</p>
+        </div>
+        {live && (
+          <span className="flex items-center gap-1.5 text-[11px] font-bold text-z-primary shrink-0 mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-z-primary animate-pulse" />
+            Live
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

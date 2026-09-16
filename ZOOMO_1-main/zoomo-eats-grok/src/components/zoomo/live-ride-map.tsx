@@ -25,16 +25,24 @@ export function LiveRideMap({
   ride,
   showRider,
   nearby,
+  liveLatLng,
 }: {
   from?: string | null;
   to?: string | null;
   ride: number;
   showRider: boolean;
   nearby?: boolean;
+  /** A real GPS ping from the driver — when present, plots an actual marker
+   * on the underlying Leaflet map at this exact position (in addition to the
+   * stylized simulated-progress bike icon below, which stays for visual
+   * continuity between pings). */
+  liveLatLng?: { lat: number; lng: number } | null;
 }) {
   const tiles = useRef<HTMLDivElement>(null);
   const [smooth, setSmooth] = useState(ride);
   const legs = useMemo(() => uberLegs(from, to), [from, to]);
+  const mapObj = useRef<import("leaflet").Map | null>(null);
+  const liveMarker = useRef<import("leaflet").CircleMarker | null>(null);
 
   useEffect(() => {
     let raf = 0;
@@ -91,6 +99,7 @@ export function LiveRideMap({
         setTimeout(() => m.invalidateSize(), 60);
         setTimeout(() => m.invalidateSize(), 280);
         map = m;
+        mapObj.current = m;
       } catch {
         /* overlay still shows the ride */
       }
@@ -98,9 +107,33 @@ export function LiveRideMap({
 
     return () => {
       dead = true;
+      liveMarker.current = null;
+      mapObj.current = null;
       map?.remove();
     };
   }, [legs.shop.lat, legs.shop.lng, legs.you.lat, legs.you.lng, legs.spawn.lat, legs.spawn.lng]);
+
+  // Real driver GPS pings — plot/update an actual marker on the live map.
+  useEffect(() => {
+    const m = mapObj.current;
+    if (!m || !liveLatLng) return;
+    (async () => {
+      const mod = await import("leaflet");
+      const L = (mod as { default?: typeof import("leaflet") }).default ?? (mod as typeof import("leaflet"));
+      if (!mapObj.current) return;
+      if (liveMarker.current) {
+        liveMarker.current.setLatLng([liveLatLng.lat, liveLatLng.lng]);
+      } else {
+        liveMarker.current = L.circleMarker([liveLatLng.lat, liveLatLng.lng], {
+          radius: 8,
+          color: "#fff",
+          weight: 2,
+          fillColor: "#1f7a52",
+          fillOpacity: 1,
+        }).addTo(m);
+      }
+    })();
+  }, [liveLatLng?.lat, liveLatLng?.lng]);
 
   return (
     <div className="relative h-full min-h-[280px] w-full overflow-hidden bg-[#d7e6de]">
@@ -148,8 +181,10 @@ export function LiveRideMap({
         </div>
       )}
 
-      <p className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold tracking-wide text-ink uppercase shadow-sm">
+      <p className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold tracking-wide text-ink uppercase shadow-sm">
+        {liveLatLng && <span className="size-1.5 rounded-full bg-accent" />}
         {leg === "toShop" ? "Heading to restaurant" : leg === "done" ? "At your gate" : `${km.toFixed(1)} km away`}
+        {liveLatLng && <span className="text-accent">· Live</span>}
       </p>
     </div>
   );

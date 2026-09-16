@@ -1,9 +1,25 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import OrderCard from "../components/OrderCard";
 import OrderFilters from "../components/OrderFilters";
 import { ORDER_FILTERS } from "../utils/orderFilters";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { socket, joinRoom, leaveRoom } from "../lib/socket";
+
+function normalizeOrder(order) {
+  return {
+    id: order.id,
+    customerName: order.user?.name || "Customer",
+    status: order.status,
+    total: order.total,
+    items: order.items,
+    createdAt: order.createdAt,
+    // ✅ Pass these through so OrderCard can display them
+    orderType: order.orderType || "DELIVERY",
+    scheduledFor: order.scheduledFor || null,
+    guestCount: order.guestCount || null,
+  };
+}
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -14,31 +30,18 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchOrders = useCallback(async (restId) => {
+    const ordersRes = await api.get(`/merchant/restaurants/${restId}/orders`);
+    setOrders(ordersRes.data.map(normalizeOrder));
+  }, []);
+
   useEffect(() => {
-    const fetchOrders = async () => {
+    const load = async () => {
       try {
         const restaurantRes = await api.get("/merchant/restaurants/me");
         const restId = restaurantRes.data.id;
         setRestaurantId(restId);
-
-        const ordersRes = await api.get(
-          `/merchant/restaurants/${restId}/orders`
-        );
-
-        const normalized = ordersRes.data.map((order) => ({
-          id: order.id,
-          customerName: order.user?.name || "Customer",
-          status: order.status,
-          total: order.total,
-          items: order.items,
-          createdAt: order.createdAt,
-          // ✅ Pass these through so OrderCard can display them
-          orderType: order.orderType || "DELIVERY",
-          scheduledFor: order.scheduledFor || null,
-          guestCount: order.guestCount || null,
-        }));
-
-        setOrders(normalized);
+        await fetchOrders(restId);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load orders");
       } finally {
@@ -46,8 +49,26 @@ export default function Orders() {
       }
     };
 
-    fetchOrders();
-  }, []);
+    load();
+  }, [fetchOrders]);
+
+  // Live: a new order lands, or one's status changes elsewhere (driver,
+  // admin) — refetch this restaurant's list rather than hand-patching, so
+  // it always matches the server.
+  useEffect(() => {
+    if (!restaurantId) return;
+    const room = `restaurant:${restaurantId}`;
+    joinRoom(room);
+
+    const refresh = () => fetchOrders(restaurantId).catch(() => {});
+    socket.on("order:created", refresh);
+    socket.on("order:updated", refresh);
+    return () => {
+      socket.off("order:created", refresh);
+      socket.off("order:updated", refresh);
+      leaveRoom(room);
+    };
+  }, [restaurantId, fetchOrders]);
 
   const filteredOrders = orders.filter(ORDER_FILTERS[activeFilter].match);
 

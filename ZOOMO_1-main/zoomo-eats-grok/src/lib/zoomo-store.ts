@@ -44,15 +44,19 @@ import {
 
 function toStoreCartItem(i: RealCartItem): CartItem {
   const size = i.dishSizeId ? i.dish.sizes?.find((s) => s.id === i.dishSizeId) : undefined;
+  const note = i.specialInstructions || undefined;
   return {
     cartItemId: i.id,
-    dishId: `${i.dishId}${i.dishSizeId ? `__${i.dishSizeId}` : ""}`,
+    // A different note on the same dish is a genuinely separate line (mirrors
+    // how the backend stores it) — suffix the key so both rows render distinctly.
+    dishId: `${i.dishId}${i.dishSizeId ? `__${i.dishSizeId}` : ""}${note ? `__n:${note.slice(0, 24)}` : ""}`,
     restaurantId: i.dish.restaurantId,
     name: size ? `${i.dish.name} (${size.label})` : i.dish.name,
     price: size ? size.price : i.dish.price,
     imageUrl: i.dish.imageUrl,
     isVegetarian: i.dish.isVegetarian,
     quantity: i.quantity,
+    note,
   };
 }
 
@@ -67,6 +71,8 @@ export type CartItem = {
   forPerson?: string;
   /** The real backend cart-row id, used to route setQty/removeItem to the API. */
   cartItemId?: string;
+  /** Per-item note, e.g. "no onions" — a different note on the same dish is a separate line. */
+  note?: string;
 };
 
 export type Address = {
@@ -166,7 +172,8 @@ type State = {
   setAccountOpen: (open: boolean) => void;
   setLocation: (loc: string | null) => void;
   markLocationPrompted: () => void;
-  addToCart: (dish: Dish, size?: string, forPerson?: string) => "ok" | "login";
+  addToCart: (dish: Dish, size?: string, forPerson?: string, note?: string) => "ok" | "login";
+  setItemNote: (dishId: string, note: string) => void;
   confirmReplaceCart: () => void;
   cancelReplaceCart: () => void;
   setQty: (dishId: string, delta: number) => void;
@@ -330,15 +337,23 @@ export const useZoomo = create<State>()(
         return "on";
       },
       setAccountOpen: (open) => set({ accountOpen: open }),
-      addToCart: (dish, size, _forPerson) => {
+      addToCart: (dish, size, _forPerson, note) => {
         if (!get().user || !getRealToken()) return "login";
         // Real cart is single-restaurant (backend clears on a restaurant switch) —
         // mirror that here instead of the reference's local multi-bag simulation.
-        realAddToCart(dish.id, 1, size)
+        realAddToCart(dish.id, 1, size, note)
           .then(() => get().refreshCart())
           .catch((err) => get().handleApiError(err, "Could not add that to your bag."));
         set({ activeBag: dish.restaurantId });
         return "ok";
+      },
+      setItemNote: (dishId, note) => {
+        const item = get().cart.find((i) => i.dishId === dishId);
+        if (!item?.cartItemId) return;
+        set({ cart: get().cart.map((i) => (i.dishId === dishId ? { ...i, note: note || undefined } : i)) });
+        realSetCartItemQty(item.cartItemId, item.quantity, note)
+          .then(() => get().refreshCart())
+          .catch((err) => get().handleApiError(err, "Could not update that note."));
       },
       confirmReplaceCart: () => set({ conflict: null }),
       cancelReplaceCart: () => set({ conflict: null }),

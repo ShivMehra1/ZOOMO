@@ -5,6 +5,8 @@ import Users from "../pages/Users";
 import Restaurants from "../pages/Restaurants";
 import Analytics from "../pages/Analytics";
 import Disputes from "../pages/Disputes";
+import Finance from "../pages/Finance";
+import Payouts from "../pages/Payouts";
 
 export default function AdminRoutes() {
   return (
@@ -16,6 +18,8 @@ export default function AdminRoutes() {
       <Route path="users" element={<Users />} />
       <Route path="restaurants" element={<Restaurants />} />
       <Route path="disputes" element={<Disputes />} />
+      <Route path="finance" element={<Finance />} />
+      <Route path="payouts" element={<Payouts />} />
     </Routes>
   );
 }

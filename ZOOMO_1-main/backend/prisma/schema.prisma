@@ -103,6 +103,7 @@ model Restaurant {
   reviews    Review[]
   favorites  Favorite[]
   promotions Promotion[]
+  payouts    Payout[]
 }
 
 model Dish {
@@ -190,6 +191,15 @@ model Order {
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
 
+  // Revenue split, computed once at order creation from `subtotal`:
+  // 70% restaurant / 25% platform / 5% driver commission. `deliveryFee`
+  // above is separate and goes 100% to the driver. See
+  // common/revenue-split.util.ts for the calculation.
+  restaurantEarning Float?
+  platformFee       Float?
+  driverCommission  Float?
+  distanceKm        Float?
+
   userId       String
   user         User           @relation(fields: [userId], references: [id])
   restaurantId String
@@ -253,9 +263,10 @@ model Driver {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  userId String  @unique
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[]
+  userId  String   @unique
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders  Order[]
+  payouts Payout[]
 }
 
 model Review {
@@ -300,4 +311,21 @@ model Promotion {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, code])
+}
+
+model Payout {
+  id            String   @id @default(uuid())
+  amount        Float
+  method        String // CASH | UPI | BANK_TRANSFER
+  status        String   @default("PENDING") // PENDING | COMPLETED | REJECTED
+  recipientType String // RESTAURANT | DRIVER
+  note          String?
+  payoutDetail  String? // UPI id / bank account ref / free text, depending on method
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  driverId     String?
+  driver       Driver?     @relation(fields: [driverId], references: [id], onDelete: Cascade)
 }

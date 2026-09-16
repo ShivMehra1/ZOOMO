@@ -21,6 +21,12 @@ export class AdminOrdersController {
     return this.adminOrdersService.assignDriver(orderId, driverId);
   }
 
+  // Ranks available drivers by real distance to the restaurant (geo algorithm)
+  @Get(":orderId/nearest-drivers")
+  nearestDrivers(@Param("orderId") orderId: string) {
+    return this.adminOrdersService.nearestDrivers(orderId);
+  }
+
   // ✅ NEW — force confirm or cancel a scheduled order
   @Patch(":orderId/status")
   updateOrderStatus(

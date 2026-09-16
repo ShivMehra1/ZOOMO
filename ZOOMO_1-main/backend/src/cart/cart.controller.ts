@@ -37,7 +37,7 @@ export class CartController {
     this.checkCustomer(req);
 
     const quantity = body.quantity ?? 1;
-    await this.cartService.addItem(req.user.id, body.dishId, quantity, body.dishSizeId);
+    await this.cartService.addItem(req.user.id, body.dishId, quantity, body.dishSizeId, body.specialInstructions);
 
     return this.cartService.getCart(req.user.id); // 👈 FIXED
   }
@@ -47,7 +47,7 @@ export class CartController {
   async updateItem(@Req() req, @Param("id") id: string, @Body() body) {
     this.checkCustomer(req);
 
-    await this.cartService.updateItem(id, body.quantity ?? 1);
+    await this.cartService.updateItem(id, body.quantity ?? 1, body.specialInstructions);
     return this.cartService.getCart(req.user.id); // 👈 FIXED
   }
 

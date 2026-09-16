@@ -138,6 +138,15 @@ input[type="file"] {
   @apply bg-z-danger/10 text-z-danger;
 }
 
+/* Subtle selected-state glow — a soft primary-colored halo, not a hard
+   border or saturated fill. Use on the option a user has picked (payout
+   method, an active choice among several), not on every interactive
+   element. */
+.glow-selected {
+  @apply border-z-primary bg-z-sage text-z-primary;
+  box-shadow: 0 0 0 3px rgba(15, 61, 45, 0.12), 0 2px 10px rgba(15, 61, 45, 0.1);
+}
+
 /* ================= CARD PRIMITIVE ================= */
 
 .card {

@@ -14,6 +14,7 @@ import RestaurantProfile from "../pages/RestaurantProfile";
 import Analytics from "../pages/Analytics";
 import Promotions from "../pages/Promotions";
 import Reviews from "../pages/Reviews";
+import Payouts from "../pages/Payouts";
 
 import PublicLayout from "../layout/PublicLayout";
 import DashboardLayout from "../layout/DashboardLayout";
@@ -177,6 +178,18 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <DashboardLayout>
               <Reviews />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Cash out / payouts */}
+      <Route
+        path="/payouts"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Payouts />
             </DashboardLayout>
           </ProtectedRoute>
         }

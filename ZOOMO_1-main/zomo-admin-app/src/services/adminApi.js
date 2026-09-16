@@ -55,3 +55,12 @@ export const getDisputes = () => adminApi.get('/orders/disputes');
 export const refundOrder = (orderId, amount, reason) =>
   adminApi.patch(`/orders/${orderId}/refund`, { amount, reason });
 export const getOrderMessages = (orderId) => adminApi.get(`/orders/${orderId}/messages`);
+
+// ── Finance / payouts ──
+export const getBusinessSummary = () => adminApi.get('/payouts/summary');
+export const getPayouts = () => adminApi.get('/payouts');
+export const approvePayout = (id) => adminApi.patch(`/payouts/${id}/approve`);
+export const rejectPayout = (id) => adminApi.patch(`/payouts/${id}/reject`);
+
+// ── Geo: nearest available drivers for an order ──
+export const getNearestDrivers = (orderId) => adminApi.get(`/orders/${orderId}/nearest-drivers`);

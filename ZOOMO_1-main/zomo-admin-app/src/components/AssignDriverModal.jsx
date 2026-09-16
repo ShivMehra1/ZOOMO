@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import adminApi, { assignDriver } from "../services/adminApi";
+import adminApi, { assignDriver, getNearestDrivers } from "../services/adminApi";
 
 export default function AssignDriverModal({ order, onClose, onAssigned }) {
   // 🛑 HARD SAFETY GUARD — prevents full-screen lock
   if (!order) return null;
 
   const [drivers, setDrivers] = useState([]);
+  const [distanceById, setDistanceById] = useState({});
   const [search, setSearch] = useState("");
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,15 +22,33 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
     } catch {
       alert("Failed to load drivers");
     }
+    // Nearest-driver distances (geo algorithm) — best-effort, the picker
+    // still works with plain names if this fails for any reason.
+    try {
+      const nearest = await getNearestDrivers(order.id);
+      const map = {};
+      nearest.data.forEach((d) => {
+        map[d.driverId] = { distanceKm: d.distanceKm, hasLivePosition: d.hasLivePosition };
+      });
+      setDistanceById(map);
+    } catch {
+      // silently degrade to no distance badges
+    }
   }
 
-  const filteredDrivers = drivers.filter(
-    (d) =>
-      d.isAvailable &&
-      d.user?.name
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
-  );
+  const filteredDrivers = drivers
+    .filter(
+      (d) =>
+        d.isAvailable &&
+        d.user?.name
+          ?.toLowerCase()
+          .includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const da = distanceById[a.id]?.distanceKm ?? Infinity;
+      const db = distanceById[b.id]?.distanceKm ?? Infinity;
+      return da - db;
+    });
 
   async function handleConfirm() {
     if (!selectedDriver || loading) return;
@@ -78,33 +97,44 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
             </p>
           )}
 
-          {filteredDrivers.map((driver) => (
-            <div
-              key={driver.id}
-              onClick={() => setSelectedDriver(driver)}
-              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer
-                ${
-                  selectedDriver?.id === driver.id
-                    ? "border-z-primary bg-z-sage"
-                    : "border-z-line"
-                }`}
-            >
-              <div>
-                <p className="font-medium text-z-ink">
-                  {driver.user?.name}
-                </p>
-                <p className="text-sm text-z-muted">
-                  {driver.vehicleType || "-"}
-                </p>
-              </div>
+          {filteredDrivers.map((driver) => {
+            const dist = distanceById[driver.id];
+            const selected = selectedDriver?.id === driver.id;
+            return (
+              <div
+                key={driver.id}
+                onClick={() => setSelectedDriver(driver)}
+                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition
+                  ${
+                    selected
+                      ? "border-z-primary bg-z-sage shadow-glow"
+                      : "border-z-line hover:border-z-line-soft"
+                  }`}
+              >
+                <div>
+                  <p className="font-medium text-z-ink">
+                    {driver.user?.name}
+                  </p>
+                  <p className="text-sm text-z-muted">
+                    {driver.vehicleType || "-"}
+                  </p>
+                </div>
 
-              <input
-                type="radio"
-                checked={selectedDriver?.id === driver.id}
-                readOnly
-              />
-            </div>
-          ))}
+                <div className="flex items-center gap-3">
+                  {dist && (
+                    <span className="text-xs font-medium text-z-primary bg-z-sage px-2 py-1 rounded-full">
+                      {dist.hasLivePosition ? `${dist.distanceKm} km away` : `~${dist.distanceKm} km (est.)`}
+                    </span>
+                  )}
+                  <input
+                    type="radio"
+                    checked={selected}
+                    readOnly
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Actions */}
@@ -119,10 +149,10 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
           <button
             disabled={!selectedDriver || loading}
             onClick={handleConfirm}
-            className={`px-5 py-2 rounded-lg text-sm font-medium
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition
               ${
                 selectedDriver && !loading
-                  ? "bg-z-primary text-white hover:bg-z-hover"
+                  ? "bg-z-primary text-white hover:bg-z-hover hover:shadow-glow"
                   : "bg-z-line text-z-muted cursor-not-allowed"
               }`}
           >

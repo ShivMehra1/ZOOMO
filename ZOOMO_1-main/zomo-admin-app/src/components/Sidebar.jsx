@@ -1,8 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { FiBarChart2, FiShoppingBag, FiTruck, FiUsers, FiHome, FiAlertTriangle } from "react-icons/fi";
+import { FiBarChart2, FiShoppingBag, FiTruck, FiUsers, FiHome, FiAlertTriangle, FiDollarSign, FiCreditCard } from "react-icons/fi";
 
 const NAV_ITEMS = [
   { to: "/admin/analytics", label: "Analytics", icon: FiBarChart2 },
+  { to: "/admin/finance", label: "Finance", icon: FiDollarSign },
+  { to: "/admin/payouts", label: "Payouts", icon: FiCreditCard },
   { to: "/admin/orders", label: "Orders", icon: FiShoppingBag },
   { to: "/admin/drivers", label: "Drivers", icon: FiTruck },
   { to: "/admin/users", label: "Users", icon: FiUsers },

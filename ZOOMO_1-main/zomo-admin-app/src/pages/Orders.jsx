@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AssignDriverModal from "../components/AssignDriverModal";
 import { getOrders, updateOrderStatus } from "../services/adminApi";
+import { getAdminSocket } from "../lib/socket";
 import { FiRefreshCw, FiTruck, FiClock, FiAlertCircle } from "react-icons/fi";
 
 const STATUS_COLORS = {
@@ -121,7 +122,27 @@ export default function Orders() {
     }
   }
 
-  useEffect(() => { fetchOrders(); }, []);
+  // Silent background refresh — doesn't flip `loading`, so a live event
+  // doesn't flash the table back to a loading state.
+  async function silentRefresh() {
+    try {
+      const res = await getOrders();
+      setOrders(res.data);
+    } catch {
+      // ignore — next successful poll/manual refresh will catch up
+    }
+  }
+
+  useEffect(() => {
+    fetchOrders();
+    const socket = getAdminSocket();
+    socket.on("order:created", silentRefresh);
+    socket.on("order:updated", silentRefresh);
+    return () => {
+      socket.off("order:created", silentRefresh);
+      socket.off("order:updated", silentRefresh);
+    };
+  }, []);
 
   async function handleForceConfirm(orderId) {
     try {

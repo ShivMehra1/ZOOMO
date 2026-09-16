@@ -5,10 +5,68 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma.service";
 import { OrderStatus } from "@prisma/client";
+import { RealtimeGateway } from "../../realtime/realtime.gateway";
+import { haversineKm } from "../../common/geo.util";
+import { resolveJourianCoords } from "../../common/jourian-areas.util";
 
 @Injectable()
 export class AdminOrdersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService, private readonly realtime: RealtimeGateway) { }
+
+  private emitOrderUpdate(order: { id: string; restaurantId: string; userId: string; driverId: string | null }) {
+    const rooms = [`order:${order.id}`, `restaurant:${order.restaurantId}`, `user:${order.userId}`, "admin"];
+    if (order.driverId) rooms.push(`driver:${order.driverId}`);
+    this.realtime.emitToRooms(rooms, "order:updated", order);
+  }
+
+  /* ===========================
+     NEAREST AVAILABLE DRIVERS (geo algorithm)
+     Ranks available, unassigned drivers by real haversine distance from
+     their last known position to the restaurant — falls back to the
+     Jourian area-center lookup for drivers/restaurants with no live
+     GPS fix yet.
+  ============================ */
+  async nearestDrivers(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { restaurant: true },
+    });
+    if (!order) throw new NotFoundException("Order not found");
+
+    const origin =
+      order.restaurant.lat != null && order.restaurant.lng != null
+        ? { lat: order.restaurant.lat, lng: order.restaurant.lng }
+        : resolveJourianCoords(order.restaurant.address);
+
+    const drivers = await this.prisma.driver.findMany({
+      where: { isAvailable: true },
+      include: { user: { select: { name: true, avatarUrl: true } } },
+    });
+
+    return drivers
+      .map((d) => {
+        // A driver who has never sent a real GPS ping still carries whatever
+        // placeholder lat/lng they were seeded with (often nowhere near
+        // Jourian) — treat anything >200km away as "no live position" rather
+        // than reporting a nonsense distance, and rank them by the town
+        // center instead so they're still assignable.
+        const rawPos = d.currentLat != null && d.currentLng != null ? { lat: d.currentLat, lng: d.currentLng } : null;
+        const rawDistance = rawPos ? haversineKm(origin.lat, origin.lng, rawPos.lat, rawPos.lng) : null;
+        const hasLivePosition = rawDistance != null && rawDistance <= 200;
+        const pos = hasLivePosition ? rawPos! : resolveJourianCoords("jourian");
+        const distanceKm = parseFloat(haversineKm(origin.lat, origin.lng, pos.lat, pos.lng).toFixed(2));
+        return {
+          driverId: d.id,
+          name: d.user.name,
+          avatarUrl: d.user.avatarUrl,
+          rating: d.rating,
+          vehicleType: d.vehicleType,
+          distanceKm,
+          hasLivePosition,
+        };
+      })
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+  }
 
   /* ===========================
      GET ALL ORDERS (ADMIN)
@@ -64,7 +122,7 @@ export class AdminOrdersService {
       throw new BadRequestException("Driver already has an active order");
     }
 
-    return this.prisma.$transaction([
+    const result = await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
         data: { driverId },
@@ -74,6 +132,8 @@ export class AdminOrdersService {
         data: { isAvailable: false },
       }),
     ]);
+    this.emitOrderUpdate(result[0]);
+    return result;
   }
 
   /* ===========================
@@ -92,10 +152,12 @@ export class AdminOrdersService {
       throw new BadRequestException(`Invalid status: ${status}`);
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: status as OrderStatus },
     });
+    this.emitOrderUpdate(updated);
+    return updated;
   }
 
   /* ===========================

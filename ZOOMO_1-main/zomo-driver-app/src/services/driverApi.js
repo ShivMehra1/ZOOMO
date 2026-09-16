@@ -264,3 +264,48 @@ export async function fetchDeliveryHistory() {
   if (!res.ok) throw new Error("Failed to load delivery history");
   return res.json();
 }
+
+/* ===========================
+   ORDER CHAT
+=========================== */
+export async function fetchOrderMessages(orderId) {
+  const res = await authFetch(`${API_BASE}/driver/orders/${orderId}/messages`);
+  if (!res.ok) throw new Error("Failed to load messages");
+  return res.json();
+}
+
+export async function sendOrderMessage(orderId, text) {
+  const res = await authFetch(`${API_BASE}/driver/orders/${orderId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error("Failed to send message");
+  return res.json();
+}
+
+/* ===========================
+   PAYOUTS (cash out)
+=========================== */
+export async function fetchPayoutBalance() {
+  const res = await authFetch(`${API_BASE}/driver/payouts/balance`);
+  if (!res.ok) throw new Error("Failed to load balance");
+  return res.json();
+}
+
+export async function fetchPayouts() {
+  const res = await authFetch(`${API_BASE}/driver/payouts`);
+  if (!res.ok) throw new Error("Failed to load payouts");
+  return res.json();
+}
+
+export async function requestPayout({ amount, method, payoutDetail, note }) {
+  const res = await authFetch(`${API_BASE}/driver/payouts`, {
+    method: "POST",
+    body: JSON.stringify({ amount, method, payoutDetail, note }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "Failed to request payout");
+  }
+  return res.json();
+}

@@ -82,6 +82,17 @@ h1, h2, h3 {
 .badge {
   @apply rounded-full px-2.5 py-1 text-[11px] font-bold;
 }
+
+/* Subtle "selected" state for pickers (payout method, etc.) — a soft glow
+   in the primary color instead of a hard border or a bright fill. */
+.selectable {
+  @apply border-[1.5px] border-z-line bg-white text-z-sub rounded-xl
+         font-semibold text-sm transition;
+}
+.selectable-on {
+  @apply border-z-primary text-z-primary bg-z-sage;
+  box-shadow: 0 0 0 3px rgba(15, 61, 45, 0.12);
+}
 .tone-wait {
   @apply bg-z-sage text-z-primary;
 }

@@ -6,9 +6,12 @@ import {
   markOrderPickedUp,
   markOrderDelivered,
   fetchOrderDetails,
+  fetchOrderMessages,
+  sendOrderMessage,
 } from "../services/driverApi";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { useDriverLocation } from "../hooks/useDriverLocation";
+import { useDriverSocket, useOrderRoom } from "../hooks/useDriverSocket";
 import DriverMap from "../components/DriverMap";
 import { getDistanceMeters } from "../utils/distance";
 import {
@@ -20,6 +23,8 @@ import {
   FiPhone,
   FiCopy,
   FiCheckCircle,
+  FiMessageCircle,
+  FiSend,
 } from "react-icons/fi";
 
 const PICKUP_RADIUS = 150;
@@ -30,6 +35,8 @@ export default function OrderDetails() {
   const navigate = useNavigate();
   const { driver } = useDriverAuth();
   const driverLocation = useDriverLocation();
+  const socket = useDriverSocket();
+  useOrderRoom(id);
 
   const [order, setOrder] = useState(null);
   const [status, setStatus] = useState(null);
@@ -38,6 +45,9 @@ export default function OrderDetails() {
   const [updateError, setUpdateError] = useState("");
   const [codPaymentConfirmed, setCodPaymentConfirmed] = useState(false);
   const [fetchError, setFetchError] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [chatText, setChatText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const isOnline = Boolean(driver?.isAvailable);
 
@@ -63,6 +73,39 @@ export default function OrderDetails() {
       mounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    fetchOrderMessages(id)
+      .then((data) => mounted && setMessages(data))
+      .catch(() => {});
+    const onMessage = (msg) => {
+      if (msg.orderId !== id) return;
+      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+    };
+    socket.on("order:message", onMessage);
+    return () => {
+      mounted = false;
+      socket.off("order:message", onMessage);
+    };
+  }, [id, socket]);
+
+  async function handleSendMessage(e) {
+    e.preventDefault();
+    const text = chatText.trim();
+    if (!text || sendingMessage) return;
+    setSendingMessage(true);
+    setChatText("");
+    try {
+      const message = await sendOrderMessage(id, text);
+      setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+    } catch {
+      setChatText(text);
+    } finally {
+      setSendingMessage(false);
+    }
+  }
 
   const isPickupPhase = status === "READY_FOR_PICKUP";
 
@@ -227,6 +270,44 @@ export default function OrderDetails() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* CHAT */}
+        <div className="rounded-card p-4 shadow-card bg-z-surface space-y-3">
+          <div className="flex items-center gap-2 text-[11px] font-bold tracking-wide text-z-muted uppercase">
+            <FiMessageCircle size={14} /> Message customer
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {messages.length === 0 && (
+              <p className="text-xs text-z-muted">No messages yet — say hi if you're running late or can't find the gate.</p>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} className={`flex ${m.sender === "DRIVER" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
+                    m.sender === "DRIVER" ? "bg-z-primary text-white" : "bg-z-sage text-z-ink"
+                  }`}
+                >
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            <input
+              value={chatText}
+              onChange={(e) => setChatText(e.target.value)}
+              placeholder="Type a message..."
+              className="field flex-1 h-11"
+            />
+            <button
+              type="submit"
+              disabled={sendingMessage || !chatText.trim()}
+              className="w-11 h-11 shrink-0 rounded-xl bg-z-primary text-white flex items-center justify-center disabled:opacity-50 active:scale-[0.96] transition"
+            >
+              <FiSend size={16} />
+            </button>
+          </form>
         </div>
 
         {/* ITEMS */}

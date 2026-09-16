@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Get,
   Patch,
   Param,
+  Post,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -65,5 +67,15 @@ export class DriverOrdersController {
       orderId,
       req.user.id
     );
+  }
+
+  @Get(":id/messages")
+  getMessages(@Param("id") orderId: string, @Req() req) {
+    return this.driverOrdersService.getMessages(orderId, req.user.id);
+  }
+
+  @Post(":id/messages")
+  sendMessage(@Param("id") orderId: string, @Req() req, @Body() body: { text: string }) {
+    return this.driverOrdersService.sendMessage(orderId, req.user.id, body.text);
   }
 }

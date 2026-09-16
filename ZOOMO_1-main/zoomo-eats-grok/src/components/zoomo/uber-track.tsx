@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { LiveRideMap } from "./live-ride-map";
 import { StatusPill, useTick } from "./tracker";
+import { getSocket, joinRoom, leaveRoom } from "@/lib/socket";
 import {
   DROP_OFF,
   IMG,
@@ -57,7 +58,47 @@ export function UberTrack({ order }: { order: Order }) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [toast, setToast] = useState("");
   const [note, setNote] = useState("");
+  const [liveLatLng, setLiveLatLng] = useState<{ lat: number; lng: number } | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
+
+  // Real-time: join this order's room, get live driver position, chat
+  // messages, and status changes pushed from the backend instead of
+  // relying purely on the simulated local progress below.
+  useEffect(() => {
+    const room = `order:${order.id}`;
+    joinRoom(room);
+    const socket = getSocket();
+
+    const onLocation = (payload: { orderId: string; lat: number; lng: number }) => {
+      if (payload.orderId === order.id) setLiveLatLng({ lat: payload.lat, lng: payload.lng });
+    };
+    const onUpdated = (payload: { id: string }) => {
+      if (payload.id === order.id) useZoomo.getState().refreshOrders();
+    };
+    const onMessage = (msg: { id: string; orderId?: string; sender: "CUSTOMER" | "DRIVER"; text: string; createdAt: string }) => {
+      // Driver-sent messages arrive here; our own sends already append
+      // optimistically via sendRideChat, so skip re-adding those.
+      if (msg.sender !== "DRIVER") return;
+      useZoomo.setState((state) => ({
+        orders: state.orders.map((o) =>
+          o.id === order.id
+            ? { ...o, chat: [...(o.chat ?? []), { id: msg.id, from: "rider" as const, text: msg.text, at: msg.createdAt }] }
+            : o,
+        ),
+      }));
+    };
+
+    socket.on("driver:location", onLocation);
+    socket.on("order:updated", onUpdated);
+    socket.on("order:message", onMessage);
+
+    return () => {
+      leaveRoom(room);
+      socket.off("driver:location", onLocation);
+      socket.off("order:updated", onUpdated);
+      socket.off("order:message", onMessage);
+    };
+  }, [order.id]);
 
   const status = liveStatus(order);
   const active = status !== "DELIVERED" && status !== "CANCELLED";
@@ -119,6 +160,7 @@ export function UberTrack({ order }: { order: Order }) {
           ride={status === "CANCELLED" ? 0 : ride}
           showRider={Boolean(rider) && status !== "CANCELLED"}
           nearby={nearby}
+          liveLatLng={status !== "CANCELLED" ? liveLatLng : null}
         />
       </div>
 
