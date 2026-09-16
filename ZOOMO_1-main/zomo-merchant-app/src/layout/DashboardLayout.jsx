@@ -1,16 +1,6 @@
-import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { FiLogOut } from "react-icons/fi";
-
-const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/orders", label: "Orders" },
-  { to: "/menu", label: "Menu" },
-  { to: "/analytics", label: "Analytics" },
-  { to: "/promotions", label: "Promotions" },
-  { to: "/reviews", label: "Reviews" },
-  { to: "/restaurant", label: "Restaurant" },
-];
+import BottomNav from "../components/BottomNav";
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
@@ -47,22 +37,12 @@ export default function DashboardLayout({ children }) {
               </button>
             </div>
           </div>
-
-          <nav className="mt-3 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `chip ${isActive ? "chip-on" : ""}`}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 pb-16">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-6 pb-28">{children}</main>
+
+      <BottomNav />
     </div>
   );
 }
