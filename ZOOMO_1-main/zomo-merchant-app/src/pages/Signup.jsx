@@ -35,76 +35,50 @@ export default function Signup() {
     }
   };
 
+  const fields = [
+    { label: "Full Name", key: "name" },
+    { label: "Email Address", key: "email", type: "email" },
+    { label: "Phone Number", key: "phone", type: "tel" },
+    { label: "Password", key: "password", type: "password" },
+  ];
+
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+    <div className="min-h-screen bg-z-page px-5 py-10">
+      <div className="mx-auto max-w-[420px]">
+        <Link to="/" className="mb-8 flex items-center gap-2.5">
+          <img src="/brand/mark-on-white.png" alt="Zoomo" className="w-9 h-9 rounded-[22%] object-contain" />
+          <span className="text-base font-bold text-z-ink">Zoomo Eats</span>
+        </Link>
 
-      {/* Full-screen background */}
-      <div className="absolute inset-0 bg-white dark:bg-black" />
+        <p className="kicker mb-2">Merchant</p>
+        <h1 className="display mb-2 text-[32px] text-z-ink">Create account</h1>
+        <p className="mb-6 text-sm text-z-sub">
+          Start managing your restaurant on Zoomo.
+        </p>
 
-      {/* Soft gradient sides */}
-      <div className="absolute left-0 top-0 w-1/4 h-full bg-gradient-to-r from-rose-50 dark:from-[#1a1a1a] to-transparent" />
-      <div className="absolute right-0 top-0 w-1/4 h-full bg-gradient-to-l from-rose-50 dark:from-[#1a1a1a] to-transparent" />
-
-      {/* Main card */}
-      <div className="relative z-10 w-full max-w-md
-        p-8 rounded-3xl
-        bg-white/95 dark:bg-[#141414]
-        border border-black/5 dark:border-white/10
-        shadow-xl"
-      >
-        {/* Header */}
-        <div className="text-center mb-6">
-          <img src="/zoomo-logo.png" alt="Zoomo" className="w-12 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Create Merchant Account
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Start managing your restaurant on Zoomo
-          </p>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-300 px-4 py-2 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={submit} className="space-y-4">
-          {[
-            { label: "Full Name", key: "name" },
-            { label: "Email Address", key: "email", type: "email" },
-            { label: "Phone Number", key: "phone", type: "tel" },
-            { label: "Password", key: "password", type: "password" },
-          ].map(({ label, key, type = "text" }) => (
-            <div key={key}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {label}
-              </label>
-              <input
-                type={type}
-                className="input-zoomo"
-                value={form[key]}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-              />
-            </div>
+        <form className="space-y-3" onSubmit={submit}>
+          {error && (
+            <p className="rounded-xl bg-z-danger/10 px-3 py-2 text-[13px] text-z-danger">{error}</p>
+          )}
+          {fields.map(({ label, key, type = "text" }) => (
+            <input
+              key={key}
+              type={type}
+              className="field"
+              placeholder={label}
+              value={form[key]}
+              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+            />
           ))}
-
-          <button
-            type="submit"
-            className="btn-zoomo w-full mt-1 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Creating account..." : "Sign Up"}
+          <button type="submit" className="btn-primary h-12 w-full" disabled={loading}>
+            {loading ? "Creating account..." : "Continue"}
           </button>
         </form>
 
-        {/* Footer */}
-        <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
+        <p className="text-sm text-center text-z-sub mt-6">
           Already have a merchant account?{" "}
-          <Link to="/login" className="text-emerald-600 font-semibold hover:underline">
-            Login
+          <Link to="/login" className="font-bold text-z-primary">
+            Log in
           </Link>
         </p>
       </div>

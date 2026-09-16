@@ -63,6 +63,41 @@ export class DriverOrdersService {
             lng: true,
           },
         },
+        user: {
+          select: {
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    });
+  }
+
+  /* ===========================
+     GET DELIVERY HISTORY
+     → Past deliveries (delivered/cancelled), for earnings/
+       performance/receipts screens.
+  ============================ */
+  async getHistory(userId: string) {
+    const driverId = await this.getDriverId(userId);
+
+    return this.prisma.order.findMany({
+      where: {
+        driverId,
+        status: { in: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        deliveryFee: true,
+        createdAt: true,
+        actualDeliveryTime: true,
+        estimatedDeliveryTime: true,
+        rating: true,
+        restaurant: { select: { name: true, imageUrl: true } },
+        address: { select: { street: true, city: true } },
       },
     });
   }

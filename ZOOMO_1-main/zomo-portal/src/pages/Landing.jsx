@@ -82,9 +82,7 @@ export default function Landing() {
       {/* ======= NAVBAR ======= */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 bg-black/60 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-lg font-bold">
-            Z
-          </div>
+          <img src="/brand/mark-on-green.png" alt="Zoomo" className="w-9 h-9 rounded-[22%] object-contain" />
           <span className="text-xl font-bold tracking-tight">Zoomo</span>
         </div>
 
@@ -157,9 +155,7 @@ export default function Landing() {
       <footer className="border-t border-white/10 px-8 py-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-sm font-bold">
-              Z
-            </div>
+            <img src="/brand/mark-on-green.png" alt="Zoomo" className="w-7 h-7 rounded-[22%] object-contain" />
             <span className="text-sm text-gray-400">
               Zoomo Eats — Dev Environment
             </span>
@@ -176,13 +172,13 @@ export default function Landing() {
               href="http://localhost:5174"
               className="hover:text-emerald-400 transition"
             >
-              Merchant :5174
+              Driver :5174
             </a>
             <a
               href="http://localhost:5175"
               className="hover:text-emerald-400 transition"
             >
-              Driver :5175
+              Merchant :5175
             </a>
             <a
               href="http://localhost:5176"

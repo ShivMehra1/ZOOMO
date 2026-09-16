@@ -70,73 +70,44 @@ export default function AddDish() {
   };
 
   return (
-    <div className="max-w-3xl" ref={topRef}>
-
+    <div className="max-w-3xl mx-auto" ref={topRef}>
       {/* ── SUCCESS NOTIFICATION ── */}
       {saved && (
-        <div className="
-          mb-6 flex items-center gap-3
-          px-5 py-4 rounded-2xl
-          bg-emerald-50 dark:bg-emerald-500/10
-          border border-emerald-200 dark:border-emerald-500/30
-          shadow-sm
-          animate-fade-in
-        ">
+        <div className="mb-5 flex items-center gap-3 px-5 py-4 rounded-2xl bg-z-sage border border-z-accent/20">
           <span className="text-2xl">✅</span>
           <div>
-            <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-              Dish saved successfully!
-            </p>
-            <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-0.5">
-              Redirecting to your menu in a moment…
-            </p>
+            <p className="font-bold text-z-primary">Dish saved successfully!</p>
+            <p className="text-sm text-z-primary/80 mt-0.5">Redirecting to your menu in a moment…</p>
           </div>
         </div>
       )}
 
       {/* ── ERROR NOTIFICATION ── */}
       {submitError && (
-        <div className="
-          mb-6 flex items-center gap-3
-          px-5 py-4 rounded-2xl
-          bg-red-50 dark:bg-red-500/10
-          border border-red-200 dark:border-red-500/30
-        ">
+        <div className="mb-5 flex items-center gap-3 px-5 py-4 rounded-2xl bg-z-danger/10 border border-z-danger/20">
           <span className="text-lg">⚠️</span>
-          <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
+          <p className="text-sm text-z-danger">{submitError}</p>
         </div>
       )}
 
       {/* ── PAGE HEADER ── */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Add New Dish
-        </h1>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          Create a new item for your restaurant menu
-        </p>
+      <div className="mb-5">
+        <p className="kicker mb-1">Menu</p>
+        <h1 className="display text-2xl text-z-ink">Add New Dish</h1>
+        <p className="text-sm text-z-sub mt-1">Create a new item for your restaurant menu</p>
       </div>
 
       {/* ── RESTAURANT LOAD ERROR ── */}
       {loadError && (
-        <div className="mb-6 px-5 py-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30">
-          <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-2 text-sm text-red-600 dark:text-red-400 underline"
-          >
+        <div className="mb-5 px-5 py-4 rounded-2xl bg-z-danger/10 border border-z-danger/20">
+          <p className="text-sm text-z-danger">{loadError}</p>
+          <button onClick={() => window.location.reload()} className="mt-2 text-sm text-z-danger underline">
             Retry
           </button>
         </div>
       )}
 
-      {/* ── FORM CARD ── */}
-      <div className="bg-white/80 dark:bg-[#0f0f0f] backdrop-blur rounded-3xl p-6 border border-black/10 dark:border-white/10">
-        <DishForm
-          onSubmit={submit}
-          saving={saving}
-        />
-      </div>
+      <DishForm onSubmit={submit} saving={saving} />
     </div>
   );
 }

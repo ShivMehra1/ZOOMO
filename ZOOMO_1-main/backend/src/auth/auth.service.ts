@@ -15,6 +15,110 @@ export class AuthService {
     private jwtService: JwtService
   ) {}
 
+  // Dev-mode OTP store: phone -> { code, expiresAt }. In-memory only —
+  // fine for dev/demo (no SMS provider configured), doesn't survive a
+  // server restart, and was deliberately kept out of Postgres per scope.
+  private otpStore = new Map<string, { code: string; expiresAt: number }>();
+
+  /* ================================
+     MOBILE OTP — REQUEST
+  ================================== */
+  async requestOtp(phone: string) {
+    if (!phone || phone.replace(/\D/g, "").length !== 10) {
+      throw new BadRequestException("Enter a valid 10-digit mobile number");
+    }
+    const code = String(Math.floor(1000 + Math.random() * 9000)); // 4 digits
+    this.otpStore.set(phone, { code, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    // 📲 Real SMS provider (e.g. Twilio) would send `code` to `phone` here
+    // instead of returning it. No provider is configured yet, so dev mode
+    // hands the code straight back for the frontend to display on-screen.
+    return { devCode: code };
+  }
+
+  /* ================================
+     MOBILE OTP — VERIFY (login or signup-via-phone)
+  ================================== */
+  async verifyOtp(phone: string, code: string, name?: string) {
+    const entry = this.otpStore.get(phone);
+    if (!entry || entry.expiresAt < Date.now()) {
+      throw new UnauthorizedException("Code expired. Request a new one.");
+    }
+    if (entry.code !== code) {
+      throw new UnauthorizedException("Incorrect code");
+    }
+    this.otpStore.delete(phone); // consume — single use
+
+    let user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      const randomPassword = await bcrypt.hash(
+        Math.random().toString(36) + Date.now(),
+        10
+      );
+      user = await this.usersService.create({
+        email: `${phone}@phone.zoomoeats.local`,
+        password: randomPassword,
+        name: name?.trim() || "Zoomo Guest",
+        phone,
+        role: "USER",
+      });
+    }
+
+    if (user.isSuspended) {
+      throw new ForbiddenException(
+        user.suspendedReason
+          ? `Account suspended: ${user.suspendedReason}`
+          : "Account suspended. Contact support."
+      );
+    }
+
+    return this.makeTokenResponse(user);
+  }
+
+  /* ================================
+     GOOGLE SIGN-IN (dev-mode)
+  ================================== */
+  async googleAuth(email: string, name: string, idToken?: string) {
+    if (process.env.GOOGLE_CLIENT_ID) {
+      // 🔐 Real flow: verify `idToken` server-side, e.g. with
+      // `google-auth-library`'s OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+      // .verifyIdToken({ idToken, audience: process.env.GOOGLE_CLIENT_ID }),
+      // then trust the verified payload's email/name instead of the body.
+      throw new BadRequestException(
+        "Real Google verification not implemented yet — unset GOOGLE_CLIENT_ID to use dev mode"
+      );
+    }
+
+    if (!email || !name) {
+      throw new BadRequestException("email and name are required");
+    }
+
+    let user = await this.usersService.findByEmail(email);
+    if (!user) {
+      const randomPassword = await bcrypt.hash(
+        Math.random().toString(36) + Date.now(),
+        10
+      );
+      user = await this.usersService.create({
+        email,
+        password: randomPassword,
+        name,
+        phone: "",
+        role: "USER",
+      });
+    }
+
+    if (user.isSuspended) {
+      throw new ForbiddenException(
+        user.suspendedReason
+          ? `Account suspended: ${user.suspendedReason}`
+          : "Account suspended. Contact support."
+      );
+    }
+
+    return this.makeTokenResponse(user);
+  }
+
   /* ================================
      CUSTOMER SIGNUP (USER ROLE ONLY)
   ================================== */

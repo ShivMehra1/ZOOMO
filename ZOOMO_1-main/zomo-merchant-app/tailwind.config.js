@@ -4,7 +4,6 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
-  darkMode: "class",
   theme: {
     extend: {
       colors: {
@@ -30,6 +29,7 @@ export default {
       },
       boxShadow: {
         card: "0 0 0 1px rgba(15,61,45,0.06), 0 1px 2px rgba(15,61,45,0.04), 0 8px 24px rgba(15,61,45,0.05)",
+        lift: "0 0 0 1px rgba(15,61,45,0.1), 0 16px 40px rgba(15,61,45,0.12)",
       },
     },
   },

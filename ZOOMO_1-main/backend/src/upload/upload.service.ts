@@ -22,7 +22,7 @@ export class UploadService {
 
     async uploadImage(
         file: Express.Multer.File,
-        folder: 'restaurants' | 'dishes',
+        folder: 'restaurants' | 'dishes' | 'avatars',
     ): Promise<string> {
         if (!file) {
             throw new BadRequestException('No file uploaded');

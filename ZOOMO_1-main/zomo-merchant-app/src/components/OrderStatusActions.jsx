@@ -11,7 +11,7 @@ export default function OrderStatusActions({ status, orderType = "DELIVERY", onU
   // For delivery orders that are out for delivery, driver handles the final step
   if (!isInStore && status === "OUT_FOR_DELIVERY") {
     return (
-      <div className="px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-700 font-medium">
+      <div className="px-4 py-3 rounded-xl bg-z-sage text-sm text-z-primary font-bold">
         Order is with the driver. Delivery will be confirmed by the driver.
       </div>
     );
@@ -40,10 +40,7 @@ export default function OrderStatusActions({ status, orderType = "DELIVERY", onU
   if (!action) return null;
 
   return (
-    <button
-      onClick={() => onUpdate(action.next)}
-      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm"
-    >
+    <button onClick={() => onUpdate(action.next)} className="btn-primary h-11 flex-1 text-sm">
       {action.label}
     </button>
   );

@@ -1,123 +1,68 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import {
-  FiHome,
-  FiList,
-  FiShoppingBag,
-  FiLogOut,
-  FiSun,
-  FiMoon
-} from "react-icons/fi";
+import { FiLogOut } from "react-icons/fi";
+
+const NAV_ITEMS = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/orders", label: "Orders" },
+  { to: "/menu", label: "Menu" },
+  { to: "/analytics", label: "Analytics" },
+  { to: "/promotions", label: "Promotions" },
+  { to: "/reviews", label: "Reviews" },
+  { to: "/restaurant", label: "Restaurant" },
+];
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
-  const { dark, setDark } = useTheme();
 
   return (
-    <div className="min-h-screen flex bg-gray-100 dark:bg-black transition-colors">
+    <div className="min-h-screen bg-z-page">
+      <header className="sticky top-0 z-30 border-b border-z-line bg-z-surface">
+        <div className="mx-auto max-w-6xl px-4 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/brand/mark-on-white.png"
+                alt="Zoomo"
+                className="w-8 h-8 rounded-[22%] object-contain"
+              />
+              <span>
+                <span className="block text-[15px] font-bold text-z-ink leading-tight">
+                  Zoomo Eats
+                </span>
+                <span className="kicker block leading-tight">Merchant</span>
+              </span>
+            </div>
 
-      {/* ================= Sidebar ================= */}
-      <aside className="relative w-64 flex flex-col
-                        bg-white/80 dark:bg-[#0f0f0f]
-                        backdrop-blur
-                        border-r border-black/10 dark:border-white/10">
-
-        {/* Logo */}
-        <div className="px-6 py-5 flex items-center gap-3">
-          <img
-            src="/zoomo-logo.png"
-            alt="Zoomo Logo"
-            className="w-9 h-9 rounded-xl object-cover"
-          />
-          <div className="text-lg font-semibold text-gray-900 dark:text-white">
-            ZOOMO <span className="text-emerald-500">Merchant</span>
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:block text-xs font-bold text-z-sub">
+                {user?.name}
+              </span>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 rounded-full border border-z-line px-3 py-1.5 text-xs font-bold text-z-sub hover:border-z-primary hover:text-z-primary transition"
+              >
+                <FiLogOut size={13} />
+                Sign out
+              </button>
+            </div>
           </div>
+
+          <nav className="mt-3 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `chip ${isActive ? "chip-on" : ""}`}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
+      </header>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 space-y-1">
-          <SidebarLink to="/dashboard" icon={<FiHome />} label="Dashboard" />
-          <SidebarLink to="/orders" icon={<FiShoppingBag />} label="Orders" />
-          <SidebarLink to="/menu" icon={<FiList />} label="Menu" />
-          <SidebarLink to="/restaurant" icon={<FiHome />} label="Restaurant" />
-        </nav>
-
-        {/* Bottom section */}
-        <div className="px-4 py-4 border-t border-black/10 dark:border-white/10 space-y-3">
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setDark(v => !v)}
-            className="w-full flex items-center justify-center gap-2
-                       px-3 py-2 rounded-xl
-                       bg-gray-100 dark:bg-white/10
-                       text-gray-800 dark:text-white"
-          >
-            {dark ? <FiSun /> : <FiMoon />}
-            {dark ? "Light Mode" : "Dark Mode"}
-          </button>
-
-          {/* Logout */}
-          <button
-            onClick={logout}
-            className="w-full flex items-center justify-center gap-2
-                       px-3 py-2 rounded-xl
-                       text-red-500 hover:bg-red-500/10"
-          >
-            <FiLogOut />
-            Logout
-          </button>
-        </div>
-
-        {/* Mascot (subtle) */}
-        <img
-          src="/zoomo-mascot.png"
-          alt="Zoomo Mascot"
-          className="pointer-events-none absolute bottom-3 right-3
-                     w-24 opacity-[0.08] dark:opacity-[0.12]"
-        />
-      </aside>
-
-      {/* ================= Main ================= */}
-      <div className="flex-1 flex flex-col">
-
-        {/* Topbar */}
-        <header className="h-14 px-6 flex items-center justify-between
-                           bg-white/80 dark:bg-[#0f0f0f]
-                           backdrop-blur
-                           border-b border-black/10 dark:border-white/10">
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            Welcome,{" "}
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {user?.name}
-            </span>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="p-6">{children}</main>
-      </div>
+      <main className="mx-auto max-w-6xl px-4 py-6 pb-16">{children}</main>
     </div>
-  );
-}
-
-/* ---------------- Sidebar Link ---------------- */
-function SidebarLink({ to, icon, label }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-2 rounded-xl text-sm transition
-        ${
-          isActive
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5"
-        }`
-      }
-    >
-      {icon}
-      {label}
-    </NavLink>
   );
 }

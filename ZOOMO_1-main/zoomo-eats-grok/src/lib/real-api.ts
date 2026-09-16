@@ -92,6 +92,28 @@ export async function realSignup(data: { name: string; email: string; password: 
   return res.user;
 }
 
+/* ── Mobile OTP (dev-mode: the code is returned directly, not texted — no SMS provider configured) ── */
+export async function realRequestOtp(phone: string): Promise<{ devCode: string }> {
+  return realApi.post("/auth/otp/request", { phone });
+}
+
+export async function realVerifyOtp(phone: string, code: string, name?: string): Promise<RealUser> {
+  const res = await realApi.post("/auth/otp/verify", { phone, code, name });
+  const token = res.accesstoken ?? res.access_token;
+  if (!token || !res.user) throw new Error("Invalid verification response");
+  setRealToken(token);
+  return res.user;
+}
+
+/* ── Google sign-in (dev-mode: trusts client-supplied email/name — see backend for the real-verification hook) ── */
+export async function realGoogleAuth(email: string, name: string): Promise<RealUser> {
+  const res = await realApi.post("/auth/google", { email, name });
+  const token = res.accesstoken ?? res.access_token;
+  if (!token || !res.user) throw new Error("Invalid Google sign-in response");
+  setRealToken(token);
+  return res.user;
+}
+
 /* ── Real restaurant/dish catalog (replaces the static demo arrays) ── */
 function toRestaurant(r: any): Restaurant {
   const area = (r.address || "").split(",")[1]?.trim() || TOWN;
@@ -202,6 +224,30 @@ export function realRemoveAddress(id: string) {
   return realApi.delete(`/addresses/${id}`);
 }
 
+/* ── Real favorites ── */
+export async function realGetFavorites(): Promise<Restaurant[]> {
+  const res = await realApi.get("/favorites");
+  return Array.isArray(res) ? res.map(toRestaurant) : [];
+}
+export function realAddFavorite(restaurantId: string) {
+  return realApi.post(`/favorites/${restaurantId}`);
+}
+export function realRemoveFavorite(restaurantId: string) {
+  return realApi.delete(`/favorites/${restaurantId}`);
+}
+
+/* ── Real search ── */
+export async function realSearchRestaurants(q: string): Promise<Restaurant[]> {
+  if (!q.trim()) return [];
+  const res = await realApi.get(`/restaurants/search?q=${encodeURIComponent(q)}`);
+  return Array.isArray(res) ? res.map(toRestaurant) : [];
+}
+export async function realSearchDishes(q: string): Promise<Dish[]> {
+  if (!q.trim()) return [];
+  const res = await realApi.get(`/dishes/search?q=${encodeURIComponent(q)}`);
+  return Array.isArray(res) ? res.map((d: any) => toDish(d, d.restaurantId ?? d.restaurant?.id)) : [];
+}
+
 /* ── Real orders ── */
 export async function realPlaceOrder(payload: {
   orderType: "DELIVERY" | "DINE_IN" | "TAKEAWAY";
@@ -251,6 +297,123 @@ export function realGrantLateCredit(id: string) {
 }
 export function realSendMessage(id: string, text: string) {
   return realApi.post(`/orders/${id}/messages`, { text });
+}
+
+/* ── Staff (driver/merchant/admin) — separate token keys per role so a
+ * staff session never clobbers the customer session token or each other. ── */
+function makeStaffApi(tokenKey: string) {
+  const getToken = () => (typeof window === "undefined" ? null : localStorage.getItem(tokenKey));
+  const setToken = (t: string | null) => {
+    if (typeof window === "undefined") return;
+    if (t) localStorage.setItem(tokenKey, t);
+    else localStorage.removeItem(tokenKey);
+  };
+  const req = (method: string, path: string, body?: unknown) => {
+    const token = getToken();
+    return fetch(API_BASE + path, {
+      method,
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }).then(handle);
+  };
+  return {
+    getToken,
+    setToken,
+    get: (path: string) => req("GET", path),
+    post: (path: string, body?: unknown) => req("POST", path, body),
+    patch: (path: string, body?: unknown) => req("PATCH", path, body),
+  };
+}
+
+const driverStaffApi = makeStaffApi("zoomo_driver_token");
+const merchantStaffApi = makeStaffApi("zoomo_merchant_token");
+const adminStaffApi = makeStaffApi("zoomo_admin_token");
+
+/* ── Staff: Driver (same backend as the dedicated zomo-driver-app) ── */
+export async function driverRealLogin(email: string, password: string) {
+  const res = await driverStaffApi.post("/driver/auth/login", { email, password });
+  if (!res?.accessToken) throw new Error("Invalid driver login");
+  driverStaffApi.setToken(res.accessToken);
+  return res.driver as { id: string; name: string; email: string };
+}
+export function driverRealLogout() {
+  driverStaffApi.setToken(null);
+}
+export function driverHasRealSession() {
+  return Boolean(driverStaffApi.getToken());
+}
+export async function driverRealGetOrders(): Promise<any[]> {
+  const res = await driverStaffApi.get("/driver/orders");
+  return Array.isArray(res) ? res : [];
+}
+export function driverRealPickup(orderId: string) {
+  return driverStaffApi.patch(`/driver/orders/${orderId}/pickup`);
+}
+export function driverRealDeliver(orderId: string) {
+  return driverStaffApi.patch(`/driver/orders/${orderId}/deliver`);
+}
+
+/* ── Staff: Merchant (same backend as the dedicated zomo-merchant-app) ── */
+export async function merchantRealLogin(email: string, password: string) {
+  const res = await merchantStaffApi.post("/merchant/auth/login", { email, password });
+  const token = res?.access_token ?? res?.accessToken;
+  if (!token) throw new Error("Invalid merchant login");
+  merchantStaffApi.setToken(token);
+  return token as string;
+}
+export function merchantRealLogout() {
+  merchantStaffApi.setToken(null);
+}
+export function merchantHasRealSession() {
+  return Boolean(merchantStaffApi.getToken());
+}
+export function merchantRealGetMyRestaurant(): Promise<any> {
+  return merchantStaffApi.get("/merchant/restaurants/me");
+}
+export async function merchantRealGetOrders(restaurantId: string): Promise<any[]> {
+  const res = await merchantStaffApi.get(`/merchant/restaurants/${restaurantId}/orders`);
+  return Array.isArray(res) ? res : [];
+}
+export function merchantRealUpdateOrderStatus(restaurantId: string, orderId: string, status: string) {
+  return merchantStaffApi.patch(`/merchant/restaurants/${restaurantId}/orders/${orderId}/status`, { status });
+}
+export function merchantRealCancelOrder(restaurantId: string, orderId: string) {
+  return merchantStaffApi.patch(`/merchant/restaurants/${restaurantId}/orders/${orderId}/cancel`);
+}
+export async function merchantRealGetDishes(): Promise<any[]> {
+  const res = await merchantStaffApi.get("/merchant/dishes");
+  return Array.isArray(res) ? res : [];
+}
+export function merchantRealToggleDish(dishId: string) {
+  return merchantStaffApi.patch(`/merchant/dishes/${dishId}/toggle`);
+}
+
+/* ── Staff: Admin (same backend as the dedicated zomo-admin-app) ── */
+export async function adminRealLogin(email: string, password: string) {
+  const res = await adminStaffApi.post("/admin/auth/login", { email, password });
+  if (!res?.accessToken) throw new Error("Invalid admin login");
+  adminStaffApi.setToken(res.accessToken);
+  return res.accessToken as string;
+}
+export function adminRealLogout() {
+  adminStaffApi.setToken(null);
+}
+export function adminHasRealSession() {
+  return Boolean(adminStaffApi.getToken());
+}
+export async function adminRealGetOrders(): Promise<any[]> {
+  const res = await adminStaffApi.get("/admin/orders");
+  return Array.isArray(res) ? res : [];
+}
+export async function adminRealGetDrivers(): Promise<any[]> {
+  const res = await adminStaffApi.get("/admin/drivers");
+  return Array.isArray(res) ? res : [];
+}
+export function adminRealAssignDriver(orderId: string, driverId: string) {
+  return adminStaffApi.patch(`/admin/orders/${orderId}/assign-driver`, { driverId });
+}
+export function adminRealUpdateOrderStatus(orderId: string, status: string) {
+  return adminStaffApi.patch(`/admin/orders/${orderId}/status`, { status });
 }
 
 /**

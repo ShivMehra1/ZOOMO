@@ -2,13 +2,10 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { driverLogin } from "../services/driverApi";
-import { FiSun, FiMoon } from "react-icons/fi";
-import { useTheme } from "../context/ThemeContext";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useDriverAuth();
-  const { isDark, toggleTheme } = useTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,92 +27,57 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-gray-50 dark:bg-black">
-      {/* Subtle background glow */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-
-      <div className="relative w-full max-w-sm">
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          className="absolute right-0 -top-12 p-2 rounded-full
-                     border border-black/10 dark:border-white/10
-                     bg-white/80 dark:bg-white/10 backdrop-blur"
-        >
-          {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
-        </button>
-
-        {/* Card */}
-        <div
-          className="rounded-3xl p-6
-                     bg-white/90 dark:bg-[#121212]
-                     border border-black/5 dark:border-white/10
-                     shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]
-                     backdrop-blur"
-        >
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <img
-              src="/zoomo-logo.png"
-              alt="Zoomo"
-              className="h-10 object-contain"
-            />
-          </div>
-
-          {/* Heading */}
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-semibold">
-              Driver Login
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Start delivering with Zoomo
-            </p>
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent mb-6" />
-
-          {/* Form */}
-          <div className="space-y-4">
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input"
-            />
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input"
-            />
-
-            {error && (
-              <p className="text-sm text-red-600 text-center">
-                {error}
-              </p>
-            )}
-
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold
-                         bg-emerald-600 text-white
-                         hover:bg-emerald-700 transition
-                         active:scale-[0.98]
-                         disabled:opacity-60"
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
-          </div>
+    <div className="min-h-screen bg-z-page px-5 py-10">
+      <div className="mx-auto max-w-[420px]">
+        <div className="mb-8 flex items-center gap-2.5">
+          <img
+            src="/brand/mark-on-white.png"
+            alt="Zoomo"
+            className="w-9 h-9 rounded-[22%] object-contain"
+          />
+          <span className="text-base font-bold text-z-ink">
+            Zoomo Eats
+          </span>
         </div>
 
-        {/* Footer */}
-        <p className="mt-6 text-xs text-center text-gray-500 dark:text-gray-400">
+        <p className="kicker mb-2">Rider</p>
+        <h1 className="display mb-2 text-[32px] text-z-ink">
+          Sign in
+        </h1>
+        <p className="mb-6 text-sm text-z-sub">
+          Start delivering with Zoomo
+        </p>
+
+        <div className="space-y-3">
+          {error && (
+            <p className="rounded-xl bg-z-danger/10 px-3 py-2 text-[13px] text-z-danger">
+              {error}
+            </p>
+          )}
+          <input
+            type="email"
+            className="field"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            className="field"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="btn-primary h-12 w-full"
+          >
+            {loading ? "Logging in..." : "Continue"}
+          </button>
+        </div>
+
+        <p className="mt-6 text-xs text-center text-z-muted">
           Use your registered driver credentials
         </p>
       </div>

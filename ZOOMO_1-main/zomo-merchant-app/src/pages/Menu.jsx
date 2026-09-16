@@ -46,95 +46,46 @@ export default function Menu() {
   };
 
   if (loading) {
-    return (
-      <p className="text-gray-500 dark:text-gray-400">
-        Loading menu...
-      </p>
-    );
+    return <p className="text-z-sub text-sm py-12 text-center">Loading menu...</p>;
   }
 
   if (error) {
-    return <p className="text-red-500">{error}</p>;
+    return <p className="text-z-danger text-sm">{error}</p>;
   }
 
   return (
     <div className="space-y-6">
-
-      {/* ================= HEADER ================= */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Menu
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Manage dishes visible to customers
-          </p>
+          <p className="kicker mb-1">Menu</p>
+          <h1 className="display text-2xl text-z-ink">Menu</h1>
+          <p className="text-sm text-z-sub mt-1">Manage dishes visible to customers</p>
         </div>
 
-        <button
-          onClick={() => navigate("/menu/add")}
-          className="
-            px-5 py-2.5
-            rounded-2xl
-            bg-emerald-600 hover:bg-emerald-700
-            text-white font-medium
-            shadow-sm
-            transition
-          "
-        >
+        <button onClick={() => navigate("/menu/add")} className="btn-primary h-11 px-5 text-sm">
           + Add Dish
         </button>
       </div>
 
-      {/* ================= EMPTY STATE ================= */}
       {dishes.length === 0 ? (
-        <div
-          className="
-            mt-12
-            flex flex-col items-center justify-center
-            text-center
-            rounded-3xl
-            bg-white/95 dark:bg-[#141414]
-            border border-black/5 dark:border-white/10
-            p-10
-          "
-        >
-          <img
-            src="/zoomo-mascot.png"
-            alt="No dishes"
-            className="w-24 opacity-40 mb-4"
-          />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            No dishes yet
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="card p-10 flex flex-col items-center justify-center text-center mt-4">
+          <img src="/zoomo-mascot.png" alt="No dishes" className="w-24 opacity-40 mb-4" />
+          <h3 className="text-lg font-bold text-z-ink">No dishes yet</h3>
+          <p className="text-sm text-z-sub mb-4">
             Start building your menu by adding your first dish
           </p>
-          <button
-            onClick={() => navigate("/menu/add")}
-            className="
-              px-5 py-2.5
-              rounded-2xl
-              bg-emerald-600 hover:bg-emerald-700
-              text-white font-medium
-            "
-          >
+          <button onClick={() => navigate("/menu/add")} className="btn-primary h-11 px-5 text-sm">
             Add Your First Dish
           </button>
         </div>
       ) : (
-        /* ================= DISH GRID ================= */
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {dishes.map((dish) => (
             <DishCard
               key={dish.id}
               dish={dish}
-              onEdit={() =>
-                navigate(`/menu/edit/${dish.id}`)
-              }
-              onToggle={() =>
-                toggleAvailability(dish.id)
-              }
+              onEdit={() => navigate(`/menu/edit/${dish.id}`)}
+              onToggle={() => toggleAvailability(dish.id)}
             />
           ))}
         </div>

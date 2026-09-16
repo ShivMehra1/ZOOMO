@@ -69,114 +69,86 @@ export default function OrderDetails() {
     }
   };
 
-  if (loading) return <p className="text-gray-500 dark:text-gray-400">Loading order details...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (loading) return <p className="text-z-sub text-sm py-12 text-center">Loading order details...</p>;
+  if (error) return <p className="text-z-danger text-sm">{error}</p>;
 
   const isInStore = order.orderType === "DINE_IN" || order.orderType === "TAKEAWAY";
 
   return (
-    <div className="min-h-screen w-full flex justify-center items-start py-10 px-4">
-      <div className="w-full max-w-3xl space-y-6">
-
-        {/* ── HEADER ── */}
-        <div className="rounded-3xl bg-white/95 dark:bg-[#141414] border border-black/5 dark:border-white/10 p-6 flex items-start justify-between gap-4 shadow-lg">
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                Order #{order.id.slice(0, 6)}
-              </h1>
-              {/* ✅ Order type badge in header */}
-              {isInStore && (
-                <span className={`text-xs px-3 py-1 rounded-full font-semibold border ${order.orderType === "DINE_IN"
-                    ? "bg-violet-500/10 text-violet-400 border-violet-500/30"
-                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                  }`}>
-                  {order.orderType === "DINE_IN" ? "🍽️ Dine In" : "🥡 Takeaway"}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Customer: {order.customerName}
-            </p>
+    <div className="w-full max-w-3xl mx-auto space-y-4">
+      {/* ── HEADER ── */}
+      <div className="card p-5 flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <p className="kicker">Order</p>
+            {isInStore && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-z-sage text-z-primary">
+                {order.orderType === "DINE_IN" ? "🍽️ Dine In" : "🥡 Takeaway"}
+              </span>
+            )}
           </div>
-          <StatusBadge status={order.status} />
+          <h1 className="text-lg font-bold text-z-ink mt-0.5">#{order.id.slice(0, 6)}</h1>
+          <p className="text-sm text-z-sub mt-1">Customer: {order.customerName}</p>
         </div>
+        <StatusBadge status={order.status} />
+      </div>
 
-        {/* ✅ DINE-IN / TAKEAWAY DETAILS CARD — only shown for in-store orders */}
-        {isInStore && (
-          <div className="rounded-3xl bg-white/95 dark:bg-[#141414] border border-black/5 dark:border-white/10 p-6 shadow-md">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {order.orderType === "DINE_IN" ? "🍽️ Dine-In Details" : "🥡 Takeaway Details"}
-            </h2>
-            <div className="space-y-3">
-              {order.scheduledFor && (
-                <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-gray-100 dark:bg-[#1f1f1f]">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {order.orderType === "DINE_IN" ? "Dine-in time" : "Pickup time"}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {new Date(order.scheduledFor).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </span>
-                </div>
-              )}
-              {order.orderType === "DINE_IN" && order.guestCount && (
-                <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-gray-100 dark:bg-[#1f1f1f]">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Guests</span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    👥 {order.guestCount} {order.guestCount === 1 ? "guest" : "guests"}
-                  </span>
-                </div>
-              )}
-              {/* ✅ Explicitly confirm no delivery needed */}
-              <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-gray-100 dark:bg-[#1f1f1f]">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Delivery</span>
-                <span className="text-sm text-gray-500 dark:text-gray-500 italic">
-                  Not required
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── ITEMS ── */}
-        <div className="rounded-3xl bg-white/95 dark:bg-[#141414] border border-black/5 dark:border-white/10 p-6 shadow-md">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Ordered Items
+      {/* ✅ DINE-IN / TAKEAWAY DETAILS CARD — only shown for in-store orders */}
+      {isInStore && (
+        <div className="card p-5">
+          <h2 className="text-base font-bold text-z-ink mb-3">
+            {order.orderType === "DINE_IN" ? "🍽️ Dine-In Details" : "🥡 Takeaway Details"}
           </h2>
-          <div className="space-y-3">
-            {order.items.map((item, idx) => (
-              <div key={idx}
-                className="flex items-center justify-between text-sm bg-gray-100 dark:bg-[#1f1f1f] rounded-2xl px-4 py-3">
-                <span className="text-gray-800 dark:text-gray-200">
-                  {item.name} × {item.qty}
+          <div className="space-y-2">
+            {order.scheduledFor && (
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-z-page">
+                <span className="text-sm text-z-sub">
+                  {order.orderType === "DINE_IN" ? "Dine-in time" : "Pickup time"}
                 </span>
-                <span className="font-medium text-gray-900 dark:text-white">
-                  ₹{item.price}
+                <span className="text-sm font-bold text-z-ink">
+                  {new Date(order.scheduledFor).toLocaleString("en-IN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </span>
               </div>
-            ))}
+            )}
+            {order.orderType === "DINE_IN" && order.guestCount && (
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-z-page">
+                <span className="text-sm text-z-sub">Guests</span>
+                <span className="text-sm font-bold text-z-ink">
+                  👥 {order.guestCount} {order.guestCount === 1 ? "guest" : "guests"}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-z-page">
+              <span className="text-sm text-z-sub">Delivery</span>
+              <span className="text-sm text-z-muted italic">Not required</span>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* ── FOOTER — actions ── */}
-        <div className="rounded-3xl bg-white/95 dark:bg-[#141414] border border-black/5 dark:border-white/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-          <div className="text-lg font-semibold text-gray-900 dark:text-white">
-            Total: ₹{order.total}
-          </div>
-          <div className="flex gap-3">
-            <CancelOrderButton status={order.status} onCancel={cancelOrder} />
-            {/* ✅ Pass orderType so status actions know the correct flow */}
-            <OrderStatusActions
-              status={order.status}
-              orderType={order.orderType}
-              onUpdate={updateStatus}
-            />
-          </div>
+      {/* ── ITEMS ── */}
+      <div className="card p-5">
+        <h2 className="text-base font-bold text-z-ink mb-3">Ordered Items</h2>
+        <div className="space-y-2">
+          {order.items.map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between text-sm bg-z-page rounded-xl px-4 py-3">
+              <span className="text-z-ink">{item.name} × {item.qty}</span>
+              <span className="font-bold text-z-ink">₹{item.price}</span>
+            </div>
+          ))}
         </div>
+      </div>
 
+      {/* ── FOOTER — actions ── */}
+      <div className="card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="text-lg font-bold text-z-ink">Total: ₹{order.total}</div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <CancelOrderButton status={order.status} onCancel={cancelOrder} />
+          <OrderStatusActions status={order.status} orderType={order.orderType} onUpdate={updateStatus} />
+        </div>
       </div>
     </div>
   );

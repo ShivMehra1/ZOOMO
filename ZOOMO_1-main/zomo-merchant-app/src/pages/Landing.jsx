@@ -1,65 +1,38 @@
 // src/pages/Landing.jsx
 import { Link } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
-
 
 export default function Landing() {
-    const { dark } = useTheme();
-
   return (
-    <div
-      className={`
-        w-full min-h-screen
-        ${dark ? "bg-black text-white" : "bg-white text-black"}
-        transition-colors duration-300
-      `}
-    >
-
+    <div className="w-full min-h-screen bg-z-page text-z-ink">
       {/* ================= HERO ================= */}
       <section className="min-h-screen flex flex-col justify-center items-center text-center px-6">
-        <img
-          src="/zoomo-logo.png"
-          alt="Zoomo"
-          className="w-20 mb-6 drop-shadow-lg"
-        />
+        <img src="/brand/mark-on-white.png" alt="Zoomo" className="w-16 h-16 rounded-[22%] mb-6 object-contain" />
 
-        <h1 className="text-4xl sm:text-6xl font-bold leading-tight max-w-3xl">
+        <p className="kicker mb-3">Zoomo for Merchants</p>
+        <h1 className="display text-4xl sm:text-6xl max-w-3xl text-z-ink">
           Run your restaurant.
           <br />
-          <span className="text-emerald-500">
-            We handle the tech.
-          </span>
+          <span className="text-z-accent">We handle the tech.</span>
         </h1>
 
-        <p className="mt-6 max-w-xl text-lg text-gray-600 dark:text-gray-400">
+        <p className="mt-6 max-w-xl text-lg text-z-sub">
           Zoomo helps restaurants manage orders, menus, and operations effortlessly —
           all from one powerful dashboard.
         </p>
 
-        <div className="mt-10 flex flex-wrap justify-center gap-4">
-          <Link
-            to="/signup"
-            className="px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700
-                       text-white font-semibold shadow-lg hover:shadow-xl transition"
-          >
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
+          <Link to="/signup" className="btn-primary h-12 px-8 text-base">
             Get Started
           </Link>
-
-          <Link
-            to="/login"
-            className={`px-8 py-3 rounded-2xl border 
-              ${dark ? "border-white/20 hover:bg-white/10" : "border-black/20 hover:bg-gray-100"}
-              transition font-semibold
-            `}
-          >
+          <Link to="/login" className="btn-ghost h-12 px-8 text-base">
             Merchant Login
           </Link>
         </div>
       </section>
 
       {/* ================= FEATURES ================= */}
-      <section className={`${dark ? "bg-[#0f0f0f]" : "bg-gray-100"} px-6 py-20`}>
-        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <section className="bg-z-surface px-6 py-20">
+        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Feature title="Live Order Management" desc="Accept, prepare, and track orders in real-time with clear status updates." />
           <Feature title="Smart Menu Control" desc="Add, edit, or disable dishes instantly. Keep your menu always updated." />
           <Feature title="Restaurant Profile" desc="Manage restaurant details, images, and visibility effortlessly." />
@@ -69,11 +42,10 @@ export default function Landing() {
       {/* ================= HOW IT WORKS ================= */}
       <section className="px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-12">
-            How Zoomo Works
-          </h2>
+          <p className="kicker mb-2">How it works</p>
+          <h2 className="display text-3xl mb-12 text-z-ink">How Zoomo Works</h2>
 
-          <div className="grid sm:grid-cols-3 gap-10">
+          <div className="grid sm:grid-cols-3 gap-8">
             <Step number="1" title="Sign Up">Create your merchant account in minutes.</Step>
             <Step number="2" title="Add Menu">Upload dishes, prices, and images.</Step>
             <Step number="3" title="Manage Orders">Receive and fulfill orders seamlessly.</Step>
@@ -82,30 +54,24 @@ export default function Landing() {
       </section>
 
       {/* ================= CTA ================= */}
-      <section className={`${dark ? "bg-[#0f0f0f]" : "bg-gray-100"} px-6 py-20 text-center`}>
-        <h2 className="text-3xl font-bold">
-          Ready to grow your restaurant?
-        </h2>
-
-        <p className="mt-3 text-gray-600 dark:text-gray-400">
+      <section className="bg-z-surface px-6 py-20 text-center">
+        <h2 className="display text-3xl text-z-ink">Ready to grow your restaurant?</h2>
+        <p className="mt-3 text-z-sub">
           Join hundreds of restaurants using Zoomo to grow their business.
         </p>
 
-        <div className="mt-6 flex justify-center gap-4">
-          <Link to="/signup" className="px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+        <div className="mt-6 flex justify-center gap-3">
+          <Link to="/signup" className="btn-primary h-12 px-8 text-base">
             Create Merchant Account
           </Link>
-
-          <Link to="/login" className={`px-8 py-3 rounded-2xl border 
-            ${dark ? "border-white/20 hover:bg-white/10" : "border-black/20 hover:bg-gray-200"}
-            font-semibold`}>
+          <Link to="/login" className="btn-ghost h-12 px-8 text-base">
             Login
           </Link>
         </div>
       </section>
 
       {/* ================= FOOTER ================= */}
-      <footer className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+      <footer className="py-8 text-center text-sm text-z-muted">
         © {new Date().getFullYear()} Zoomo Eats. All rights reserved.
       </footer>
     </div>
@@ -116,14 +82,9 @@ export default function Landing() {
 
 function Feature({ title, desc }) {
   return (
-    <div
-      className="rounded-3xl p-6 shadow border
-                 bg-white dark:bg-[#141414]
-                 border-black/5 dark:border-white/10
-                 hover:shadow-xl transition"
-    >
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">{desc}</p>
+    <div className="card p-6 transition hover:shadow-lift">
+      <h3 className="text-lg font-bold mb-2 text-z-ink">{title}</h3>
+      <p className="text-sm text-z-sub">{desc}</p>
     </div>
   );
 }
@@ -131,11 +92,11 @@ function Feature({ title, desc }) {
 function Step({ number, title, children }) {
   return (
     <div className="text-center">
-      <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow">
+      <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-z-primary text-white flex items-center justify-center font-bold text-lg">
         {number}
       </div>
-      <h3 className="font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">{children}</p>
+      <h3 className="font-bold text-lg mb-1 text-z-ink">{title}</h3>
+      <p className="text-sm text-z-sub">{children}</p>
     </div>
   );
 }

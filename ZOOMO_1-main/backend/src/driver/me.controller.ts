@@ -16,7 +16,7 @@ export class DriverMeController {
 
   @Get()
   async getMe(@Req() req: any) {
-    return this.driverMeService.getDriverProfile(req.user.id);
+    return this.driverMeService.getDriverProfile(req.user.userId);
   }
 
   @Patch("availability")
@@ -28,5 +28,13 @@ export class DriverMeController {
       req.user.driverId,
       body.isAvailable
     );
+  }
+
+  @Patch("vehicle")
+  async updateVehicle(
+    @Req() req: any,
+    @Body() body: { vehicleType?: string; vehiclePlate?: string }
+  ) {
+    return this.driverMeService.updateVehicle(req.user.userId, body);
   }
 }

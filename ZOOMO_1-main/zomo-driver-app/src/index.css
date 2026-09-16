@@ -7,26 +7,92 @@ html {
 }
 
 body {
-  @apply bg-z-page text-z-ink dark:bg-[#0B1512] dark:text-z-page;
+  @apply bg-z-page text-z-ink;
+  letter-spacing: -0.011em;
 }
 
-.input {
-  @apply w-full px-4 py-3 rounded-xl border
-         border-z-line dark:border-white/20
-         bg-white dark:bg-black
-         text-z-ink dark:text-white;
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.038em;
 }
 
-.btn {
-  @apply w-full py-3 rounded-xl font-semibold
+.display {
+  font-weight: 700;
+  letter-spacing: -0.042em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.kicker {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  @apply text-z-accent;
+}
+
+.input,
+.field {
+  @apply w-full h-12 px-4 rounded-xl border
+         border-z-line
+         bg-white
+         text-z-ink
+         text-sm outline-none transition;
+}
+.input:focus,
+.field:focus {
+  @apply border-z-primary;
+  box-shadow: 0 0 0 4px rgba(15, 61, 45, 0.1);
+}
+
+.btn,
+.btn-primary {
+  @apply w-full py-3 rounded-xl font-bold
          bg-z-primary text-white
-         hover:bg-z-hover transition;
+         hover:bg-z-hover transition
+         active:scale-[0.98]
+         disabled:opacity-60;
+}
+
+.btn-ghost {
+  @apply border-[1.5px] border-z-line
+         bg-white
+         text-z-sub
+         font-medium rounded-xl transition
+         hover:border-z-primary hover:text-z-primary;
 }
 
 .card {
   @apply border rounded-card p-4 shadow-card
-         border-z-line-soft dark:border-white/10
-         bg-white dark:bg-black;
+         border-z-line-soft
+         bg-white;
+}
+
+.chip {
+  @apply flex-shrink-0 rounded-full border-[1.5px] border-z-line
+         bg-white
+         text-z-sub
+         px-4 py-2 text-[13px] font-medium
+         transition whitespace-nowrap;
+}
+.chip-on {
+  @apply border-z-primary bg-z-primary text-white;
+}
+
+.badge {
+  @apply rounded-full px-2.5 py-1 text-[11px] font-bold;
+}
+.tone-wait {
+  @apply bg-z-sage text-z-primary;
+}
+.tone-go {
+  @apply bg-z-sage text-z-accent;
+}
+.tone-done {
+  @apply bg-z-sage text-z-accent;
+}
+.tone-stop {
+  @apply bg-z-danger/10 text-z-danger;
 }
 
 /* ===========================

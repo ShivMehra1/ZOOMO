@@ -24,8 +24,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Since merchant backend does not expose /me,
-      // we trust token existence + role enforcement on backend
-      setUser({ role: "MERCHANT" });
+      // we decode the JWT payload (name/email/role embedded at sign time)
+      // and trust role enforcement on the backend for actual authorization.
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      setUser({ role: payload.role, name: payload.name, email: payload.email });
     } catch (err) {
       logout();
     } finally {

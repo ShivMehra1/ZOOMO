@@ -11,6 +11,9 @@ import Menu from "../pages/Menu";
 import AddDish from "../pages/AddDish";
 import EditDish from "../pages/EditDish";
 import RestaurantProfile from "../pages/RestaurantProfile";
+import Analytics from "../pages/Analytics";
+import Promotions from "../pages/Promotions";
+import Reviews from "../pages/Reviews";
 
 import PublicLayout from "../layout/PublicLayout";
 import DashboardLayout from "../layout/DashboardLayout";
@@ -85,14 +88,16 @@ export default function AppRoutes() {
         }
       />
 
-     <Route
-  path="/orders/:restaurantId/:orderId"
-  element={
-    <ProtectedRoute>
-      <OrderDetails />
-    </ProtectedRoute>
-  }
-/>
+      <Route
+        path="/orders/:restaurantId/:orderId"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <OrderDetails />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
 
 
       {/* Menu */}
@@ -136,6 +141,42 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <DashboardLayout>
               <RestaurantProfile />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Analytics */}
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Analytics />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Promotions */}
+      <Route
+        path="/promotions"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Promotions />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Reviews */}
+      <Route
+        path="/reviews"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Reviews />
             </DashboardLayout>
           </ProtectedRoute>
         }

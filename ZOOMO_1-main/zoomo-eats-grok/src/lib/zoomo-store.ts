@@ -17,18 +17,21 @@ import {
 import {
   ApiError,
   getRealToken,
+  realAddFavorite,
   realAddToCart,
   realCancelOrder,
   realClearCart,
   realGatePing,
   realGetAddresses,
   realGetCart,
+  realGetFavorites,
   realGetOrders,
   realGrantLateCredit,
   realPlaceOrder,
   realRateOrder,
   realRemoveAddress,
   realRemoveCartItem,
+  realRemoveFavorite,
   realSaveAddress,
   realSendMessage,
   realSetCartItemQty,
@@ -179,6 +182,7 @@ type State = {
   removeAddress: (id: string) => void;
   refreshAddresses: () => Promise<void>;
   refreshOrders: () => Promise<void>;
+  refreshFavorites: () => Promise<void>;
   cancelOrder: (id: string) => void;
   pingGate: (id: string) => void;
   grantLateCredit: (id: string) => number;
@@ -236,7 +240,7 @@ export const STAFF_ACCOUNTS: { email: string; password: string; staff: Staff }[]
   { email: "kitchen@zoomo.eats", password: "zoomo123", staff: { role: "MERCHANT", name: "Jourian kitchen", email: "kitchen@zoomo.eats", restaurantId: null } },
   { email: "owner1@zoomoeats.com", password: "owner123", staff: { role: "MERCHANT", name: "Pizza Palace", email: "owner1@zoomoeats.com", restaurantId: "pizza-palace" } },
   { email: "ilp@zoomo.eats", password: "zoomo123", staff: { role: "MERCHANT", name: "I Love Pizza", email: "ilp@zoomo.eats", restaurantId: "i-love-pizza" } },
-  { email: "ravi@zoomo.eats", password: "zoomo123", staff: { role: "DRIVER", name: "Ravi Singh", email: "ravi@zoomo.eats", driverId: "ravi" } },
+  { email: "driver@zoomoeats.com", password: "driver123", staff: { role: "DRIVER", name: "Mike Driver", email: "driver@zoomoeats.com", driverId: "ravi" } },
   { email: "aman@zoomo.eats", password: "zoomo123", staff: { role: "DRIVER", name: "Aman Sharma", email: "aman@zoomo.eats", driverId: "aman" } },
   { email: "admin@zoomo.eats", password: "zoomo123", staff: { role: "ADMIN", name: "Zoomo HQ", email: "admin@zoomo.eats" } },
   { email: "admin@zoomoeats.com", password: "admin123", staff: { role: "ADMIN", name: "Admin User", email: "admin@zoomoeats.com" } },
@@ -284,6 +288,7 @@ export const useZoomo = create<State>()(
           get().refreshCart();
           get().refreshAddresses();
           get().refreshOrders();
+          get().refreshFavorites();
         }
       },
       logout: () => {
@@ -299,7 +304,20 @@ export const useZoomo = create<State>()(
       markLocationPrompted: () => set({ locationPrompted: true }),
       toggleFavorite: (id) => {
         const fav = get().favorites ?? [];
-        set({ favorites: fav.includes(id) ? fav.filter((x) => x !== id) : [...fav, id] });
+        const nowFavorited = !fav.includes(id);
+        set({ favorites: nowFavorited ? [...fav, id] : fav.filter((x) => x !== id) });
+        if (!getRealToken()) return;
+        const req = nowFavorited ? realAddFavorite(id) : realRemoveFavorite(id);
+        req.catch((err) => get().handleApiError(err, "Could not update your favorites."));
+      },
+      refreshFavorites: async () => {
+        if (!getRealToken()) return;
+        try {
+          const list = await realGetFavorites();
+          set({ favorites: list.map((r) => r.id) });
+        } catch (err) {
+          get().handleApiError(err, "Could not load your favorites.");
+        }
       },
       toggleOffer: (code) => {
         const on = get().activatedOffers ?? [];

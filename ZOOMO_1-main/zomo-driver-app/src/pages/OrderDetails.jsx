@@ -138,30 +138,27 @@ export default function OrderDetails() {
 
   if (!order) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white dark:bg-black">
+      <div className="min-h-screen bg-z-page flex flex-col items-center justify-center gap-4">
         {fetchError ? (
           <>
-            <p className="text-red-500 text-sm px-6 text-center">
-              {fetchError}
-            </p>
+            <p className="text-z-danger text-sm px-6 text-center">{fetchError}</p>
             <button
               onClick={() => navigate("/orders")}
-              className="px-6 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold"
+              className="btn-primary w-auto px-6 h-11 text-sm"
             >
-              Back to Orders
+              Back to orders
             </button>
           </>
         ) : (
-          <p className="text-gray-500 text-sm">Loading order...</p>
+          <p className="text-z-sub text-sm">Loading order...</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-28 bg-white dark:bg-black">
-
-      {/* HEADER */}
+    <div className="min-h-screen bg-z-page pb-28">
+      {/* HEADER IMAGE */}
       <div className="relative h-44">
         <img
           src={order.restaurant?.imageUrl}
@@ -176,25 +173,18 @@ export default function OrderDetails() {
           <FiArrowLeft />
         </button>
         <div className="absolute bottom-3 left-4 text-white">
-          <h1 className="font-semibold">{order.restaurant?.name}</h1>
-          <p className="text-xs">Order #{order.id?.slice(0, 8)}</p>
+          <p className="text-[11px] font-bold tracking-wide uppercase text-white/70">
+            #{order.id?.slice(0, 8)}
+          </p>
+          <h1 className="display text-lg">{order.restaurant?.name}</h1>
         </div>
       </div>
 
-      {/* PHASE BANNER */}
-      <div
-        className={`mx-4 mt-4 px-4 py-2 rounded-xl font-semibold text-sm ${
-          isPickupPhase
-            ? "bg-amber-100 text-amber-800"
-            : "bg-emerald-100 text-emerald-800"
-        }`}
-      >
-        {isPickupPhase
-          ? "Navigate to restaurant for pickup"
-          : "Deliver order to customer"}
-      </div>
-
-      <div className="px-4 pt-4 space-y-4">
+      <div className="mx-auto max-w-xl px-4 pt-4 space-y-4">
+        {/* PHASE BANNER */}
+        <div className={`badge ${isPickupPhase ? "tone-wait" : "tone-go"} block w-fit`}>
+          {isPickupPhase ? "Navigate to restaurant for pickup" : "Deliver order to customer"}
+        </div>
 
         {/* MAP */}
         <DriverMap
@@ -206,35 +196,33 @@ export default function OrderDetails() {
         {/* DISTANCE */}
         {distance !== null && (
           <div
-            className={`text-center text-sm font-medium ${
-              isNearTarget ? "text-green-600" : "text-red-500"
+            className={`text-center text-sm font-bold ${
+              isNearTarget ? "text-z-accent" : "text-z-danger"
             }`}
           >
-            {isNearTarget
-              ? "You are near the target"
-              : `${(distance / 1000).toFixed(2)} km away`}
+            {isNearTarget ? "You are near the target" : `${(distance / 1000).toFixed(2)} km away`}
           </div>
         )}
 
         {/* CUSTOMER */}
-        <div className="p-4 rounded-xl border space-y-2">
-          <div className="flex items-center gap-2 font-semibold">
-            <FiUser /> Customer
+        <div className="rounded-card p-4 shadow-card bg-z-surface space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-bold tracking-wide text-z-muted uppercase">
+            <FiUser size={14} /> Customer
           </div>
           <div className="flex justify-between items-start">
             <div className="text-sm">
-              <div className="font-medium">{customerName}</div>
-              <div className="text-gray-600">
+              <div className="font-bold text-z-ink">{customerName}</div>
+              <div className="text-z-sub">
                 {order.address?.street}, {order.address?.city}
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 text-z-sub">
               <button onClick={copyAddress}>
-                <FiCopy />
+                <FiCopy size={16} />
               </button>
               {customerPhone && (
-                <a href={`tel:${customerPhone}`}>
-                  <FiPhone />
+                <a href={`tel:${customerPhone}`} className="text-z-primary">
+                  <FiPhone size={16} />
                 </a>
               )}
             </div>
@@ -242,114 +230,108 @@ export default function OrderDetails() {
         </div>
 
         {/* ITEMS */}
-        <div className="p-4 rounded-xl border space-y-2">
-          <div className="flex items-center gap-2 font-semibold">
-            <FiPackage /> Items
+        <div className="rounded-card p-4 shadow-card bg-z-surface space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-bold tracking-wide text-z-muted uppercase">
+            <FiPackage size={14} /> Items
           </div>
           {order.items?.map((item) => {
             const qty = Number(item.quantity) || 0;
             const price = Number(item.price) || 0;
             return (
-              <div key={item.id} className="flex justify-between text-sm">
-                <span>
-                  {item.dish?.name ?? "Item"} x {qty}
+              <div key={item.id} className="flex justify-between text-sm text-z-sub">
+                <span>{item.dish?.name ?? "Item"} × {qty}</span>
+                <span className="font-semibold text-z-ink">
+                  ₹{(price * qty).toFixed(2)}
                 </span>
-                <span>Rs.{(price * qty).toFixed(2)}</span>
               </div>
             );
           })}
         </div>
 
         {/* PAYMENT */}
-        <div className="p-4 rounded-xl border space-y-2">
-          <div className="flex items-center gap-2 font-semibold">
-            <FiCreditCard /> Payment
+        <div className="rounded-card p-4 shadow-card bg-z-surface space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-bold tracking-wide text-z-muted uppercase">
+            <FiCreditCard size={14} /> Payment
           </div>
           <div className="flex justify-between text-sm">
-            <span>{paymentMethod}</span>
-            <span className="font-semibold">
-              Rs.{Number(order.total).toFixed(2)}
+            <span className="text-z-sub">{paymentMethod}</span>
+            <span className="font-bold text-z-ink">
+              ₹{Number(order.total).toFixed(2)}
             </span>
           </div>
 
-          {/* COD CASH TOGGLE */}
           {isCOD && status === "OUT_FOR_DELIVERY" && (
             <button
               onClick={() => setCodPaymentConfirmed((prev) => !prev)}
-              className={`w-full mt-2 flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all font-medium text-sm ${
+              className={`w-full mt-2 flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all font-semibold text-sm ${
                 codPaymentConfirmed
-                  ? "border-green-500 bg-green-50 text-green-700"
+                  ? "border-z-accent bg-z-sage text-z-primary"
                   : "border-amber-400 bg-amber-50 text-amber-700"
               }`}
             >
               <FiCheckCircle
-                className={`text-xl ${
-                  codPaymentConfirmed ? "text-green-500" : "text-amber-400"
-                }`}
+                className={codPaymentConfirmed ? "text-z-accent" : "text-amber-400"}
+                size={18}
               />
-              {codPaymentConfirmed
-                ? "Cash Collected"
-                : "Tap to confirm cash collected"}
+              {codPaymentConfirmed ? "Cash collected" : "Tap to confirm cash collected"}
             </button>
           )}
         </div>
 
         {/* RESTAURANT ADDRESS */}
         {isPickupPhase && (
-          <div className="p-4 rounded-xl border space-y-2">
-            <div className="flex items-center gap-2 font-semibold">
-              <FiUser /> Restaurant Address
+          <div className="rounded-card p-4 shadow-card bg-z-surface space-y-2">
+            <div className="flex items-center gap-2 text-[11px] font-bold tracking-wide text-z-muted uppercase">
+              <FiUser size={14} /> Restaurant address
             </div>
             <div className="text-sm">
-              <div className="font-medium">{order.restaurant?.name}</div>
-              <div className="text-gray-600">
+              <div className="font-bold text-z-ink">{order.restaurant?.name}</div>
+              <div className="text-z-sub">
                 {order.restaurant?.address || "Address not available"}
               </div>
             </div>
           </div>
         )}
 
-        {/* ERROR */}
         {updateError && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-sm text-red-600 font-medium">{updateError}</p>
+          <div className="rounded-xl bg-z-danger/10 px-3 py-2">
+            <p className="text-sm text-z-danger font-medium">{updateError}</p>
           </div>
         )}
 
-        {/* PICKUP BUTTON */}
         {status === "READY_FOR_PICKUP" && (
           <button
             {...swipeHandlers}
             onClick={handlePickup}
             disabled={loading}
-            className="w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60 transition-all"
+            className="w-full h-14 rounded-xl font-bold flex items-center justify-center gap-2
+                       bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60
+                       transition-all active:scale-[0.98]"
           >
             <FiChevronRight />
-            {loading ? "Confirming..." : "Confirm Pickup"}
+            {loading ? "Confirming..." : "Confirm pickup"}
           </button>
         )}
 
-        {/* DELIVERY BUTTON */}
         {status === "OUT_FOR_DELIVERY" && (
           <button
             {...swipeHandlers}
             onClick={handleMarkDelivered}
             disabled={updating || (isCOD && !codPaymentConfirmed)}
-            className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`w-full h-14 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
               isCOD && !codPaymentConfirmed
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-600 text-white hover:bg-green-700"
+                ? "bg-z-line text-z-muted cursor-not-allowed"
+                : "bg-z-primary text-white hover:bg-z-hover"
             }`}
           >
             <FiChevronRight />
             {updating
               ? "Completing..."
               : isCOD && !codPaymentConfirmed
-              ? "Confirm Cash First"
-              : "Confirm Delivery"}
+              ? "Confirm cash first"
+              : "Confirm delivery"}
           </button>
         )}
-
       </div>
       <BottomNav />
     </div>

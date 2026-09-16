@@ -5,6 +5,7 @@ import { ZoomoMark } from "@/components/zoomo/mark";
 import { IMG, PUNCHLINE, TOWN } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
 import { realSignup } from "@/lib/real-api";
+import { GoogleAuthButton } from "@/components/zoomo/google-auth-button";
 
 export const Route = createFileRoute("/signup")({ component: SignupPage });
 
@@ -81,6 +82,21 @@ function SignupPage() {
           <p className="mb-8 text-sm text-sub">
             {step === 1 ? "Name, email, and a mobile we can reach you on." : "At least 6 characters. Stored only on this device."}
           </p>
+          {step === 1 && (
+            <>
+              <GoogleAuthButton
+                onSuccess={(user) => {
+                  login(user.name, user.email, user.phone ?? "", user.id);
+                  nav({ to: "/" });
+                }}
+              />
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-line" />
+                <span className="text-[11px] font-bold tracking-wide text-muted uppercase">or</span>
+                <div className="h-px flex-1 bg-line" />
+              </div>
+            </>
+          )}
           <form onSubmit={step === 1 ? next : create} className="space-y-4">
             {err && <p className="rounded-xl bg-danger/10 px-3 py-2 text-[13px] text-danger">{err}</p>}
             {step === 1 ? (
@@ -157,6 +173,14 @@ function SignupPage() {
               Sign in
             </Link>
           </p>
+          {step === 1 && (
+            <p className="mt-2 text-center text-sm text-sub">
+              Prefer mobile OTP?{" "}
+              <Link to="/login" className="font-bold text-primary">
+                Sign up with your phone
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

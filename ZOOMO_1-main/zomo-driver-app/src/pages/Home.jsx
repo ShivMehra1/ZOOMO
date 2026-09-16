@@ -2,141 +2,87 @@ import { useNavigate } from "react-router-dom";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { useState } from "react";
 import BottomNav from "../components/BottomNav";
+import Header from "../components/Header";
 import { updateAvailability } from "../services/driverApi";
-import { FiSun, FiMoon, FiLogOut } from "react-icons/fi";
-import { useTheme } from "../context/ThemeContext";
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isDark, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const {
-  logout,
-  driver,
-  updateDriverAvailabilityLocally,
-} = useDriverAuth();
+    driver,
+    updateDriverAvailabilityLocally,
+  } = useDriverAuth();
 
-const isOnline = Boolean(driver?.isAvailable);
+  const isOnline = Boolean(driver?.isAvailable);
 
-const toggleAvailability = async () => {
-  if (!driver) return;
+  const toggleAvailability = async () => {
+    if (!driver) return;
 
+    updateDriverAvailabilityLocally(!isOnline);
 
-  updateDriverAvailabilityLocally(!isOnline);
-
-  try {
-    setLoading(true);
-    await updateAvailability(!isOnline);
-  } catch {
-    
-    updateDriverAvailabilityLocally(isOnline);
-    alert("Failed to update availability");
-  } finally {
-    setLoading(false);
-  }
-};
-
+    try {
+      setLoading(true);
+      await updateAvailability(!isOnline);
+    } catch {
+      updateDriverAvailabilityLocally(isOnline);
+      alert("Failed to update availability");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen px-4 pt-5 pb-28 bg-white dark:bg-black">
-      {/* HEADER */}
-      {/* HEADER */}
-<div className="flex items-center justify-between mb-8">
-  {/* LEFT: LOGO + TEXT */}
-  <div className="flex items-center gap-3">
-    <img
-      src="/zoomo-logo.png"
-      alt="Zoomo"
-      className="w-10 h-10 rounded-full object-contain"
-    />
+    <div className="min-h-screen bg-z-page pb-28">
+      <Header title="Rider" />
 
-    <div>
-      <p className="text-xs text-gray-400 uppercase tracking-wide">
-        Welcome
-      </p>
-      <h1 className="text-xl font-semibold">
-        {driver?.name ?? "Driver"}
-      </h1>
-    </div>
-  </div>
+      <div className="mx-auto max-w-xl px-4 py-6">
+        <p className="kicker mb-1">Welcome</p>
+        <h1 className="display text-[28px] text-z-ink mb-6">
+          {driver?.name ?? "Driver"}
+        </h1>
 
-
-        <div className="flex gap-3">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full border border-gray-200 dark:border-white/10"
-          >
-            {isDark ? <FiSun /> : <FiMoon />}
-          </button>
+        <div
+          className={`rounded-card p-6 shadow-card mb-6 transition ${
+            isOnline
+              ? "bg-z-primary text-white"
+              : "bg-z-surface border border-z-line-soft"
+          }`}
+        >
+          <p className={`text-[11px] font-bold tracking-wide uppercase mb-1 ${isOnline ? "text-white/70" : "text-z-muted"}`}>
+            Status
+          </p>
+          <h2 className="display text-[32px] mb-5">
+            {isOnline ? "Online" : "Offline"}
+          </h2>
 
           <button
-            onClick={logout}
-            className="p-2 rounded-full border border-gray-200 dark:border-white/10 text-red-600"
+            onClick={toggleAvailability}
+            disabled={loading}
+            className={`w-full h-14 rounded-xl text-base font-bold transition active:scale-[0.98] disabled:opacity-60 ${
+              isOnline
+                ? "bg-white text-z-primary"
+                : "bg-z-primary text-white hover:bg-z-hover"
+            }`}
           >
-            <FiLogOut />
+            {loading ? "Updating..." : isOnline ? "Go offline" : "Go online"}
           </button>
         </div>
-      </div>
 
-      {/* MAIN STATUS */}
-      <div
-        className={`
-          rounded-2xl p-6 mb-6
-          ${
-            isOnline
-              ? "bg-emerald-600 text-white"
-              : "bg-gray-100 dark:bg-white/5"
-          }
-        `}
-      >
-        <p className="text-sm opacity-90 mb-1">
-          Status
+        <p className="text-center text-sm text-z-sub">
+          {isOnline
+            ? "You'll start receiving delivery requests"
+            : "You must be online to receive delivery requests"}
         </p>
 
-        <h2 className="text-3xl font-bold mb-4">
-          {isOnline ? "ONLINE" : "OFFLINE"}
-        </h2>
-
-        <button
-          onClick={toggleAvailability}
-          disabled={loading}
-          className={`
-            w-full py-4 rounded-xl text-lg font-semibold
-            transition
-            ${
-              isOnline
-                ? "bg-white text-emerald-700"
-                : "bg-emerald-600 text-white"
-            }
-            disabled:opacity-60
-          `}
-        >
-          {loading
-            ? "Updating..."
-            : isOnline
-            ? "Go Offline"
-            : "Go Online"}
-        </button>
+        {isOnline && (
+          <button
+            onClick={() => navigate("/orders")}
+            className="btn-ghost mt-6 w-full h-12 text-sm"
+          >
+            View assigned orders
+          </button>
+        )}
       </div>
-
-      {/* CONTEXT */}
-      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-        {isOnline
-          ? "You will start receiving delivery requests"
-          : "You must be online to receive delivery requests"}
-      </p>
-
-      {/* CTA */}
-      {isOnline && (
-        <button
-          onClick={() => navigate("/orders")}
-          className="mt-6 w-full py-4 rounded-xl
-                     border border-emerald-600
-                     text-emerald-600 font-semibold"
-        >
-          View Assigned Orders
-        </button>
-      )}
 
       <BottomNav />
     </div>

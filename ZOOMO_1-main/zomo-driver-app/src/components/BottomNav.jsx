@@ -3,6 +3,7 @@ import {
   FiHome,
   FiPackage,
   FiBarChart2,
+  FiUser,
 } from "react-icons/fi";
 
 export default function BottomNav() {
@@ -24,8 +25,8 @@ export default function BottomNav() {
           transition
           ${
             active
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-gray-500 dark:text-gray-400"
+              ? "text-z-primary"
+              : "text-z-muted"
           }
         `}
       >
@@ -45,15 +46,16 @@ export default function BottomNav() {
     <div
       className="
         fixed bottom-0 left-0 right-0 z-50
-        bg-white/90 dark:bg-black/80
+        bg-z-surface/90
         backdrop-blur
-        border-t border-gray-200 dark:border-white/10
+        border-t border-z-line
         flex
       "
     >
       {navItem("/home", "Home", FiHome)}
       {navItem("/orders", "Orders", FiPackage)}
       {navItem("/dashboard", "Dashboard", FiBarChart2)}
+      {navItem("/profile", "Profile", FiUser)}
     </div>
   );
 }

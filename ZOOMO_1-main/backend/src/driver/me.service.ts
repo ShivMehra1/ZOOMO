@@ -24,7 +24,22 @@ export class DriverMeService {
         isAvailable: true,
         currentLat: true,
         currentLng: true,
+        vehicleType: true,
+        vehiclePlate: true,
+        rating: true,
+        user: { select: { name: true, email: true, phone: true, avatarUrl: true } },
       },
+    });
+  }
+
+  async updateVehicle(userId: string, data: { vehicleType?: string; vehiclePlate?: string }) {
+    return this.prisma.driver.update({
+      where: { userId },
+      data: {
+        ...(data.vehicleType !== undefined ? { vehicleType: data.vehicleType } : {}),
+        ...(data.vehiclePlate !== undefined ? { vehiclePlate: data.vehiclePlate } : {}),
+      },
+      select: { id: true, vehicleType: true, vehiclePlate: true },
     });
   }
 }

@@ -29,65 +29,45 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+    <div className="min-h-screen bg-z-page px-5 py-10">
+      <div className="mx-auto max-w-[420px]">
+        <Link to="/" className="mb-8 flex items-center gap-2.5">
+          <img src="/brand/mark-on-white.png" alt="Zoomo" className="w-9 h-9 rounded-[22%] object-contain" />
+          <span className="text-base font-bold text-z-ink">Zoomo Eats</span>
+        </Link>
 
-      {/* FULL BACKGROUND FIX */}
-      <div className="absolute inset-0 bg-white dark:bg-black" />
+        <p className="kicker mb-2">Merchant</p>
+        <h1 className="display mb-2 text-[32px] text-z-ink">Sign in</h1>
+        <p className="mb-6 text-sm text-z-sub">
+          Manage your restaurant, menu, and incoming orders.
+        </p>
 
-      {/* OPTIONAL GRADIENT SIDES (like in your screenshot) */}
-      <div className="absolute left-0 top-0 w-1/4 h-full bg-gradient-to-r from-rose-50 dark:from-[#1a1a1a] to-transparent" />
-      <div className="absolute right-0 top-0 w-1/4 h-full bg-gradient-to-l from-rose-50 dark:from-[#1a1a1a] to-transparent" />
-
-      <div className="relative z-10 w-full max-w-md p-8
-        bg-white/95 dark:bg-[#141414] rounded-3xl border border-black/5 dark:border-white/10 shadow-xl">
-
-        <div className="text-center mb-6">
-          <img src="/zoomo-logo.png" alt="Zoomo" className="w-12 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Merchant Login</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Sign in to manage your restaurant
-          </p>
-        </div>
-
-        {error && (
-          <div className="mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-300 px-4 py-2 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Email</label>
-            <input
-              type="email"
-              className="input-zoomo mt-1"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Password</label>
-            <input
-              type="password"
-              className="input-zoomo mt-1"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="btn-zoomo w-full mt-2"
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
+        <form className="space-y-3" onSubmit={submit}>
+          {error && (
+            <p className="rounded-xl bg-z-danger/10 px-3 py-2 text-[13px] text-z-danger">{error}</p>
+          )}
+          <input
+            className="field"
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <input
+            className="field"
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <button className="btn-primary h-12 w-full" disabled={loading}>
+            {loading ? "Signing in..." : "Continue"}
           </button>
         </form>
 
-        <p className="text-center text-sm mt-6 text-gray-600 dark:text-gray-400">
-          Don’t have a merchant account?{" "}
-          <Link to="/signup" className="text-emerald-600 font-semibold hover:underline">
+        <p className="text-center text-sm mt-6 text-z-sub">
+          Don't have a merchant account?{" "}
+          <Link to="/signup" className="font-bold text-z-primary">
             Sign up
           </Link>
         </p>

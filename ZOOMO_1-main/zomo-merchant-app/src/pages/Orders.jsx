@@ -51,19 +51,24 @@ export default function Orders() {
 
   const filteredOrders = orders.filter(ORDER_FILTERS[activeFilter].match);
 
-  if (loading) return <p className="text-gray-500">Loading orders...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (loading) return <p className="text-z-sub text-sm py-12 text-center">Loading orders...</p>;
+  if (error) return <p className="text-z-danger text-sm">{error}</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-2">Orders</h1>
+    <div className="space-y-5">
+      <div>
+        <p className="kicker mb-1">Kitchen</p>
+        <h1 className="display text-2xl text-z-ink">Orders</h1>
+      </div>
 
       <OrderFilters active={activeFilter} onChange={setActiveFilter} />
 
       {filteredOrders.length === 0 ? (
-        <p className="text-gray-500">No orders in this category.</p>
+        <div className="card p-8 text-center text-sm text-z-sub">
+          No orders in this category.
+        </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {filteredOrders.map((order) => (
             <OrderCard
               key={order.id}

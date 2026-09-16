@@ -6,6 +6,9 @@ import OrderDetails from "../pages/OrderDetails";
 import ProtectedRoute from "./ProtectedRoute";
 import DeliveryComplete from "../pages/DeliveryComplete";
 import Dashboard from "../pages/Dashboard";
+import Profile from "../pages/Profile";
+import Earnings from "../pages/Earnings";
+import Support from "../pages/Support";
 
 export default function AppRoutes() {
   return (
@@ -56,7 +59,32 @@ export default function AppRoutes() {
   }
 />
 
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/earnings"
+          element={
+            <ProtectedRoute>
+              <Earnings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/support"
+          element={
+            <ProtectedRoute>
+              <Support />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<Login />} />
       </Routes>

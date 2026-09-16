@@ -27,6 +27,12 @@ export class DriverOrdersController {
     );
   }
 
+  // Past deliveries (delivered/cancelled) — must come before the :id route below
+  @Get("history")
+  getHistory(@Req() req) {
+    return this.driverOrdersService.getHistory(req.user.id);
+  }
+
   // ✅ NEW — Order details for map & navigation
   @Get(":id")
   getOrderDetails(

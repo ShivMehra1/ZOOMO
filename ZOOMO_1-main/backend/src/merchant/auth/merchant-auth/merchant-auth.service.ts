@@ -43,7 +43,7 @@ export class MerchantAuthService {
       },
     });
 
-    return this.signToken(user.id, user.role);
+    return this.signToken(user.id, user.role, user.name, user.email);
   }
 
   async login(body: any) {
@@ -74,14 +74,16 @@ export class MerchantAuthService {
       );
     }
 
-    return this.signToken(user.id, user.role);
+    return this.signToken(user.id, user.role, user.name, user.email);
   }
 
-  private signToken(userId: string, role: UserRole) {
+  private signToken(userId: string, role: UserRole, name: string, email: string) {
     return {
       access_token: this.jwt.sign({
         sub: userId,
         role,
+        name,
+        email,
       }),
     };
   }

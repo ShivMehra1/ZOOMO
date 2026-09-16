@@ -247,16 +247,16 @@ export default function DriverMap({ restaurant, customer, status }) {
   }, [to, isPickupPhase]);
 
   return (
-    <div className="relative w-full h-64 rounded-xl overflow-hidden">
+    <div className="relative w-full h-64 rounded-card overflow-hidden shadow-card">
       {routeInfo && (
-        <div className="absolute bottom-3 left-3 bg-white/90 px-4 py-2 rounded-xl text-sm font-semibold flex gap-2">
-          <FiNavigation />
+        <div className="absolute bottom-3 left-3 bg-white/90 px-4 py-2 rounded-xl text-sm font-bold flex gap-2 items-center">
+          <FiNavigation size={14} />
           {routeInfo.duration} min · {routeInfo.distance} km
         </div>
       )}
 
       {hasArrived && (
-        <div className="absolute top-3 left-3 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+        <div className="absolute top-3 left-3 badge bg-z-primary text-white">
           Arrived
         </div>
       )}

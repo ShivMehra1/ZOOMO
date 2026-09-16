@@ -16,6 +16,24 @@ export class RestaurantsService {
     });
   }
 
+  // Search restaurants by name/cuisine/description — approved only
+  search(q: string) {
+    const query = (q || "").trim();
+    if (!query) return [];
+    return this.prisma.restaurant.findMany({
+      where: {
+        isApproved: true,
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { cuisineType: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      include: { reviews: true },
+      take: 20,
+    });
+  }
+
   // Find one restaurant — rejected restaurants 404 for customers (still visible to their owner/admin elsewhere)
   async findOne(id: string) {
     const restaurant = await this.prisma.restaurant.findUnique({
@@ -53,5 +71,18 @@ export class RestaurantsService {
     });
 
     return review;
+  }
+
+  // Active, non-expired promotions for a restaurant — public, used by the customer app.
+  listActivePromotions(restaurantId: string) {
+    const now = new Date();
+    return this.prisma.promotion.findMany({
+      where: {
+        restaurantId,
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      orderBy: { createdAt: "desc" },
+    });
   }
 }

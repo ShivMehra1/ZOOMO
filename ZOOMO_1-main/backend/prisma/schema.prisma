@@ -35,127 +35,131 @@ enum MessageSender {
 }
 
 model User {
-  id                 String    @id @default(uuid())
-  email              String    @unique
-  password           String
-  name               String
-  role               UserRole  @default(USER)
-  phone              String?
-  isSuspended        Boolean   @default(false)
-  suspendedReason    String?
-  mustResetPassword  Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                String   @id @default(uuid())
+  email             String   @unique
+  password          String
+  name              String
+  role              UserRole @default(USER)
+  phone             String?
+  avatarUrl         String?
+  isSuspended       Boolean  @default(false)
+  suspendedReason   String?
+  mustResetPassword Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  addresses     Address[]
-  restaurants   Restaurant[]
-  cart          Cart?
-  orders        Order[]
-  reviews       Review[]
-  driver        Driver?
+  addresses   Address[]
+  restaurants Restaurant[]
+  cart        Cart?
+  orders      Order[]
+  reviews     Review[]
+  driver      Driver?
+  favorites   Favorite[]
 }
 
 model Address {
-  id            String    @id @default(uuid())
-  street        String
-  city          String
-  state         String
-  zipCode       String
-  country       String    @default("India")
-  isDefault     Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lat           Float?
-  lng           Float?
+  id        String   @id @default(uuid())
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  country   String   @default("India")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lat       Float?
+  lng       Float?
 
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders        Order[]
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
 }
 
 model Restaurant {
-  id            String    @id @default(uuid())
-  name          String
-  description   String?
-  imageUrl      String?
-  address       String
-  phone         String?
-  email         String?
-  openingHours  String?
-  cuisineType   String?
-  priceRange    String?
-  rating        Float?    @default(0)
-  isActive      Boolean   @default(true)
-  isApproved    Boolean   @default(true)
-  costForTwo    Int?
-  etaMin        Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lat           Float?
-  lng           Float?
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  imageUrl     String?
+  address      String
+  phone        String?
+  email        String?
+  openingHours String?
+  cuisineType  String?
+  priceRange   String?
+  rating       Float?   @default(0)
+  isActive     Boolean  @default(true)
+  isApproved   Boolean  @default(true)
+  costForTwo   Int?
+  etaMin       Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lat          Float?
+  lng          Float?
 
-  ownerId       String
-  owner         User      @relation(fields: [ownerId], references: [id])
-  dishes        Dish[]
-  orders        Order[]
-  reviews       Review[]
+  ownerId    String
+  owner      User        @relation(fields: [ownerId], references: [id])
+  dishes     Dish[]
+  orders     Order[]
+  reviews    Review[]
+  favorites  Favorite[]
+  promotions Promotion[]
 }
 
 model Dish {
-  id              String    @id @default(uuid())
+  id              String   @id @default(uuid())
   name            String
   description     String?
   price           Float
   imageUrl        String?
   ingredients     String?
   calories        Int?
-  isVegetarian    Boolean   @default(false)
-  isVegan         Boolean   @default(false)
-  isGlutenFree    Boolean   @default(false)
-  isAvailable     Boolean   @default(true)
+  isVegetarian    Boolean  @default(false)
+  isVegan         Boolean  @default(false)
+  isGlutenFree    Boolean  @default(false)
+  isAvailable     Boolean  @default(true)
   preparationTime Int?
   category        String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  restaurantId    String
-  restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  cartItems       CartItem[]
-  orderItems      OrderItem[]
-  sizes           DishSize[]
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  sizes        DishSize[]
 }
 
 model DishSize {
-  id            String    @id @default(uuid())
-  label         String
-  price         Float
+  id    String @id @default(uuid())
+  label String
+  price Float
 
-  dishId        String
-  dish          Dish      @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  dishId String
+  dish   Dish   @relation(fields: [dishId], references: [id], onDelete: Cascade)
 }
 
 model Cart {
-  id            String    @id @default(uuid())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items         CartItem[]
+  userId String     @unique
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  CartItem[]
 }
 
 model CartItem {
-  id                  String    @id @default(uuid())
-  quantity            Int       @default(1)
+  id                  String   @id @default(uuid())
+  quantity            Int      @default(1)
   specialInstructions String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  cartId        String
-  cart          Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  dishId        String
-  dish          Dish      @relation(fields: [dishId], references: [id])
-  dishSizeId    String?
+  cartId     String
+  cart       Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  dishId     String
+  dish       Dish    @relation(fields: [dishId], references: [id])
+  dishSizeId String?
 }
 
 model Order {
@@ -167,9 +171,9 @@ model Order {
   deliveryFee           Float?
   tax                   Float?
   tip                   Float?
-  promoCode             String?     // ✅ NEW
-  discount              Float?      // ✅ NEW
-  scheduledFor          DateTime?   // ✅ NEW
+  promoCode             String? // ✅ NEW
+  discount              Float? // ✅ NEW
+  scheduledFor          DateTime? // ✅ NEW
   dropOffPreference     String?     @default("MEET_DOOR")
   dropOffNote           String?
   includeCutlery        Boolean     @default(true)
@@ -186,27 +190,27 @@ model Order {
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
 
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  restaurantId  String
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
-  addressId     String?
-  address       Address?  @relation(fields: [addressId], references: [id])
-  items         OrderItem[]
-  payment       Payment?
-  driverId      String?
-  driver        Driver?   @relation(fields: [driverId], references: [id])
-  messages      OrderMessage[]
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  restaurantId String
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id])
+  addressId    String?
+  address      Address?       @relation(fields: [addressId], references: [id])
+  items        OrderItem[]
+  payment      Payment?
+  driverId     String?
+  driver       Driver?        @relation(fields: [driverId], references: [id])
+  messages     OrderMessage[]
 }
 
 model OrderMessage {
-  id            String        @id @default(uuid())
-  sender        MessageSender
-  text          String
-  createdAt     DateTime      @default(now())
+  id        String        @id @default(uuid())
+  sender    MessageSender
+  text      String
+  createdAt DateTime      @default(now())
 
-  orderId       String
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {
@@ -216,53 +220,84 @@ model OrderItem {
   specialInstructions String?
   dishSizeId          String?
 
-  orderId       String
-  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  dishId        String
-  dish          Dish    @relation(fields: [dishId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dishId  String
+  dish    Dish   @relation(fields: [dishId], references: [id])
 }
 
 model Payment {
-  id              String    @id @default(uuid())
+  id              String   @id @default(uuid())
   amount          Float
-  currency        String    @default("INR")
+  currency        String   @default("INR")
   status          String
   provider        String
   method          String
   paymentIntentId String?
   receiptUrl      String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  orderId       String    @unique
-  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model Driver {
-  id            String    @id @default(uuid())
-  isAvailable   Boolean   @default(false)
-  currentLat    Float?
-  currentLng    Float?
-  vehicleType   String?
-  vehiclePlate  String?
-  rating        Float?    @default(4.8)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(uuid())
+  isAvailable  Boolean  @default(false)
+  currentLat   Float?
+  currentLng   Float?
+  vehicleType  String?
+  vehiclePlate String?
+  rating       Float?   @default(4.8)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders        Order[]
+  userId String  @unique
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
 }
 
 model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+}
+
+model Promotion {
   id            String    @id @default(uuid())
-  rating        Int
-  comment       String?
+  code          String
+  description   String?
+  discountType  String    @default("PERCENT") // PERCENT | FLAT
+  value         Float
+  maxDiscount   Float?
+  minOrderValue Float?
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  restaurantId  String
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, code])
 }

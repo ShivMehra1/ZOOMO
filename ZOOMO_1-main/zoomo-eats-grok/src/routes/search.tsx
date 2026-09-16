@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search as SearchIcon } from "lucide-react";
 import { AppShell } from "@/components/zoomo/shell";
 import { BackBar } from "@/components/zoomo/back-bar";
 import { RestaurantCard } from "@/components/zoomo/restaurant-card";
-import { DISHES, RESTAURANTS, inr, restaurantById } from "@/lib/zoomo-data";
+import { DISHES, RESTAURANTS, inr, restaurantById, type Dish, type Restaurant } from "@/lib/zoomo-data";
+import { realSearchDishes, realSearchRestaurants } from "@/lib/real-api";
 
 export const Route = createFileRoute("/search")({ component: SearchPage });
 
@@ -13,7 +14,32 @@ function SearchPage() {
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
 
+  const [remoteKitchens, setRemoteKitchens] = useState<Restaurant[] | null>(null);
+  const [remoteDishes, setRemoteDishes] = useState<Dish[] | null>(null);
+
+  useEffect(() => {
+    if (!query) {
+      setRemoteKitchens(null);
+      setRemoteDishes(null);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([realSearchRestaurants(query), realSearchDishes(query)])
+      .then(([r, d]) => {
+        if (cancelled) return;
+        setRemoteKitchens(r);
+        setRemoteDishes(d);
+      })
+      .catch(() => {
+        // Backend unreachable — fall back to filtering the local demo catalog below.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
   const kitchens = useMemo(() => {
+    if (remoteKitchens) return remoteKitchens;
     if (!query) return RESTAURANTS;
     return RESTAURANTS.filter(
       (r) =>
@@ -21,12 +47,13 @@ function SearchPage() {
         r.cuisineType.toLowerCase().includes(query) ||
         r.description.toLowerCase().includes(query),
     );
-  }, [query]);
+  }, [query, remoteKitchens]);
 
   const dishes = useMemo(() => {
+    if (remoteDishes) return remoteDishes;
     if (!query) return DISHES.slice(0, 8);
     return DISHES.filter((d) => d.name.toLowerCase().includes(query) || d.description.toLowerCase().includes(query));
-  }, [query]);
+  }, [query, remoteDishes]);
 
   return (
     <AppShell>

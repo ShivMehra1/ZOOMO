@@ -212,3 +212,55 @@ export async function fetchOrderDetails(orderId) {
   return res.json();
 }
 
+
+/* ===========================
+   DRIVER PROFILE (full, incl. user/avatar/vehicle/rating)
+=========================== */
+export async function fetchDriverProfile() {
+  const res = await authFetch(`${API_BASE}/driver/me`);
+  if (!res.ok) throw new Error("Failed to load profile");
+  return res.json();
+}
+
+export async function updateDriverVehicle(data) {
+  const res = await authFetch(`${API_BASE}/driver/me/vehicle`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update vehicle");
+  return res.json();
+}
+
+// name/phone/avatarUrl — shared user endpoint, works for any role's token
+export async function updateDriverAccount(data) {
+  const res = await authFetch(`${API_BASE}/users/me`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update profile");
+  return res.json();
+}
+
+// Multipart upload — do NOT use authFetch here, it forces JSON content-type
+export async function uploadDriverAvatar(file) {
+  const token = localStorage.getItem("driverToken");
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE}/upload/image?folder=avatars`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Upload failed");
+  return res.json(); // { url }
+}
+
+/* ===========================
+   DELIVERY HISTORY (earnings, performance, receipts)
+=========================== */
+export async function fetchDeliveryHistory() {
+  const res = await authFetch(`${API_BASE}/driver/orders/history`);
+  if (!res.ok) throw new Error("Failed to load delivery history");
+  return res.json();
+}

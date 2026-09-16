@@ -4,7 +4,8 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { ZoomoMark } from "@/components/zoomo/mark";
 import { STAFF_ACCOUNTS, useZoomo } from "@/lib/zoomo-store";
 import { IMG, PUNCHLINE, TOWN } from "@/lib/zoomo-data";
-import { realLogin } from "@/lib/real-api";
+import { realLogin, realRequestOtp, realVerifyOtp } from "@/lib/real-api";
+import { GoogleAuthButton } from "@/components/zoomo/google-auth-button";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -21,6 +22,7 @@ function LoginPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [devCode, setDevCode] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,22 +50,36 @@ function LoginPage() {
     }
   }
 
-  function submitPhone(e: React.FormEvent) {
+  async function submitPhone(e: React.FormEvent) {
     e.preventDefault();
     const p = phone.replace(/\D/g, "");
     if (p.length !== 10) return setErr("Enter a valid 10-digit mobile.");
     if (!otpSent) {
+      setBusy(true);
       setErr("");
-      setOtpSent(true);
+      try {
+        const { devCode } = await realRequestOtp(p);
+        setDevCode(devCode);
+        setOtpSent(true);
+      } catch (err) {
+        setErr(err instanceof Error ? err.message : "Could not send code.");
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     if (otp.length !== 4) return setErr("Enter the 4-digit code.");
     setBusy(true);
     setErr("");
-    setTimeout(() => {
-      login("Zoomo guest", `${p}@zoomo.local`, p);
+    try {
+      const user = await realVerifyOtp(p, otp);
+      login(user.name, user.email, user.phone ?? "", user.id);
       nav({ to: "/" });
-    }, 500);
+    } catch (err) {
+      setErr(err instanceof Error ? err.message : "Incorrect code.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -95,6 +111,20 @@ function LoginPage() {
           <h1 className="display mb-2 text-[32px] text-ink">Sign in</h1>
           <p className="mb-8 text-sm text-sub">Email or the mobile you used in Jourian.</p>
 
+          <div className="mb-5">
+            <GoogleAuthButton
+              onSuccess={(user) => {
+                login(user.name, user.email, user.phone ?? "", user.id);
+                nav({ to: "/" });
+              }}
+            />
+          </div>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-line" />
+            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">or</span>
+            <div className="h-px flex-1 bg-line" />
+          </div>
+
           <div className="mb-5 grid grid-cols-2 rounded-full bg-sage p-1">
             <button type="button" onClick={() => { setTab("email"); setErr(""); }} className={`h-9 rounded-full text-[13px] font-bold ${tab === "email" ? "bg-white text-ink shadow-sm" : "text-sub"}`}>
               Email
@@ -110,6 +140,11 @@ function LoginPage() {
               {otpSent ? (
                 <>
                   <p className="text-[13px] text-sub">Code sent to +91 {phone}.</p>
+                  {devCode && (
+                    <p className="rounded-xl bg-sage px-3 py-2 text-[13px] font-medium text-primary">
+                      Dev mode — no SMS provider connected, your code is <span className="font-bold tracking-widest">{devCode}</span>
+                    </p>
+                  )}
                   <input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="••••" inputMode="numeric" className="field !pl-4 tracking-[0.4em]" />
                   <button type="submit" disabled={busy} className="btn-primary flex h-12 w-full items-center justify-center text-[15px]">
                     {busy ? "Checking…" : "Verify"}
@@ -119,8 +154,8 @@ function LoginPage() {
                 <>
                   <label className="block text-[13px] font-medium text-sub">Mobile</label>
                   <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit number" inputMode="numeric" className="field !pl-4" />
-                  <button type="submit" className="btn-primary flex h-12 w-full items-center justify-center text-[15px]">
-                    Send OTP
+                  <button type="submit" disabled={busy} className="btn-primary flex h-12 w-full items-center justify-center text-[15px]">
+                    {busy ? "Sending…" : "Send OTP"}
                   </button>
                 </>
               )}

@@ -58,60 +58,46 @@ export default function EditDish() {
     }
   };
 
-  if (loading) return <p className="text-gray-500 dark:text-gray-400">Loading dish...</p>;
+  if (loading) return <p className="text-z-sub text-sm py-12 text-center">Loading dish...</p>;
 
   if (loadError) return (
-    <div className="px-5 py-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30">
-      <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
-      <button onClick={() => navigate("/menu")} className="mt-2 text-sm text-red-600 underline">
+    <div className="max-w-3xl mx-auto px-5 py-4 rounded-2xl bg-z-danger/10 border border-z-danger/20">
+      <p className="text-sm text-z-danger">{loadError}</p>
+      <button onClick={() => navigate("/menu")} className="mt-2 text-sm text-z-danger underline">
         Back to Menu
       </button>
     </div>
   );
 
   return (
-    <div className="max-w-3xl" ref={topRef}>
-
+    <div className="max-w-3xl mx-auto" ref={topRef}>
       {/* ── SUCCESS NOTIFICATION ── */}
       {saved && (
-        <div className="mb-6 flex items-center gap-3 px-5 py-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
+        <div className="mb-5 flex items-center gap-3 px-5 py-4 rounded-2xl bg-z-sage border border-z-accent/20">
           <span className="text-2xl">✅</span>
           <div>
-            <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-              Dish updated successfully!
-            </p>
-            <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-0.5">
-              Redirecting to your menu in a moment…
-            </p>
+            <p className="font-bold text-z-primary">Dish updated successfully!</p>
+            <p className="text-sm text-z-primary/80 mt-0.5">Redirecting to your menu in a moment…</p>
           </div>
         </div>
       )}
 
       {/* ── ERROR NOTIFICATION ── */}
       {submitError && (
-        <div className="mb-6 flex items-center gap-3 px-5 py-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30">
+        <div className="mb-5 flex items-center gap-3 px-5 py-4 rounded-2xl bg-z-danger/10 border border-z-danger/20">
           <span className="text-lg">⚠️</span>
-          <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
+          <p className="text-sm text-z-danger">{submitError}</p>
         </div>
       )}
 
       {/* ── PAGE HEADER ── */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Edit Dish</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          Update this dish on your menu
-        </p>
+      <div className="mb-5">
+        <p className="kicker mb-1">Menu</p>
+        <h1 className="display text-2xl text-z-ink">Edit Dish</h1>
+        <p className="text-sm text-z-sub mt-1">Update this dish on your menu</p>
       </div>
 
-      {/* ── FORM CARD ── */}
-      <div className="bg-white/80 dark:bg-[#0f0f0f] backdrop-blur rounded-3xl p-6 border border-black/10 dark:border-white/10">
-        <DishForm
-          initialData={dish}
-          onSubmit={submit}
-          saving={saving}
-          mode="edit"
-        />
-      </div>
+      <DishForm initialData={dish} onSubmit={submit} saving={saving} mode="edit" />
     </div>
   );
 }

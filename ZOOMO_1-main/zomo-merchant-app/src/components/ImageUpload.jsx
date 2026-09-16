@@ -72,26 +72,18 @@ export default function ImageUpload({ image, setImage, folder = "restaurants" })
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium">
-        Restaurant Image
-      </label>
-
       {image ? (
-        <div className="relative w-40 h-40">
-          <img
-            src={image.preview}
-            alt="Preview"
-            className="w-full h-full object-cover rounded border"
-          />
+        <div className="relative w-32 h-32">
+          <img src={image.preview} alt="Preview" className="w-full h-full object-cover rounded-2xl border border-z-line" />
           {(image.uploading || uploading) && (
-            <div className="absolute inset-0 bg-black/50 rounded flex items-center justify-center">
-              <span className="text-white text-xs font-medium">Uploading...</span>
+            <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
+              <span className="text-white text-xs font-bold">Uploading...</span>
             </div>
           )}
           <button
             type="button"
             onClick={removeImage}
-            className="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded"
+            className="absolute top-1 right-1 bg-z-ink/70 text-white text-[11px] font-bold px-2 py-1 rounded-full"
           >
             Remove
           </button>
@@ -100,21 +92,15 @@ export default function ImageUpload({ image, setImage, folder = "restaurants" })
         <button
           type="button"
           onClick={() => fileInputRef.current.click()}
-          className="border border-dashed rounded w-40 h-40 flex items-center justify-center text-sm text-gray-500 hover:bg-gray-50"
+          className="border border-dashed border-z-line rounded-2xl w-32 h-32 flex items-center justify-center text-sm text-z-sub hover:border-z-primary hover:text-z-primary transition"
         >
-          Upload Image
+          Upload
         </button>
       )}
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-z-danger">{error}</p>}
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={onFileChange}
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
     </div>
   );
 }

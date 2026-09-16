@@ -11,7 +11,7 @@ export default function CancelOrderButton({ status, onCancel }) {
         );
         if (confirmCancel) onCancel();
       }}
-      className="border border-red-500 text-red-500 px-4 py-2 rounded hover:bg-red-50"
+      className="btn-ghost h-11 px-4 text-sm text-z-danger border-z-danger/30 hover:border-z-danger hover:text-z-danger"
     >
       Cancel Order
     </button>
