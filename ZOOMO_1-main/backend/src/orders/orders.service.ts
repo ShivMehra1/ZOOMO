@@ -4,15 +4,8 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
-import { OrderStatus } from "@prisma/client";
-
-const PROMO_CODES: Record<string, { type: string; value: number; max?: number }> = {
-  ZOOMO50: { type: "percent", value: 50, max: 100 },
-  BOGO: { type: "flat", value: 60 },
-  FREESHIP: { type: "ship", value: 29 },
-  HEALTHY20: { type: "percent", value: 20, max: 80 },
-  NEWUSER: { type: "flat", value: 80 },
-};
+import { MessageSender, OrderStatus, OrderType } from "@prisma/client";
+import { PROMO_CODES } from "../common/promo-codes";
 
 @Injectable()
 export class OrdersService {
@@ -28,6 +21,8 @@ export class OrdersService {
         items: { include: { dish: true } },
         restaurant: true,
         payment: true,
+        driver: { include: { user: true } },
+        address: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -43,6 +38,9 @@ export class OrdersService {
         items: { include: { dish: true } },
         restaurant: true,
         payment: true,
+        driver: { include: { user: true } },
+        address: true,
+        messages: { orderBy: { createdAt: "asc" } },
       },
     });
 
@@ -63,20 +61,31 @@ export class OrdersService {
       paymentMethod,
       promoCode,
       scheduledFor,
+      orderType,
+      dropOffPreference,
+      dropOffNote,
+      includeCutlery,
     } = data;
 
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
-      include: { items: { include: { dish: true } } },
+      include: { items: { include: { dish: { include: { sizes: true } } } } },
     });
 
     if (!cart || cart.items.length === 0) {
       throw new BadRequestException("Cart is empty");
     }
 
+    /* ── Resolve per-item price (dish size overrides base price) ── */
+    const itemPrice = (item: (typeof cart.items)[number]): number => {
+      if (!item.dishSizeId) return item.dish.price;
+      const size = item.dish.sizes.find((s) => s.id === item.dishSizeId);
+      return size ? size.price : item.dish.price;
+    };
+
     /* ── Totals ── */
     const subtotal = cart.items.reduce(
-      (sum, item) => sum + item.quantity * item.dish.price,
+      (sum, item) => sum + item.quantity * itemPrice(item),
       0
     );
     const tipAmount = tip || 0;
@@ -114,11 +123,23 @@ export class OrdersService {
     });
 
     if (!restaurantDish) throw new BadRequestException("Invalid restaurant");
+    if (!restaurantDish.restaurant.isApproved) {
+      throw new BadRequestException("This restaurant is no longer available");
+    }
+    if (!restaurantDish.restaurant.isActive) {
+      throw new BadRequestException("This restaurant is currently closed");
+    }
 
     /* ── Status ── */
     const orderStatus = scheduledFor
       ? OrderStatus.SCHEDULED
       : OrderStatus.PENDING;
+
+    /* ── Promised-by time, used to flag a late order ── */
+    const etaMin = restaurantDish.restaurant.etaMin ?? 30;
+    const promisedAt = scheduledFor
+      ? new Date(new Date(scheduledFor).getTime() + etaMin * 60_000)
+      : new Date(Date.now() + etaMin * 60_000);
 
     /* ── Transaction ── */
     const order = await this.prisma.$transaction(async (tx) => {
@@ -135,13 +156,19 @@ export class OrdersService {
           promoCode: validatedPromoCode,
           discount,
           scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+          orderType: orderType === "PICKUP" ? OrderType.PICKUP : OrderType.DELIVERY,
+          dropOffPreference: dropOffPreference || "MEET_DOOR",
+          dropOffNote: dropOffNote || null,
+          includeCutlery: includeCutlery !== false,
+          promisedAt,
           specialInstructions,
           status: orderStatus,
           items: {
             create: cart.items.map((item) => ({
               dishId: item.dishId,
+              dishSizeId: item.dishSizeId,
               quantity: item.quantity,
-              price: item.dish.price,
+              price: itemPrice(item),
               specialInstructions: item.specialInstructions || null,
             })),
           },
@@ -168,5 +195,87 @@ export class OrdersService {
     });
 
     return order;
+  }
+
+  /* ===========================
+     LIVE TRACKING ACTIONS
+  ============================ */
+  private async ownedOrder(orderId: string, userId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+    if (order.userId !== userId) throw new BadRequestException("Unauthorized");
+    return order;
+  }
+
+  async cancelOrder(orderId: string, userId: string) {
+    const order = await this.ownedOrder(orderId, userId);
+    if (order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException(`Order already ${order.status.toLowerCase()}`);
+    }
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CANCELLED },
+    });
+  }
+
+  async rateOrder(orderId: string, userId: string, rating: number) {
+    await this.ownedOrder(orderId, userId);
+    if (rating < 1 || rating > 5) throw new BadRequestException("Rating must be 1-5");
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { rating },
+    });
+  }
+
+  async gatePing(orderId: string, userId: string) {
+    await this.ownedOrder(orderId, userId);
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { gatePingAt: new Date() },
+    });
+  }
+
+  async setDropOff(orderId: string, userId: string, preference: string, note?: string) {
+    await this.ownedOrder(orderId, userId);
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { dropOffPreference: preference, dropOffNote: note || null },
+    });
+  }
+
+  /* ===========================
+     LATE CREDIT
+  ============================ */
+  async grantLateCredit(orderId: string, userId: string) {
+    const order = await this.ownedOrder(orderId, userId);
+    if (order.lateCreditApplied) return order; // already granted
+    if (!order.promisedAt || Date.now() < order.promisedAt.getTime()) {
+      throw new BadRequestException("Order is not late yet");
+    }
+    const credit = 40;
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { lateCreditApplied: credit },
+    });
+  }
+
+  /* ===========================
+     RIDE CHAT
+  ============================ */
+  async getMessages(orderId: string, userId: string) {
+    await this.ownedOrder(orderId, userId);
+    return this.prisma.orderMessage.findMany({
+      where: { orderId },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  async sendMessage(orderId: string, userId: string, text: string) {
+    await this.ownedOrder(orderId, userId);
+    const trimmed = (text || "").trim();
+    if (!trimmed) throw new BadRequestException("Message can't be empty");
+    return this.prisma.orderMessage.create({
+      data: { orderId, sender: MessageSender.CUSTOMER, text: trimmed.slice(0, 500) },
+    });
   }
 }

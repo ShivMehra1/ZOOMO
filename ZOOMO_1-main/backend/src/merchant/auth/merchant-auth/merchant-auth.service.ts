@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -63,6 +64,14 @@ export class MerchantAuthService {
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.isSuspended) {
+      throw new ForbiddenException(
+        user.suspendedReason
+          ? `Account suspended: ${user.suspendedReason}`
+          : 'Account suspended. Contact support.',
+      );
     }
 
     return this.signToken(user.id, user.role);

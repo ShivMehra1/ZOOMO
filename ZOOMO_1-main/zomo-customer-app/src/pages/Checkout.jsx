@@ -6,8 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { MascotLoader } from "./LandingPage";
 
 const C = {
-  page: "#F5F7F6", surface: "#FFFFFF", primary: "#0F3D2E", hover: "#145A43", accent: "#22C55E",
-  textMain: "#0B0F0E", textSub: "#6B7280", textMuted: "#9CA3AF", border: "#E5E7EB", borderSoft: "#F0F2F1",
+  page: "#F4F7F5", surface: "#FFFFFF", primary: "#0F3D2D", hover: "#164A39", accent: "#1F7A52",
+  textMain: "#0C1612", textSub: "#5A6660", textMuted: "#8A938E", border: "#DCE6E0", borderSoft: "#EEF3F0",
   error: "#DC2626", pink: "#EC4899",
 };
 
@@ -19,6 +19,11 @@ const PROMO_CODES = {
   NEWUSER: { type: "flat", value: 80, label: "₹80 off", max: null },
 };
 const TIP_OPTIONS = [0, 10, 20, 30, 50];
+const DROP_OFF_OPTIONS = [
+  { id: "MEET_DOOR", label: "Meet at door", hint: "Hand it to me" },
+  { id: "LEAVE_DOOR", label: "Leave at door", hint: "No contact" },
+  { id: "MEET_OUTSIDE", label: "Meet outside", hint: "I'll come to the gate" },
+];
 
 const Icon = {
   ArrowLeft: () => (
@@ -84,15 +89,15 @@ function OrderSuccessAnimation({ onDone }) {
           transition: "all 500ms"
         }}>
           <svg width="48" height="48" viewBox="0 0 32 32" fill="none">
-            <path d="M6 10H22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-            <path d="M22 10L10 22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-            <path d="M10 22H26" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
+            <path d="M6 10H22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+            <path d="M22 10L10 22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+            <path d="M10 22H26" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
           </svg>
         </div>
         {stage === "celebrate" && [...Array(16)].map((_, i) => (
           <div key={i} style={{
             position: "absolute", width: 7, height: 7, borderRadius: "50%",
-            background: ["#22C55E", "#34D399", "#6EE7B7", "#0F3D2E", "#F59E0B"][i % 5],
+            background: ["#1F7A52", "#34D399", "#6EE7B7", "#0F3D2D", "#F59E0B"][i % 5],
             left: `${50 + Math.cos(i * 22.5 * Math.PI / 180) * 90}px`,
             top: `${50 + Math.sin(i * 22.5 * Math.PI / 180) * 90}px`,
             animation: `confettiFall 1.2s ease-in ${i * 0.05}s infinite`
@@ -188,7 +193,7 @@ function Toggle({ checked, onChange }) {
 }
 
 export default function Checkout() {
-  const { cart, getSubtotal, clearCart } = useCart();
+  const { cart, getSubtotal, itemUnitPrice, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -220,6 +225,10 @@ export default function Checkout() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
 
+  const [dropOff, setDropOff] = useState("MEET_DOOR");
+  const [dropOffNote, setDropOffNote] = useState("");
+  const [includeCutlery, setIncludeCutlery] = useState(true);
+
   useEffect(() => {
     async function load() {
       try {
@@ -232,6 +241,13 @@ export default function Checkout() {
       finally { setLoading(false); }
     }
     load();
+
+    // Auto-apply an offer activated on the home page (localStorage), if any.
+    try {
+      const activated = JSON.parse(localStorage.getItem("ze_activated_offers") || "[]");
+      const code = activated.find(c => PROMO_CODES[c]);
+      if (code) setAppliedPromo({ code, ...PROMO_CODES[code] });
+    } catch { /* ignore */ }
   }, []);
 
   const minDate = new Date().toISOString().split("T")[0];
@@ -288,9 +304,14 @@ export default function Checkout() {
         addressId: orderType === "DELIVERY" ? selectedAddress : null,
         items: cart.items.map(i => ({ dishId: i.dish.id, quantity: i.quantity })),
         paymentMethod,
-        orderType,
+        // Backend only distinguishes DELIVERY vs PICKUP — dine-in/takeaway both
+        // mean the customer collects it themselves.
+        orderType: orderType === "DELIVERY" ? "DELIVERY" : "PICKUP",
+        dropOffPreference: orderType === "DELIVERY" ? dropOff : null,
+        dropOffNote: orderType === "DELIVERY" ? dropOffNote.trim() || null : null,
+        includeCutlery,
         promoCode: appliedPromo?.code ?? null,
-        tip: tip,
+        tip: tipAmount,
         guestCount: orderType === "DINE_IN" ? guestCount : null,
         scheduledFor: orderType === "DELIVERY" && scheduleDelivery
           ? `${scheduleDate}T${scheduleTime}:00`
@@ -339,9 +360,9 @@ export default function Checkout() {
   return (
     <div style={{
       minHeight: "100vh", background: C.page, paddingBottom: 40,
-      fontFamily: "'Poppins', system-ui, sans-serif"
+      fontFamily: "'Satoshi', system-ui, sans-serif"
     }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');`}</style>
+      <style>{`@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');`}</style>
 
       {showSuccess && <OrderSuccessAnimation onDone={() => navigate("/orders")} />}
       {showPromoFlash && appliedPromo && <PromoFlash promo={appliedPromo} onDone={() => setShowPromoFlash(false)} />}
@@ -525,6 +546,43 @@ export default function Checkout() {
           )}
         </Section>}
 
+        {/* Drop-off preference — delivery only */}
+        {orderType === "DELIVERY" && <Section title="Drop-off preference">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {DROP_OFF_OPTIONS.map(opt => (
+              <label key={opt.id} onClick={() => setDropOff(opt.id)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px",
+                  borderRadius: 14, cursor: "pointer",
+                  border: `1.5px solid ${dropOff === opt.id ? C.accent : C.border}`,
+                  background: dropOff === opt.id ? `${C.accent}0D` : C.page,
+                }}>
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: 13, color: C.textMain }}>{opt.label}</p>
+                  <p style={{ color: C.textMuted, fontSize: 11 }}>{opt.hint}</p>
+                </div>
+                <input type="radio" checked={dropOff === opt.id} onChange={() => setDropOff(opt.id)} style={{ accentColor: C.primary }} />
+              </label>
+            ))}
+          </div>
+          <input value={dropOffNote} onChange={e => setDropOffNote(e.target.value)}
+            placeholder="Note for the rider (optional)"
+            style={inputStyle}
+            onFocus={e => e.target.style.borderColor = C.primary}
+            onBlur={e => e.target.style.borderColor = C.border} />
+        </Section>}
+
+        {/* Cutlery */}
+        <Section title="Cutlery">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: C.textMain }}>Include cutlery</p>
+              <p style={{ fontSize: 11, color: C.textMuted }}>Skip it to cut down on plastic</p>
+            </div>
+            <Toggle checked={includeCutlery} onChange={() => setIncludeCutlery(v => !v)} />
+          </div>
+        </Section>
+
         {/* Tip */}
         <Section title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -684,8 +742,8 @@ export default function Checkout() {
         <Section title="Order Summary">
           {cart.items.map(i => (
             <div key={i.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.textSub }}>
-              <span>{i.dish.name} × {i.quantity}</span>
-              <span>₹{(i.dish.price * i.quantity).toFixed(2)}</span>
+              <span>{i.dish.name}{i.dishSizeId && i.dish.sizes?.find(s => s.id === i.dishSizeId) ? ` (${i.dish.sizes.find(s => s.id === i.dishSizeId).label})` : ""} × {i.quantity}</span>
+              <span>₹{(itemUnitPrice(i) * i.quantity).toFixed(2)}</span>
             </div>
           ))}
           <div style={{

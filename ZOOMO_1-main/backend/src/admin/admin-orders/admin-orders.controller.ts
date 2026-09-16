@@ -29,4 +29,23 @@ export class AdminOrdersController {
   ) {
     return this.adminOrdersService.updateOrderStatus(orderId, status);
   }
+
+  @Get("disputes")
+  getDisputes() {
+    return this.adminOrdersService.getDisputes();
+  }
+
+  @Patch(":orderId/refund")
+  refundOrder(
+    @Param("orderId") orderId: string,
+    @Body("amount") amount: number,
+    @Body("reason") reason: string
+  ) {
+    return this.adminOrdersService.refundOrder(orderId, amount, reason);
+  }
+
+  @Get(":orderId/messages")
+  getOrderMessages(@Param("orderId") orderId: string) {
+    return this.adminOrdersService.getOrderMessages(orderId);
+  }
 }

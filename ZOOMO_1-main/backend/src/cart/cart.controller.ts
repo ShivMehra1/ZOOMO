@@ -37,7 +37,7 @@ export class CartController {
     this.checkCustomer(req);
 
     const quantity = body.quantity ?? 1;
-    await this.cartService.addItem(req.user.id, body.dishId, quantity);
+    await this.cartService.addItem(req.user.id, body.dishId, quantity, body.dishSizeId);
 
     return this.cartService.getCart(req.user.id); // 👈 FIXED
   }

@@ -26,5 +26,10 @@ export class RestaurantsController {
     return this.restaurantsService.findOne(id);
   }
 
-
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("USER")
+  @Post(":id/reviews")
+  addReview(@Param("id") id: string, @Body() body, @Req() req) {
+    return this.restaurantsService.addReview(id, req.user.id, Number(body.rating), body.comment);
+  }
 }

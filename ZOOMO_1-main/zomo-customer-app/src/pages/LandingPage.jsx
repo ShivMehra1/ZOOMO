@@ -3,26 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { getFavorites } from "../utils/prefs";
 
 /* ─── DESIGN TOKENS ─────────────────────────────── */
 const C = {
-  page: "#F5F7F6",
+  page: "#F4F7F5",
   surface: "#FFFFFF",
-  primary: "#0F3D2E",
-  hover: "#145A43",
-  accent: "#22C55E",
-  textMain: "#0B0F0E",
-  textSub: "#6B7280",
-  textMuted: "#9CA3AF",
-  border: "#E5E7EB",
-  borderSoft: "#F0F2F1",
+  primary: "#0F3D2D",
+  hover: "#164A39",
+  accent: "#1F7A52",
+  textMain: "#0C1612",
+  textSub: "#5A6660",
+  textMuted: "#8A938E",
+  border: "#DCE6E0",
+  borderSoft: "#EEF3F0",
 };
 
 /* ─── MASCOT LOADER (keep same API as original) ─── */
 export function MascotLoader({ text = "Loading..." }) {
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 999, background: "#F5F7F6",
+      position: "fixed", inset: 0, zIndex: 999, background: "#F4F7F5",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16
     }}>
       <div style={{
@@ -30,9 +31,9 @@ export function MascotLoader({ text = "Loading..." }) {
         display: "flex", alignItems: "center", justifyContent: "center"
       }}>
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <path d="M6 10H22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-          <path d="M22 10L10 22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-          <path d="M10 22H26" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
+          <path d="M6 10H22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+          <path d="M22 10L10 22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+          <path d="M10 22H26" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
         </svg>
       </div>
       <p style={{ color: C.primary, fontWeight: 600, fontSize: 14, letterSpacing: "0.02em" }}>{text}</p>
@@ -144,7 +145,7 @@ function AddressModal({ onConfirm, onSkip }) {
             value={val}
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => e.key === "Enter" && val.trim() && onConfirm(val.trim())}
-            placeholder="e.g. Koramangala, Bengaluru"
+            placeholder="e.g. Manchak, Jourian"
             style={{
               width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 14, paddingBottom: 14,
               borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 14, color: C.textMain,
@@ -464,7 +465,7 @@ function RestaurantCard({ r, navigate }) {
 function SkeletonCard() {
   return (
     <div style={{ background: C.surface, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.border}` }}>
-      <div style={{ height: 176, background: "#F0F2F1", position: "relative", overflow: "hidden" }}>
+      <div style={{ height: 176, background: "#EEF3F0", position: "relative", overflow: "hidden" }}>
         <div style={{
           position: "absolute", inset: 0,
           background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)",
@@ -472,87 +473,87 @@ function SkeletonCard() {
         }} />
       </div>
       <div style={{ padding: "14px 16px 16px" }}>
-        <div style={{ height: 16, width: "70%", background: "#F0F2F1", borderRadius: 8, marginBottom: 8 }} />
-        <div style={{ height: 12, width: "50%", background: "#F0F2F1", borderRadius: 8 }} />
+        <div style={{ height: 16, width: "70%", background: "#EEF3F0", borderRadius: 8, marginBottom: 8 }} />
+        <div style={{ height: 12, width: "50%", background: "#EEF3F0", borderRadius: 8 }} />
       </div>
     </div>
   );
 }
 
 /* ─── PROFILE DRAWER ────────────────────────────── */
-function ProfileDrawer({ user, onClose, navigate }) {
+function ProfileDrawer({ user, onClose, navigate, cartCount }) {
   const { logout } = useAuth();
+  const favCount = getFavorites().length;
+
+  const rows = [
+    { label: "My orders", hint: "Track & reorder", path: "/orders" },
+    { label: "My addresses", hint: "Manage delivery spots", path: "/profile" },
+    { label: "Saved restaurants", hint: favCount ? `${favCount} saved` : "None yet", path: "/profile" },
+    { label: "My bag", hint: cartCount ? `${cartCount} item${cartCount === 1 ? "" : "s"}` : "Empty", path: "/cart" },
+    { label: "Account settings", hint: "Phone, veg mode, payment", path: "/profile" },
+  ];
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex" }}>
       {/* Backdrop */}
       <div style={{ flex: 1, background: "rgba(15,61,46,0.4)", backdropFilter: "blur(2px)" }} onClick={onClose} />
       {/* Panel */}
       <div style={{
-        width: "100%", maxWidth: 320, background: C.surface,
+        width: "100%", maxWidth: 340, background: C.surface,
         borderLeft: `1px solid ${C.border}`, display: "flex", flexDirection: "column",
-        boxShadow: "-8px 0 40px rgba(0,0,0,0.12)"
+        boxShadow: "-8px 0 40px rgba(0,0,0,0.12)", overflowY: "auto"
       }}>
 
-        <div style={{
-          padding: "16px 20px", borderBottom: `1px solid ${C.borderSoft}`,
-          display: "flex", alignItems: "center", justifyContent: "space-between"
-        }}>
-          <span style={{ fontWeight: 700, color: C.textMain, fontSize: 16 }}>Your profile</span>
-          <button onClick={onClose}
-            style={{
-              width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`,
-              background: "transparent", display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: C.textSub
-            }}>
-            <Icon.X size={14} />
+        <div style={{ background: C.primary, padding: "20px 20px 16px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.15)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 700, fontSize: 18, flexShrink: 0
+              }}>
+                {user?.name?.[0]?.toUpperCase() || "U"}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, color: "#fff", fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user?.name}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user?.email}
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose}
+              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", padding: 4 }}>
+              <Icon.X size={16} />
+            </button>
+          </div>
+          <button onClick={() => { navigate("/profile"); onClose(); }}
+            style={{ borderRadius: 999, background: "#fff", color: C.primary, fontWeight: 700, fontSize: 12, padding: "7px 14px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            Edit profile
           </button>
         </div>
 
-        <div style={{ padding: 20, flex: 1 }}>
-          {/* Avatar card */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12, padding: 16,
-            borderRadius: 16, background: C.page, border: `1px solid ${C.borderSoft}`, marginBottom: 16
-          }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14, background: C.primary,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontWeight: 700, fontSize: 20, flexShrink: 0
-            }}>
-              {user?.name?.[0]?.toUpperCase() || "U"}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontWeight: 600, color: C.textMain, fontSize: 15,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-              }}>
-                {user?.name}
-              </div>
-              <div style={{
-                color: C.textSub, fontSize: 12, marginTop: 2,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-              }}>
-                {user?.email}
-              </div>
-            </div>
-          </div>
-
-          {[{ label: "My Orders", path: "/orders" }, { label: "My Cart", path: "/cart" },
-          { label: "All Restaurants", path: "/restaurants" }].map(item => (
+        <div style={{ padding: 10, flex: 1 }}>
+          {rows.map(item => (
             <button
-              key={item.path}
+              key={item.label}
               onClick={() => { navigate(item.path); onClose(); }}
               style={{
-                width: "100%", padding: "12px 16px", borderRadius: 12,
-                border: `1px solid ${C.border}`, background: C.surface,
-                color: C.textMain, fontSize: 14, fontWeight: 500, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                fontFamily: "inherit", marginBottom: 8, transition: "all 120ms"
+                width: "100%", padding: "12px", borderRadius: 14,
+                border: "none", background: "transparent",
+                color: C.textMain, fontSize: 13, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 10,
+                fontFamily: "inherit", marginBottom: 2, transition: "background 120ms", textAlign: "left"
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.page; e.currentTarget.style.borderColor = C.primary + "60"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.border; }}
+              onMouseEnter={e => e.currentTarget.style.background = C.page}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              {item.label} <Icon.ChevronRight />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontWeight: 700 }}>{item.label}</span>
+                <span style={{ display: "block", fontSize: 11, color: C.textMuted }}>{item.hint}</span>
+              </span>
+              <Icon.ChevronRight />
             </button>
           ))}
 
@@ -600,7 +601,7 @@ function ChatWidget() {
       let reply = "Hmm, I didn't get that! Try asking about deals, orders, or restaurants.";
       if (s.includes("deal") || s.includes("offer")) reply = "🔥 Use ZOOMO50 for 50% off, BOGO for Buy 1 Get 1, or FREESHIP for free delivery above ₹199!";
       else if (s.includes("track") || s.includes("order")) reply = "Go to My Orders to track your delivery in real-time!";
-      else if (s.includes("deliver")) reply = "We deliver to 45+ cities! Set your location on the home screen.";
+      else if (s.includes("deliver")) reply = "We only deliver in Jourian and nearby villages — set your street on the home screen!";
       else if (s.includes("pay")) reply = "We support UPI, Cards, Wallets, Net Banking & Cash on Delivery!";
       setMessages(m => [...m, { role: "bot", text: reply }]);
       setTyping(false);
@@ -647,7 +648,7 @@ function ChatWidget() {
             width: 30, height: 30, borderRadius: 10, background: "rgba(255,255,255,0.15)",
             display: "flex", alignItems: "center", justifyContent: "center"
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F7A52" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
@@ -760,8 +761,28 @@ export default function LandingPage() {
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [offers, setOffers] = useState([]);
+  const [activatedOffers, setActivatedOffers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("ze_activated_offers") || "[]"); } catch { return []; }
+  });
   const searchRef = useRef(null);
   const restaurantSectionRef = useRef(null);
+
+  useEffect(() => {
+    api.get("/offers").then(res => setOffers(Array.isArray(res) ? res : [])).catch(() => setOffers([]));
+  }, []);
+
+  function toggleOffer(code) {
+    setActivatedOffers(prev => {
+      const has = prev.includes(code);
+      let next = prev;
+      if (has) next = prev.filter(c => c !== code);
+      else if (prev.length < 2) next = [...prev, code];
+      else return prev; // two offers at a time, like checkout
+      localStorage.setItem("ze_activated_offers", JSON.stringify(next));
+      return next;
+    });
+  }
 
   /* Load restaurants */
   useEffect(() => {
@@ -816,9 +837,9 @@ export default function LandingPage() {
   const cartCount = cart?.items?.reduce((t, i) => t + i.quantity, 0) ?? 0;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.page, fontFamily: "'Poppins', system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.page, fontFamily: "'Satoshi', system-ui, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: ${C.page} !important; overflow-x: hidden; }
         html { overflow-x: hidden; }
@@ -829,7 +850,7 @@ export default function LandingPage() {
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         .fade-up { animation: fadeUp 0.4s ease-out both; }
-        input::placeholder { color: #9CA3AF; }
+        input::placeholder { color: #8A938E; }
       `}</style>
 
       {/* Address Modal */}
@@ -887,7 +908,7 @@ export default function LandingPage() {
             }}>
               <span style={{ width: 7, height: 7, background: C.accent, borderRadius: "50%" }} />
               <span style={{ color: "rgba(255,255,255,0.90)", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>
-                FAST DELIVERY · 45+ CITIES
+                LIVE IN JOURIAN
               </span>
             </div>
 
@@ -896,14 +917,22 @@ export default function LandingPage() {
               lineHeight: 1.1, letterSpacing: "-0.025em", marginBottom: 14,
               textShadow: "0 2px 16px rgba(0,0,0,0.3)"
             }}>
-              What are you{" "}
-              <span style={{ color: C.accent }}>craving</span>{" "}today?
+              Whatever you're{" "}
+              <span style={{ color: C.accent }}>craving.</span>
+              <br />
+              <span style={{ color: "rgba(255,255,255,0.55)" }}>At the door.</span>
             </h1>
             <p style={{
-              color: "rgba(255,255,255,0.80)", fontSize: 16, lineHeight: "24px",
+              color: "#fff", fontSize: 18, fontWeight: 600, letterSpacing: "0.01em",
+              marginBottom: 8, textShadow: "0 1px 8px rgba(0,0,0,0.3)"
+            }}>
+              Zoom it. Eat it. Love it.
+            </p>
+            <p style={{
+              color: "rgba(255,255,255,0.80)", fontSize: 15, lineHeight: "22px",
               marginBottom: 32, maxWidth: 480, textShadow: "0 1px 8px rgba(0,0,0,0.3)"
             }}>
-              {address ? `Delivering to ${address}` : "Set your location to see restaurants near you"}
+              {address ? `Delivering to ${address}` : "Set your street, pick a restaurant, watch the bag move."}
             </p>
 
             {/* Search — clicking opens the full overlay */}
@@ -918,7 +947,7 @@ export default function LandingPage() {
                 ref={searchRef}
                 readOnly
                 onClick={() => setSearchOpen(true)}
-                placeholder="Search restaurants, cuisines, dishes..."
+                placeholder="Search food or restaurants"
                 style={{
                   width: "100%", height: 54, paddingLeft: 50, paddingRight: 16,
                   borderRadius: 16, border: "2px solid transparent", background: "rgba(255,255,255,0.97)",
@@ -941,10 +970,10 @@ export default function LandingPage() {
         }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: C.accent, marginBottom: 3 }}>
-              LIMITED TIME OFFER
+              FOR YOU THIS WEEK
             </div>
             <div style={{ fontSize: 17, fontWeight: 700, color: C.textMain }}>
-              Free delivery on your first 3 orders. No code needed.
+              Free delivery on your first 3 orders in Jourian. No code needed.
             </div>
           </div>
           <button
@@ -971,6 +1000,38 @@ export default function LandingPage() {
           </button>
         </div>
       </div>
+
+      {/* ── OFFERS CAROUSEL ── */}
+      {offers.length > 0 && (
+        <div style={{ maxWidth: 1152, margin: "0 auto", padding: "28px 20px 0" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: C.textMain, marginBottom: 4 }}>Offers for you</h2>
+          <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 12 }}>Activate up to two — they'll auto-apply at checkout.</p>
+          <div className="no-scrollbar" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 6 }}>
+            {offers.map(o => {
+              const on = activatedOffers.includes(o.code);
+              return (
+                <div key={o.code} style={{
+                  flexShrink: 0, width: 240, borderRadius: 18, background: C.surface, padding: 16,
+                  border: `1.5px solid ${on ? C.primary : C.borderSoft}`,
+                  boxShadow: on ? "0 4px 16px rgba(15,61,45,0.15)" : "0 2px 10px rgba(0,0,0,0.04)"
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: C.textMuted, textTransform: "uppercase" }}>{o.expires}</p>
+                  <h3 style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: C.textMain }}>{o.title}</h3>
+                  <p style={{ marginTop: 3, marginBottom: 14, fontSize: 12, color: C.textSub, lineHeight: "17px" }}>{o.subtitle}</p>
+                  <button onClick={() => toggleOffer(o.code)}
+                    style={{
+                      width: "100%", height: 38, borderRadius: 10, border: "none", cursor: "pointer",
+                      fontSize: 12.5, fontWeight: 700, fontFamily: "inherit",
+                      background: on ? C.page : C.primary, color: on ? C.primary : "#fff"
+                    }}>
+                    {on ? "✓ Activated" : "Activate"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── MAIN CONTENT ── */}
       <main style={{ maxWidth: 1152, margin: "0 auto", padding: "40px 20px 60px" }}>
@@ -1054,20 +1115,20 @@ export default function LandingPage() {
         <div style={{ marginTop: 72, paddingTop: 48, borderTop: `1px solid ${C.borderSoft}` }}>
           <div style={{ textAlign: "center", marginBottom: 36 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: C.accent, marginBottom: 8 }}>
-              WHY ZOOMO EATS
+              HOW ZOOMO WORKS HERE
             </div>
             <h2 style={{
               fontSize: 30, fontWeight: 700, color: C.textMain, letterSpacing: "-0.02em",
               lineHeight: "38px"
             }}>
-              Faster food. Simpler checkout.
+              Three taps. Then your gate.
             </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
             {[
-              { emoji: "⚡", title: "Under 60 seconds", desc: "Orders confirmed and dispatched before you've put your phone down." },
-              { emoji: "📍", title: "Real-time tracking", desc: "Watch every step of your delivery on a live map." },
-              { emoji: "✅", title: "Quality vetted", desc: "Every restaurant passes our hygiene and rating standards before listing." },
+              { emoji: "🏘️", title: "One town. That's it.", desc: "Zoomo only cooks for Jourian. No other city, no thin routes, no cold bags." },
+              { emoji: "🔥", title: "Hot at the gate", desc: "Manchak to Maira is a short ride. Food doesn't go grey on a highway." },
+              { emoji: "🤝", title: "Restaurants you know", desc: "Neighbours. Ratings from people who actually live here." },
             ].map(f => (
               <div key={f.title}
                 style={{
@@ -1094,9 +1155,9 @@ export default function LandingPage() {
                   display: "flex", alignItems: "center", justifyContent: "center"
                 }}>
                   <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                    <path d="M6 10H22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-                    <path d="M22 10L10 22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-                    <path d="M10 22H26" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
+                    <path d="M6 10H22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+                    <path d="M22 10L10 22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+                    <path d="M10 22H26" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
                   </svg>
                 </div>
                 <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
@@ -1104,12 +1165,12 @@ export default function LandingPage() {
                 </span>
               </div>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: "20px", maxWidth: 220 }}>
-                Fastest food delivery with real-time tracking & great offers.
+                One tehsil. Restaurants in Jourian. We don't leave town, so the bag is still hot.
               </p>
             </div>
             {[
-              { title: "Explore", links: [["Restaurants", "/restaurants"], ["Offers", "#"], ["Support", "#"]] },
-              { title: "Legal", links: [["Terms & Conditions", "#"], ["Privacy Policy", "#"], ["Cookie Policy", "#"]] },
+              { title: "Explore", links: [["Restaurants", "/restaurants"], ["Search", "/search"], ["Track order", "/orders"], ["Your bag", "/cart"]] },
+              { title: "Account", links: [["Login", "/login"], ["Create account", "/signup"]] },
             ].map(col => (
               <div key={col.title}>
                 <h4 style={{ color: "#fff", fontWeight: 600, fontSize: 13, marginBottom: 14, letterSpacing: "0.02em" }}>{col.title}</h4>
@@ -1129,11 +1190,32 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+          <div style={{ marginBottom: 24 }}>
+            <p style={{
+              display: "flex", alignItems: "center", gap: 6, marginBottom: 10,
+              color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700,
+              letterSpacing: "0.14em", textTransform: "uppercase"
+            }}>
+              <Icon.MapPin size={12} /> Areas we ride
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {["Jourian", "Manchak", "Troti", "Ghadi", "Dadora", "Bakore", "Indri", "Mandiwala", "Maira"].map(a => (
+                <span key={a} style={{
+                  borderRadius: 999, border: "1px solid rgba(255,255,255,0.15)",
+                  padding: "4px 12px", fontSize: 12, color: "rgba(255,255,255,0.7)"
+                }}>
+                  {a}
+                </span>
+              ))}
+            </div>
+          </div>
           <div style={{
             borderTop: "1px solid rgba(255,255,255,0.10)", paddingTop: 20,
-            color: "rgba(255,255,255,0.35)", fontSize: 12, textAlign: "center"
+            display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between",
+            color: "rgba(255,255,255,0.35)", fontSize: 12
           }}>
-            © {new Date().getFullYear()} Zoomo Eats. All rights reserved.
+            <span>© {new Date().getFullYear()} Zoomo Eats · Jourian, Jammu</span>
+            <span>Made for one town. That's the point.</span>
           </div>
         </div>
       </footer>
@@ -1164,7 +1246,7 @@ export default function LandingPage() {
                   autoFocus
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Search restaurants, cuisines, dishes..."
+                  placeholder="Search food or restaurants"
                   style={{
                     width: "100%", height: 48, paddingLeft: 44, paddingRight: 16,
                     borderRadius: 14, border: `1.5px solid ${C.border}`, background: C.page,
@@ -1233,7 +1315,7 @@ export default function LandingPage() {
       )}
 
       {/* Profile Drawer */}
-      {profileOpen && <ProfileDrawer user={user} onClose={() => setProfileOpen(false)} navigate={navigate} />}
+      {profileOpen && <ProfileDrawer user={user} onClose={() => setProfileOpen(false)} navigate={navigate} cartCount={cartCount} />}
 
       {/* Chat Widget */}
       <ChatWidget />

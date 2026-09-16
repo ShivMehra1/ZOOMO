@@ -1,0 +1,897 @@
+{
+  "product": {
+    "name": "Zoomo Eats",
+    "variant": "Customer",
+    "tagline": "Fastest food delivery with real-time tracking & great offers.",
+    "liveUrl": "https://zoomo-self.vercel.app",
+    "backend": "https://zoomo-production.up.railway.app",
+    "stackObserved": "React + Vite SPA, React Router, Poppins, Tailwind, inline theme objects",
+    "audience": "End customers ordering food. Merchant users are rejected at login.",
+    "currency": "INR (₹) even when some catalog prices look USD-like",
+    "coverage": "45+ cities"
+  },
+  "brand": {
+    "font": "Poppins 300/400/500/600/700",
+    "logoMark": "Stylized Z: three lime strokes (M6 10H22, M22 10L10 22, M10 22H26) on #0F3D2E rounded square. Header uses an image logo 36px tall.",
+    "tokens": {
+      "page": "#F5F7F6",
+      "surface": "#FFFFFF",
+      "primary": "#0F3D2E",
+      "hover": "#145A43",
+      "accent": "#22C55E",
+      "textMain": "#0B0F0E",
+      "textSub": "#6B7280",
+      "textMuted": "#9CA3AF",
+      "border": "#E5E7EB",
+      "borderSoft": "#F0F2F1",
+      "error": "#DC2626",
+      "pink": "#EC4899",
+      "veg": "#16A34A",
+      "nonveg": "#DC2626"
+    },
+    "gradients": {
+      "primaryCta": "linear-gradient(135deg, #0F3D2E 0%, #145A43 100%)",
+      "heroOverlay": "linear-gradient(135deg, rgba(15,61,46,0.82) 0%, rgba(20,90,67,0.72) 100%)",
+      "menuHero": "linear-gradient(to top, rgba(11,15,14,0.85) 0%, rgba(11,15,14,0.2) 60%, rgba(11,15,14,0.35) 100%)"
+    },
+    "radii": {
+      "chip": 999,
+      "button": 10,
+      "card": 20,
+      "sheet": 28,
+      "input": 12
+    },
+    "shadows": {
+      "headerScrolled": "0 2px 20px rgba(15,61,46,0.07)",
+      "cta": "0 2px 8px rgba(15,61,46,0.25)",
+      "cardHover": "0 12px 40px rgba(15,61,46,0.13)",
+      "authCard": "0 10px 48px rgba(15,61,46,0.10)",
+      "search": "0 8px 32px rgba(0,0,0,0.25)"
+    },
+    "motion": "120–180ms ease-out hover; card lifts -3px; image scales 1.05; reduced chrome blur 16px"
+  },
+  "routes": [
+    {
+      "path": "/",
+      "auth": false,
+      "screen": "Home / landing with location gate"
+    },
+    {
+      "path": "/login",
+      "auth": false,
+      "screen": "Login card"
+    },
+    {
+      "path": "/signup",
+      "auth": false,
+      "screen": "Two-step signup"
+    },
+    {
+      "path": "/restaurants",
+      "auth": false,
+      "screen": "Full restaurant directory"
+    },
+    {
+      "path": "/restaurant/:id",
+      "auth": false,
+      "screen": "Restaurant menu"
+    },
+    {
+      "path": "/cart",
+      "auth": false,
+      "screen": "Cart (empty if logged out)"
+    },
+    {
+      "path": "/checkout",
+      "auth": true,
+      "screen": "Checkout: delivery / dine-in / takeaway"
+    },
+    {
+      "path": "/orders",
+      "auth": true,
+      "screen": "My Orders list"
+    },
+    {
+      "path": "/orders/:id",
+      "auth": true,
+      "screen": "Order detail + status"
+    }
+  ],
+  "api": {
+    "base": "https://zoomo-production.up.railway.app",
+    "authHeader": "Authorization: Bearer <access_token>",
+    "tokenKey": "localStorage.access_token",
+    "endpoints": [
+      "GET /users/me",
+      "POST /auth/login  → { access_token|accesstoken, user }  user.role MUST be USER (else 'Please login from Merchant app!')",
+      "POST /auth/signup",
+      "GET /restaurants",
+      "GET /restaurants/:id",
+      "GET /dishes?restaurantId=",
+      "GET /dishes/:id",
+      "GET /cart   POST /cart/items {dishId, quantity}  DELETE /cart/items/:id",
+      "GET /addresses  POST /addresses",
+      "POST /orders  GET /orders/mine  GET /orders/:id"
+    ]
+  },
+  "screens": {
+    "locationModal": {
+      "title": "Where should we deliver?",
+      "subtitle": "Enter your address to find nearby restaurants",
+      "placeholder": "e.g. Koramangala, Bengaluru",
+      "primary": "Find Food Near Me",
+      "secondary": "Set later",
+      "behavior": "First-visit overlay, backdrop blur. Enter submits."
+    },
+    "header": {
+      "sticky": true,
+      "logo": "36px image → home",
+      "locationChip": "MapPin + current location or 'Set location'",
+      "loggedOut": [
+        "Login (ghost)",
+        "Sign up (primary gradient)"
+      ],
+      "loggedIn": "User icon + first name (sm+); opens profile sheet",
+      "cart": "40×40 icon with count badge"
+    },
+    "home": {
+      "hero": {
+        "video": "https://res.cloudinary.com/dx2qaarhy/video/upload/v1789214802/5899705-uhd_2160_4096_30fps_1.mp4",
+        "pill": "FAST DELIVERY · 45+ CITIES",
+        "h1": "What are you craving today?",
+        "cravingColor": "#22C55E",
+        "sub": "Set your location to see restaurants near you  OR  Delivering to {location}",
+        "searchPlaceholder": "Search restaurants, cuisines, dishes...",
+        "searchBehavior": "Read-only input; click opens full-screen search overlay"
+      },
+      "offerBar": {
+        "kicker": "LIMITED TIME OFFER",
+        "copy": "Free delivery on your first 3 orders. No code needed.",
+        "cta": "Order now",
+        "ctaBehavior": "Scroll to restaurant grid if logged in, else /login"
+      },
+      "cuisine": {
+        "heading": "Explore by cuisine",
+        "chips": [
+          "All",
+          "Pizza",
+          "Burgers",
+          "Indian",
+          "Chinese",
+          "Biryani",
+          "Desserts",
+          "Beverages",
+          "Healthy",
+          "Street Food"
+        ],
+        "selected": "primary fill, white text, green shadow"
+      },
+      "grid": {
+        "headingDefault": "Restaurants near you",
+        "headingLocated": "Near {location}",
+        "headingSearch": "Results for \"{q}\"",
+        "count": "{n} available",
+        "emptyTitle": "Nothing found",
+        "emptySub": "Try a different search or pick another category",
+        "card": {
+          "imageH": 176,
+          "ratingBadge": "top-right dark pill with star",
+          "couponBadge": "bottom-left green on primary glass",
+          "meta": "{eta 25-40 min} · ₹250 for two",
+          "cta": "Order ›",
+          "hover": "lift -3px, image scale 1.05, green border"
+        }
+      },
+      "why": {
+        "kicker": "WHY ZOOMO EATS",
+        "h2": "Faster food. Simpler checkout.",
+        "cards": [
+          {
+            "emoji": "⚡",
+            "title": "Under 60 seconds",
+            "desc": "Orders confirmed and dispatched before you've put your phone down."
+          },
+          {
+            "emoji": "📍",
+            "title": "Real-time tracking",
+            "desc": "Watch every step of your delivery on a live map."
+          },
+          {
+            "emoji": "✅",
+            "title": "Quality vetted",
+            "desc": "Every restaurant passes our hygiene and rating standards before listing."
+          }
+        ]
+      },
+      "footer": {
+        "bg": "#0F3D2E",
+        "blurb": "Fastest food delivery with real-time tracking & great offers.",
+        "explore": [
+          "Restaurants /restaurants",
+          "Offers #",
+          "Support #"
+        ],
+        "legal": [
+          "Terms & Conditions",
+          "Privacy Policy",
+          "Cookie Policy"
+        ],
+        "copyright": "© {year} Zoomo Eats. All rights reserved."
+      }
+    },
+    "login": {
+      "layout": "Centered card maxWidth 440, radius 28, dark-green header, light page",
+      "headerTitle": "Welcome back",
+      "headerSub": "Login to continue your delicious journey",
+      "fields": [
+        "Email address",
+        "Password"
+      ],
+      "extras": "Forgot password?  (no-op)",
+      "submit": "Login to Zoomo Eats",
+      "loading": "3 bouncing lime dots",
+      "switch": "Don't have an account? Sign up",
+      "pills": [
+        "Free delivery on signup",
+        "4.8★ rated",
+        "Secure login"
+      ]
+    },
+    "signup": {
+      "steps": 2,
+      "step1": {
+        "title": "Create your account",
+        "sub": "Join thousands ordering smarter every day",
+        "fields": [
+          "Full name",
+          "Email address"
+        ],
+        "cta": "Continue"
+      },
+      "step2": {
+        "title": "Almost there!",
+        "sub": "Set a secure password and you're ready",
+        "fields": [
+          "Password with 4-segment strength meter"
+        ],
+        "cta": "Create My Account 🎉",
+        "back": "ghost back to step 1"
+      },
+      "switch": "Already have an account? Login",
+      "validation": [
+        "Please enter your full name.",
+        "Please enter your email."
+      ]
+    },
+    "restaurantMenu": {
+      "heroH": 240,
+      "back": "38×38 frosted button",
+      "title": "restaurant name, rating, 25-40 min, cuisineType, description",
+      "heading": "Menu",
+      "empty": "🍽️ No dishes available right now",
+      "dishRow": {
+        "vegMark": "14px square, 2px border, 6px inner dot — green veg / red non-veg",
+        "price": "₹{price} in primary",
+        "calories": "{n} kcal",
+        "image": "88×88 radius 14",
+        "add": "ADD overlay overlapping bottom of image, primary outline; hover fills primary",
+        "qtyStepper": "shown once quantity > 0"
+      },
+      "viewCartBar": "sticky/fixed bottom when cart has items: qty pill + View Cart + total",
+      "conflictModal": {
+        "title": "Start a new cart?",
+        "body": "Your cart has items from another restaurant. Adding this will clear your current cart.",
+        "cancel": "Cancel",
+        "confirm": "Yes, replace"
+      }
+    },
+    "cart": {
+      "emptyTitle": "Your cart is empty",
+      "emptySub": "Add some delicious food to get started!",
+      "emptyCta": "Browse restaurants → /restaurants",
+      "bill": [
+        {
+          "label": "Subtotal",
+          "formula": "sum(price*qty)"
+        },
+        {
+          "label": "Delivery Fee",
+          "formula": "₹29 flat"
+        },
+        {
+          "label": "Tax & charges (5%)",
+          "formula": "subtotal * 0.05"
+        }
+      ],
+      "cta": "Proceed to Checkout · ₹{total}"
+    },
+    "checkout": {
+      "heading": "Checkout",
+      "loading": "Loading checkout... / Placing your order... 🍔",
+      "fulfillment": {
+        "question": "How would you like this order?",
+        "options": [
+          {
+            "id": "DELIVERY",
+            "label": "Delivery",
+            "sub": "Delivered to your door"
+          },
+          {
+            "id": "DINE_IN",
+            "label": "🍽️ Dine In",
+            "sub": "Eat at the restaurant"
+          },
+          {
+            "id": "TAKEAWAY",
+            "label": "Takeaway",
+            "sub": "Pick up yourself"
+          }
+        ]
+      },
+      "dineIn": {
+        "when": "When would you like to dine in?",
+        "guests": "guest / guests",
+        "pay": "💵 Pay at Restaurant — Pay in cash or card when you arrive",
+        "online": "💳 Online Payment — Coming soon (disabled)",
+        "cta": "Book Dine-In · ₹{total}"
+      },
+      "takeaway": {
+        "when": "When will you pick up?",
+        "pay": "same as dine-in",
+        "cta": "Confirm Takeaway · ₹{total}"
+      },
+      "delivery": {
+        "address": "saved addresses or + Add new address (street, city, state, zipCode)",
+        "scheduleToggle": "Schedule Delivery",
+        "tips": [
+          0,
+          10,
+          20,
+          30,
+          50,
+          "Custom"
+        ],
+        "tipColor": "#EC4899",
+        "pay": "💰 Cash on Delivery — Pay when your order arrives; Online coming soon",
+        "ctaScheduled": "Schedule Delivery · ₹{total}",
+        "ctaNow": "Place Order · ₹{total}"
+      },
+      "promo": {
+        "title": "Promo Code",
+        "codes": {
+          "ZOOMO50": "50% off, capped ₹100",
+          "BOGO": "₹60 off (labeled Buy 1 Get 1 in chatbot)",
+          "FREESHIP": "waives ₹29 delivery, min cart ₹199 in chatbot copy",
+          "HEALTHY20": "20% off, capped ₹80",
+          "NEWUSER": "₹80 off"
+        }
+      },
+      "success": {
+        "title": "Order Placed! 🎉",
+        "sub": "You'll receive updates in My Orders",
+        "motion": "ping ring + confettiFall"
+      }
+    },
+    "orders": {
+      "listTitle": "My Orders",
+      "row": "restaurant, date, total, status chip, chevron → /orders/:id",
+      "detail": [
+        "Order #",
+        "Restaurant",
+        "Items Ordered",
+        "payment amount",
+        "status chip"
+      ],
+      "statuses": {
+        "PENDING": {
+          "color": "#D97706",
+          "bg": "#FEF3C7"
+        },
+        "CONFIRMED": {
+          "color": "#2563EB",
+          "bg": "#DBEAFE"
+        },
+        "PREPARING": {
+          "color": "#EA580C",
+          "bg": "#FFEDD5"
+        },
+        "READYFORPICKUP": {
+          "color": "#7C3AED",
+          "bg": "#EDE9FE"
+        },
+        "OUTFORDELIVERY": {
+          "color": "#0284C7",
+          "bg": "#E0F2FE"
+        },
+        "DELIVERED": {
+          "color": "#16A34A",
+          "bg": "#DCFCE7"
+        },
+        "CANCELLED": {
+          "color": "#DC2626",
+          "bg": "#FEE2E2"
+        }
+      }
+    },
+    "profileSheet": {
+      "header": "avatar initial, name, email",
+      "links": [
+        {
+          "label": "My Orders",
+          "path": "/orders"
+        },
+        {
+          "label": "My Cart",
+          "path": "/cart"
+        },
+        {
+          "label": "All Restaurants",
+          "path": "/restaurants"
+        }
+      ],
+      "logout": "Logout (danger, #FFF5F5 / #FEE2E2 hover)"
+    },
+    "chat": {
+      "name": "Zoomo Assist",
+      "fab": "fixed bottom 20 right 20, primary circle, title Chat with Zoomo",
+      "greeting": "Hey! I'm Zoomo 👋 What can I help you with?",
+      "placeholder": "Ask something...",
+      "chips": [
+        "Deals 🔥",
+        "Track order",
+        "Payment"
+      ],
+      "replies": {
+        "deal_or_offer": "🔥 Use ZOOMO50 for 50% off, BOGO for Buy 1 Get 1, or FREESHIP for free delivery above ₹199!",
+        "track_or_order": "Go to My Orders to track your delivery in real-time!",
+        "deliver": "We deliver to 45+ cities! Set your location on the home screen.",
+        "pay": "We support UPI, Cards, Wallets, Net Banking & Cash on Delivery!",
+        "fallback": "Hmm, I didn't get that! Try asking about deals, orders, or restaurants."
+      },
+      "latencyMs": "1000–1600"
+    }
+  },
+  "catalogShape": {
+    "restaurant": [
+      "id",
+      "name",
+      "description",
+      "imageUrl",
+      "address",
+      "phone",
+      "email",
+      "openingHours",
+      "cuisineType",
+      "priceRange",
+      "rating",
+      "isActive",
+      "lat",
+      "lng",
+      "dishes[]"
+    ],
+    "dish": [
+      "id",
+      "name",
+      "description",
+      "price",
+      "imageUrl",
+      "ingredients",
+      "calories",
+      "isVegetarian",
+      "isVegan",
+      "isGlutenFree",
+      "isAvailable",
+      "preparationTime",
+      "restaurantId"
+    ],
+    "observedRestaurants": [
+      "Pizza Palace (Italian, 4.5, $$)",
+      "Burger Barn (American, 4.3, $$)",
+      "Healthy Bites (Healthy, 4.7, $)",
+      "RFC fast food (Indian, $)",
+      "I Love Pizza (Pizza, veg-forward menu)",
+      "Moonlight (Italian, empty menu)"
+    ]
+  },
+  "layoutChrome": {
+    "maxWidth": 1152,
+    "homePadding": "40px 20px 60px",
+    "menuMaxWidth": 920,
+    "authMaxWidth": 440,
+    "chatWidth": 320
+  },
+  "recreationNotes": [
+    "Match Poppins + forest/lime palette exactly — this is Swiggy-adjacent, not purple SaaS.",
+    "Do not add a bottom tab bar; chrome is sticky header + cart FAB/bar + chat FAB.",
+    "One restaurant per cart. Conflict modal is mandatory.",
+    "Online payment is always disabled ('Coming soon').",
+    "Delivery fee ₹29, tax 5%.",
+    "Customer app rejects non-USER roles.",
+    "Dark mode is forced OFF (html.light, class dark removed)."
+  ],
+  "catalog": {
+    "cuisines": [
+      "All",
+      "Pizza",
+      "Burgers",
+      "Indian",
+      "Chinese",
+      "Biryani",
+      "Desserts",
+      "Beverages",
+      "Healthy",
+      "Street Food"
+    ],
+    "restaurants": [
+      {
+        "id": "pizza-palace",
+        "name": "Pizza Palace",
+        "description": "Authentic Italian pizzas made with fresh ingredients",
+        "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=600&fit=crop",
+        "address": "456 Pizza St, San Francisco, CA 94103",
+        "cuisineType": "Italian",
+        "priceRange": "$$",
+        "rating": 4.5,
+        "openingHours": "Mon-Sun: 11:00 AM - 11:00 PM"
+      },
+      {
+        "id": "burger-barn",
+        "name": "Burger Barn",
+        "description": "Gourmet burgers and crispy fries",
+        "imageUrl": "https://images.unsplash.com/photo-1568901345023-21c4c7672033?w=800&h=600&fit=crop",
+        "address": "789 Burger Ave, San Francisco, CA 94104",
+        "cuisineType": "American",
+        "priceRange": "$$",
+        "rating": 4.3,
+        "openingHours": "Mon-Sun: 10:00 AM - 10:00 PM"
+      },
+      {
+        "id": "healthy-bites",
+        "name": "Healthy Bites",
+        "description": "Fresh salads, smoothies, and healthy meals",
+        "imageUrl": "https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=800&h=600&fit=crop",
+        "address": "321 Health St, San Francisco, CA 94105",
+        "cuisineType": "Healthy",
+        "priceRange": "$",
+        "rating": 4.7,
+        "openingHours": "Mon-Sun: 8:00 AM - 9:00 PM"
+      },
+      {
+        "id": "rfc-fast-food",
+        "name": "RFC fast food",
+        "description": "North Indian street classics, fast.",
+        "imageUrl": "https://res.cloudinary.com/dx2qaarhy/image/upload/v1789216027/zoomo/restaurants/gyjyli9twkqrmwasfv5p.jpg",
+        "address": "h.no 412 adarsh nagar lane no 4, barnai road, bantalab, Jammu, 181123, India",
+        "cuisineType": "Indian",
+        "priceRange": "$",
+        "rating": 0,
+        "openingHours": "9AM-11PM"
+      },
+      {
+        "id": "i-love-pizza",
+        "name": "I Love Pizza",
+        "description": "Hand-tossed veg pizzas with a desi twist",
+        "imageUrl": "https://res.cloudinary.com/dx2qaarhy/image/upload/v1789474083/zoomo/restaurants/dd6ezuuplcnahqi7vjrm.jpg",
+        "address": "Jammu, India",
+        "cuisineType": "Pizza",
+        "priceRange": "$",
+        "rating": 4.2,
+        "openingHours": "11 AM - 11 PM",
+        "coupon": "ZOOMO50"
+      },
+      {
+        "id": "moonlight",
+        "name": "Moonlight",
+        "description": "Late-night Italian comfort plates",
+        "imageUrl": "https://res.cloudinary.com/dx2qaarhy/image/upload/v1788815332/zoomo/restaurants/vcqi1vieeiurgehcxd18.jpg",
+        "address": "jammu, Jammu, Jammu and Kashmir, 181123, India",
+        "cuisineType": "Italian",
+        "priceRange": "$$",
+        "rating": 0,
+        "openingHours": "11 AM - 10PM"
+      }
+    ],
+    "dishes": [
+      {
+        "id": "margherita-pizza",
+        "restaurantId": "pizza-palace",
+        "name": "Margherita Pizza",
+        "description": "Classic pizza with tomato sauce, mozzarella, and fresh basil",
+        "price": 18.99,
+        "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=600&fit=crop",
+        "calories": 280,
+        "isVegetarian": true,
+        "isAvailable": true,
+        "preparationTime": 15
+      },
+      {
+        "id": "pepperoni-pizza",
+        "restaurantId": "pizza-palace",
+        "name": "Pepperoni Pizza",
+        "description": "Classic pepperoni pizza with mozzarella cheese",
+        "price": 21.99,
+        "imageUrl": "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&h=600&fit=crop",
+        "calories": 320,
+        "isVegetarian": false,
+        "isAvailable": true,
+        "preparationTime": 15
+      },
+      {
+        "id": "chicken-tandoori-pizza",
+        "restaurantId": "pizza-palace",
+        "name": "Chicken Tandoori Pizza",
+        "description": "Spicy tandoori chicken with onions and peppers",
+        "price": 24.99,
+        "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop",
+        "calories": 350,
+        "isVegetarian": false,
+        "isAvailable": true,
+        "preparationTime": 18
+      },
+      {
+        "id": "classic-burger",
+        "restaurantId": "burger-barn",
+        "name": "Classic Burger",
+        "description": "Juicy beef patty with lettuce, tomato, and special sauce",
+        "price": 14.99,
+        "imageUrl": "https://images.unsplash.com/photo-1568901345023-21c4c7672033?w=800&h=600&fit=crop",
+        "calories": 520,
+        "isVegetarian": false,
+        "isAvailable": true,
+        "preparationTime": 12
+      },
+      {
+        "id": "cheese-burger",
+        "restaurantId": "burger-barn",
+        "name": "Cheese Burger",
+        "description": "Classic burger with melted cheddar cheese",
+        "price": 16.99,
+        "imageUrl": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&h=600&fit=crop",
+        "calories": 580,
+        "isVegetarian": false,
+        "isAvailable": true,
+        "preparationTime": 12
+      },
+      {
+        "id": "veggie-burger",
+        "restaurantId": "burger-barn",
+        "name": "Veggie Burger",
+        "description": "Plant-based patty with fresh vegetables",
+        "price": 15.99,
+        "imageUrl": "https://images.unsplash.com/photo-1520072959219-c595dc870360?w=800&h=600&fit=crop",
+        "calories": 420,
+        "isVegetarian": true,
+        "isVegan": true,
+        "isAvailable": true,
+        "preparationTime": 10
+      },
+      {
+        "id": "green-smoothie",
+        "restaurantId": "healthy-bites",
+        "name": "Green Power Smoothie",
+        "description": "Spinach, kale, banana, apple, and coconut water",
+        "price": 8.99,
+        "imageUrl": "https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=800&h=600&fit=crop",
+        "calories": 180,
+        "isVegetarian": true,
+        "isVegan": true,
+        "isAvailable": true,
+        "preparationTime": 5
+      },
+      {
+        "id": "quinoa-salad",
+        "restaurantId": "healthy-bites",
+        "name": "Quinoa Power Salad",
+        "description": "Quinoa with mixed greens, avocado, and tahini dressing",
+        "price": 12.99,
+        "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop",
+        "calories": 320,
+        "isVegetarian": true,
+        "isVegan": true,
+        "isAvailable": true,
+        "preparationTime": 8
+      },
+      {
+        "id": "acai-bowl",
+        "restaurantId": "healthy-bites",
+        "name": "Acai Berry Bowl",
+        "description": "Acai bowl topped with granola, berries, and honey",
+        "price": 11.99,
+        "imageUrl": "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=800&h=600&fit=crop",
+        "calories": 280,
+        "isVegetarian": true,
+        "isAvailable": true,
+        "preparationTime": 7
+      },
+      {
+        "id": "chowmein",
+        "restaurantId": "rfc-fast-food",
+        "name": "Chowmein",
+        "description": "Wok-tossed noodles with veg and soy",
+        "price": 150,
+        "imageUrl": "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800&h=600&fit=crop",
+        "isVegetarian": false,
+        "isAvailable": true
+      },
+      {
+        "id": "pizza-margherita-dc",
+        "restaurantId": "i-love-pizza",
+        "name": "Pizza Margherita Double Cheese",
+        "description": "Extra mozzarella on a classic tomato base",
+        "price": 89,
+        "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "cheese-corn-pizza",
+        "restaurantId": "i-love-pizza",
+        "name": "Cheese Corn Pizza",
+        "description": "Sweet corn, mozzarella, oregano",
+        "price": 119,
+        "imageUrl": "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "veg-delight",
+        "restaurantId": "i-love-pizza",
+        "name": "Veg Delight Pizza",
+        "description": "Peppers, onion, tomato, olives",
+        "price": 129,
+        "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "paneer-tikka",
+        "restaurantId": "i-love-pizza",
+        "name": "Paneer Tikka",
+        "description": "Tandoori paneer cubes on a spicy masala base",
+        "price": 159,
+        "imageUrl": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "teekha-paneer",
+        "restaurantId": "i-love-pizza",
+        "name": "Teekha Paneer Pizza",
+        "description": "Fiery paneer with green chilli and onion",
+        "price": 159,
+        "imageUrl": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "paneer-makhani",
+        "restaurantId": "i-love-pizza",
+        "name": "Paneer Makhani Pizza",
+        "description": "Buttery makhani sauce and grilled paneer",
+        "price": 159,
+        "imageUrl": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "deluxe-veggie",
+        "restaurantId": "i-love-pizza",
+        "name": "Deluxe Veggie",
+        "description": "Loaded garden veg with extra cheese",
+        "price": 169,
+        "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      },
+      {
+        "id": "mushroom-corn",
+        "restaurantId": "i-love-pizza",
+        "name": "Mushroom Corn Pizza",
+        "description": "Button mushrooms, sweet corn, mozzarella",
+        "price": 169,
+        "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=600&fit=crop",
+        "isVegetarian": true,
+        "isAvailable": true
+      }
+    ],
+    "coupons": {
+      "ZOOMO50": {
+        "type": "percent",
+        "value": 50,
+        "label": "50% off",
+        "max": 100
+      },
+      "BOGO": {
+        "type": "flat",
+        "value": 60,
+        "label": "₹60 off",
+        "max": null
+      },
+      "FREESHIP": {
+        "type": "ship",
+        "value": 29,
+        "label": "Free delivery",
+        "max": null
+      },
+      "HEALTHY20": {
+        "type": "percent",
+        "value": 20,
+        "label": "20% off",
+        "max": 80
+      },
+      "NEWUSER": {
+        "type": "flat",
+        "value": 80,
+        "label": "₹80 off",
+        "max": null
+      }
+    },
+    "pricing": {
+      "deliveryFee": 29,
+      "taxRate": 0.05,
+      "eta": "25-40 min",
+      "costForTwo": 250,
+      "tipPresets": [
+        0,
+        10,
+        20,
+        30,
+        50
+      ]
+    },
+    "orderStatus": {
+      "PENDING": {
+        "color": "#D97706",
+        "bg": "#FEF3C7",
+        "label": "Pending"
+      },
+      "CONFIRMED": {
+        "color": "#2563EB",
+        "bg": "#DBEAFE",
+        "label": "Confirmed"
+      },
+      "PREPARING": {
+        "color": "#EA580C",
+        "bg": "#FFEDD5",
+        "label": "Preparing"
+      },
+      "READYFORPICKUP": {
+        "color": "#7C3AED",
+        "bg": "#EDE9FE",
+        "label": "Ready for pickup"
+      },
+      "OUTFORDELIVERY": {
+        "color": "#0284C7",
+        "bg": "#E0F2FE",
+        "label": "Out for delivery"
+      },
+      "DELIVERED": {
+        "color": "#16A34A",
+        "bg": "#DCFCE7",
+        "label": "Delivered"
+      },
+      "CANCELLED": {
+        "color": "#DC2626",
+        "bg": "#FEE2E2",
+        "label": "Cancelled"
+      }
+    },
+    "why": [
+      {
+        "emoji": "⚡",
+        "title": "Under 60 seconds",
+        "desc": "Orders confirmed and dispatched before you've put your phone down."
+      },
+      {
+        "emoji": "📍",
+        "title": "Real-time tracking",
+        "desc": "Watch every step of your delivery on a live map."
+      },
+      {
+        "emoji": "✅",
+        "title": "Quality vetted",
+        "desc": "Every restaurant passes our hygiene and rating standards before listing."
+      }
+    ]
+  }
+}

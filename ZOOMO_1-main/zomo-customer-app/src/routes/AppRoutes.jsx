@@ -11,6 +11,8 @@ import Cart from "../pages/Cart";
 import Checkout from "../pages/Checkout";
 import Orders from "../pages/Orders";
 import OrderDetails from "../pages/OrderDetails";
+import Profile from "../pages/Profile";
+import Search from "../pages/Search";
 
 export default function AppRoutes() {
   return (
@@ -73,6 +75,24 @@ export default function AppRoutes() {
         element={
           <MainLayout>
             <OrderDetails />
+          </MainLayout>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <MainLayout>
+            <Profile />
+          </MainLayout>
+        }
+      />
+
+      <Route
+        path="/search"
+        element={
+          <MainLayout>
+            <Search />
           </MainLayout>
         }
       />

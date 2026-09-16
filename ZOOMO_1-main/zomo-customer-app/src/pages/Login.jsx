@@ -3,9 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const C = {
-  page: "#F5F7F6", surface: "#FFFFFF", primary: "#0F3D2E", hover: "#145A43",
-  accent: "#22C55E", textMain: "#0B0F0E", textSub: "#6B7280", textMuted: "#9CA3AF",
-  border: "#E5E7EB", borderSoft: "#F0F2F1", error: "#DC2626",
+  page: "#F4F7F5", surface: "#FFFFFF", primary: "#0F3D2D", hover: "#164A39",
+  accent: "#1F7A52", textMain: "#0C1612", textSub: "#5A6660", textMuted: "#8A938E",
+  border: "#DCE6E0", borderSoft: "#EEF3F0", error: "#DC2626",
 };
 
 function ZMark() {
@@ -15,9 +15,9 @@ function ZMark() {
       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
     }}>
       <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-        <path d="M6 10H22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-        <path d="M22 10L10 22" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-        <path d="M10 22H26" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
+        <path d="M6 10H22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+        <path d="M22 10L10 22" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
+        <path d="M10 22H26" stroke="#1F7A52" strokeWidth="2.8" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -105,14 +105,14 @@ export default function Login() {
     <div style={{
       minHeight: "100vh", background: C.page,
       display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "24px 16px", fontFamily: "'Poppins', system-ui, sans-serif"
+      padding: "24px 16px", fontFamily: "'Satoshi', system-ui, sans-serif"
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
         * { box-sizing: border-box; }
         body { background: ${C.page} !important; }
         html.dark body { background: ${C.page} !important; }
-        input::placeholder { color: #9CA3AF; }
+        input::placeholder { color: #8A938E; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         .login-card { animation: fadeUp 0.35s ease-out both; }
       `}</style>

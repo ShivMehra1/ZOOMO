@@ -17,7 +17,7 @@ export class CartService {
       where: { userId },
       include: {
         items: {
-          include: { dish: true },
+          include: { dish: { include: { sizes: true } } },
         },
       },
     });
@@ -26,7 +26,7 @@ export class CartService {
       cart = await this.prisma.cart.create({
         data: { userId },
         include: {
-          items: { include: { dish: true } },
+          items: { include: { dish: { include: { sizes: true } } } },
         },
       });
     }
@@ -35,7 +35,7 @@ export class CartService {
   }
 
   /* ================= ADD ITEM ================= */
-  async addItem(userId: string, dishId: string, quantity: number = 1) {
+  async addItem(userId: string, dishId: string, quantity: number = 1, dishSizeId?: string) {
     if (!userId) throw new BadRequestException("❌ userId missing");
     if (!dishId) throw new BadRequestException("❌ dishId missing");
 
@@ -58,7 +58,7 @@ export class CartService {
 
     /* ============ ADD OR UPDATE ITEM ============ */
     const existing = await this.prisma.cartItem.findFirst({
-      where: { cartId: cart.id, dishId },
+      where: { cartId: cart.id, dishId, dishSizeId: dishSizeId || null },
     });
 
     if (existing) {
@@ -68,7 +68,7 @@ export class CartService {
       });
     } else {
       await this.prisma.cartItem.create({
-        data: { cartId: cart.id, dishId, quantity },
+        data: { cartId: cart.id, dishId, quantity, dishSizeId: dishSizeId || null },
       });
     }
 

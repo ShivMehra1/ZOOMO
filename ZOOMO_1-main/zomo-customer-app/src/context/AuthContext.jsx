@@ -75,6 +75,15 @@ export default function AuthProvider({ children }) {
     setUser(null);
   };
 
+  /* =========================================
+     UPDATE PROFILE (name / email / phone)
+  ========================================= */
+  const updateUser = async (patch) => {
+    const updated = await api.patch("/users/me", patch);
+    setUser(updated);
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -83,6 +92,7 @@ export default function AuthProvider({ children }) {
         login,
         signup,
         logout,
+        updateUser,
         isAuthenticated: !!user,
         isUser: user?.role === "USER",
       }}

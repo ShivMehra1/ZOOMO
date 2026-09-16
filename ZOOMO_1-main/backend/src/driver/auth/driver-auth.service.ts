@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, ForbiddenException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../common/prisma.service";
@@ -39,7 +39,15 @@ export class DriverAuthService {
       );
     }
 
-   
+    if (user.isSuspended) {
+      throw new ForbiddenException(
+        user.suspendedReason
+          ? `Account suspended: ${user.suspendedReason}`
+          : "Account suspended. Contact support."
+      );
+    }
+
+
     if (!user.driver) {
       throw new UnauthorizedException(
         "Driver profile not found"

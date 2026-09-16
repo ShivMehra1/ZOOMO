@@ -3,7 +3,7 @@ import Topbar from "../components/Topbar";
 
 export default function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen flex bg-[#0a0a0a]">
+    <div className="min-h-screen flex bg-z-page">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Topbar />

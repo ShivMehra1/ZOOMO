@@ -25,6 +25,12 @@ export class DishesController {
     return this.dishesService.findByRestaurant(restaurantId);
   }
 
+  // GET /dishes/search?q=paneer — must come before the :id route below
+  @Get("search")
+  search(@Query("q") q: string) {
+    return this.dishesService.search(q);
+  }
+
   // GET /dishes/:id
   @Get(":id")
   getOne(@Param("id") id: string) {

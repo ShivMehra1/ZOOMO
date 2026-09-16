@@ -3,29 +3,29 @@
 @tailwind utilities;
 
 html {
-  font-family: "Poppins", sans-serif;
+  font-family: "Satoshi", ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  @apply bg-white text-black dark:bg-black dark:text-white;
+  @apply bg-z-page text-z-ink dark:bg-[#0B1512] dark:text-z-page;
 }
 
 .input {
-  @apply w-full px-4 py-3 rounded-md border 
-         border-gray-300 dark:border-white/20
+  @apply w-full px-4 py-3 rounded-xl border
+         border-z-line dark:border-white/20
          bg-white dark:bg-black
-         text-black dark:text-white;
+         text-z-ink dark:text-white;
 }
 
 .btn {
-  @apply w-full py-3 rounded-md font-semibold
-         bg-black text-white
-         dark:bg-white dark:text-black;
+  @apply w-full py-3 rounded-xl font-semibold
+         bg-z-primary text-white
+         hover:bg-z-hover transition;
 }
 
 .card {
-  @apply border rounded-xl p-4
-         border-gray-200 dark:border-white/10
+  @apply border rounded-card p-4 shadow-card
+         border-z-line-soft dark:border-white/10
          bg-white dark:bg-black;
 }
 

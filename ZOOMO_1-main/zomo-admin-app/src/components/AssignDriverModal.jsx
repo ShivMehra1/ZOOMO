@@ -54,10 +54,10 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
       onClick={onClose} // click outside closes modal
     >
       <div
-        className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl p-6 space-y-5"
+        className="bg-z-surface w-full max-w-lg rounded-card p-6 space-y-5 shadow-card"
         onClick={(e) => e.stopPropagation()} // prevent backdrop click
       >
-        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+        <h3 className="text-xl font-semibold text-z-ink">
           Assign Driver – {order.id}
         </h3>
 
@@ -67,13 +67,13 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
           placeholder="Search driver..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-full px-4 py-2 rounded-lg border border-z-line bg-z-page text-sm text-z-ink focus:outline-none focus:ring-2 focus:ring-z-accent/40"
         />
 
         {/* Driver list */}
         <div className="space-y-2 max-h-60 overflow-y-auto">
           {filteredDrivers.length === 0 && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-z-muted">
               No available drivers found
             </p>
           )}
@@ -85,15 +85,15 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
               className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer
                 ${
                   selectedDriver?.id === driver.id
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                    : "border-gray-200 dark:border-gray-700"
+                    ? "border-z-primary bg-z-sage"
+                    : "border-z-line"
                 }`}
             >
               <div>
-                <p className="font-medium">
+                <p className="font-medium text-z-ink">
                   {driver.user?.name}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-z-muted">
                   {driver.vehicleType || "-"}
                 </p>
               </div>
@@ -111,7 +111,7 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 rounded-lg text-sm text-z-sub hover:text-z-ink"
           >
             Cancel
           </button>
@@ -122,8 +122,8 @@ export default function AssignDriverModal({ order, onClose, onAssigned }) {
             className={`px-5 py-2 rounded-lg text-sm font-medium
               ${
                 selectedDriver && !loading
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "bg-gray-300 cursor-not-allowed"
+                  ? "bg-z-primary text-white hover:bg-z-hover"
+                  : "bg-z-line text-z-muted cursor-not-allowed"
               }`}
           >
             {loading ? "Assigning..." : "Confirm Assignment"}

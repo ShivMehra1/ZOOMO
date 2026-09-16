@@ -24,15 +24,28 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum OrderType {
+  DELIVERY
+  PICKUP
+}
+
+enum MessageSender {
+  CUSTOMER
+  DRIVER
+}
+
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  name          String
-  role          UserRole  @default(USER)
-  phone         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  password           String
+  name               String
+  role               UserRole  @default(USER)
+  phone              String?
+  isSuspended        Boolean   @default(false)
+  suspendedReason    String?
+  mustResetPassword  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   addresses     Address[]
   restaurants   Restaurant[]
@@ -73,6 +86,9 @@ model Restaurant {
   priceRange    String?
   rating        Float?    @default(0)
   isActive      Boolean   @default(true)
+  isApproved    Boolean   @default(true)
+  costForTwo    Int?
+  etaMin        Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   lat           Float?
@@ -98,6 +114,7 @@ model Dish {
   isGlutenFree    Boolean   @default(false)
   isAvailable     Boolean   @default(true)
   preparationTime Int?
+  category        String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -105,6 +122,16 @@ model Dish {
   restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   cartItems       CartItem[]
   orderItems      OrderItem[]
+  sizes           DishSize[]
+}
+
+model DishSize {
+  id            String    @id @default(uuid())
+  label         String
+  price         Float
+
+  dishId        String
+  dish          Dish      @relation(fields: [dishId], references: [id], onDelete: Cascade)
 }
 
 model Cart {
@@ -128,11 +155,13 @@ model CartItem {
   cart          Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
   dishId        String
   dish          Dish      @relation(fields: [dishId], references: [id])
+  dishSizeId    String?
 }
 
 model Order {
   id                    String      @id @default(uuid())
   status                OrderStatus @default(PENDING)
+  orderType             OrderType   @default(DELIVERY)
   subtotal              Float
   total                 Float
   deliveryFee           Float?
@@ -141,6 +170,16 @@ model Order {
   promoCode             String?     // ✅ NEW
   discount              Float?      // ✅ NEW
   scheduledFor          DateTime?   // ✅ NEW
+  dropOffPreference     String?     @default("MEET_DOOR")
+  dropOffNote           String?
+  includeCutlery        Boolean     @default(true)
+  rating                Int?
+  gatePingAt            DateTime?
+  promisedAt            DateTime?
+  lateCreditApplied     Float?
+  cancelReason          String?
+  refundAmount          Float?
+  refundedAt            DateTime?
   specialInstructions   String?
   estimatedDeliveryTime DateTime?
   actualDeliveryTime    DateTime?
@@ -157,6 +196,17 @@ model Order {
   payment       Payment?
   driverId      String?
   driver        Driver?   @relation(fields: [driverId], references: [id])
+  messages      OrderMessage[]
+}
+
+model OrderMessage {
+  id            String        @id @default(uuid())
+  sender        MessageSender
+  text          String
+  createdAt     DateTime      @default(now())
+
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {
@@ -164,6 +214,7 @@ model OrderItem {
   quantity            Int
   price               Float
   specialInstructions String?
+  dishSizeId          String?
 
   orderId       String
   order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -194,6 +245,7 @@ model Driver {
   currentLng    Float?
   vehicleType   String?
   vehiclePlate  String?
+  rating        Float?    @default(4.8)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

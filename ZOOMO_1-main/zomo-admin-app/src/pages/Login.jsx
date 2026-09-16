@@ -17,37 +17,37 @@ export default function Login() {
     setLoading(true);
     const success = await login(email, password);
     setLoading(false);
-    if (success) navigate('/admin/orders');
+    if (success) navigate('/admin/analytics');
     else setError('Invalid credentials. Try again.');
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-z-page flex items-center justify-center px-4 relative overflow-hidden">
 
       {/* Background glow */}
-      <div className="absolute w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl top-1/4 left-1/2 -translate-x-1/2 pointer-events-none" />
+      <div className="absolute w-96 h-96 bg-z-sage/60 rounded-full blur-3xl top-1/4 left-1/2 -translate-x-1/2 pointer-events-none" />
 
       <div className="relative w-full max-w-md">
 
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-            <span className="text-2xl">🍔</span>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-z-surface border border-z-line mb-4 shadow-card">
+            <img src="/brand/mark-on-white.png" alt="Zoomo" className="w-8 h-8 object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-white">ZOOMO</h1>
-          <p className="text-gray-500 text-sm mt-1">Admin Control Panel</p>
+          <h1 className="text-3xl font-bold text-z-ink">ZOOMO</h1>
+          <p className="text-z-muted text-sm mt-1">Admin Control Panel</p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-900 border border-white/10 rounded-2xl p-8 shadow-2xl space-y-5">
+        <div className="bg-z-surface border border-z-line rounded-card p-8 shadow-card space-y-5">
 
           <div>
-            <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-            <p className="text-gray-500 text-sm mt-1">Sign in to your admin account</p>
+            <h2 className="text-xl font-semibold text-z-ink">Welcome back</h2>
+            <p className="text-z-muted text-sm mt-1">Sign in to your admin account</p>
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl">
+            <div className="bg-z-danger/10 border border-z-danger/20 text-z-danger text-sm px-4 py-3 rounded-xl">
               {error}
             </div>
           )}
@@ -56,32 +56,32 @@ export default function Login() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium">Email</label>
+              <label className="text-sm text-z-sub font-medium">Email</label>
               <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-z-muted" size={16} />
                 <input
                   type="email"
                   placeholder="admin@zoomoeats.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition"
+                  className="w-full bg-z-page border border-z-line text-z-ink placeholder-z-muted rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-z-accent/40 focus:border-z-primary transition"
                 />
               </div>
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium">Password</label>
+              <label className="text-sm text-z-sub font-medium">Password</label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-z-muted" size={16} />
                 <input
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition"
+                  className="w-full bg-z-page border border-z-line text-z-ink placeholder-z-muted rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-z-accent/40 focus:border-z-primary transition"
                 />
               </div>
             </div>
@@ -90,7 +90,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-z-primary hover:bg-z-hover text-white font-semibold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <>
@@ -112,7 +112,7 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-z-muted text-xs mt-6">
           Zoomo Admin — Restricted Access Only
         </p>
 

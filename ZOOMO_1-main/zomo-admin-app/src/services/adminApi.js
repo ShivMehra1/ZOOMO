@@ -22,3 +22,36 @@ export const getDrivers = () => adminApi.get('/drivers');
 // ✅ NEW — update order status (used for scheduled order force confirm / cancel)
 export const updateOrderStatus = (orderId, status) =>
   adminApi.patch(`/orders/${orderId}/status`, { status });
+
+// ── Users ──
+export const getUsers = (search, role) =>
+  adminApi.get('/users', { params: { search, role } });
+export const getUserById = (id) => adminApi.get(`/users/${id}`);
+export const suspendUser = (id, reason) => adminApi.patch(`/users/${id}/suspend`, { reason });
+export const unsuspendUser = (id) => adminApi.patch(`/users/${id}/unsuspend`);
+export const resetUserPassword = (id) => adminApi.post(`/users/${id}/reset-password`);
+
+// ── Restaurants ──
+export const getRestaurants = (search) =>
+  adminApi.get('/restaurants', { params: { search } });
+export const getRestaurantById = (id) => adminApi.get(`/restaurants/${id}`);
+export const approveRestaurant = (id) => adminApi.patch(`/restaurants/${id}/approve`);
+export const rejectRestaurant = (id) => adminApi.patch(`/restaurants/${id}/reject`);
+export const toggleRestaurantActive = (id, isActive) =>
+  adminApi.patch(`/restaurants/${id}/active`, { isActive });
+export const updateRestaurant = (id, data) => adminApi.patch(`/restaurants/${id}`, data);
+
+// ── Analytics ──
+export const getAnalyticsSummary = () => adminApi.get('/analytics/summary');
+export const getRevenueTimeseries = (days = 14) =>
+  adminApi.get('/analytics/revenue-timeseries', { params: { days } });
+export const getTopRestaurants = (limit = 5) =>
+  adminApi.get('/analytics/top-restaurants', { params: { limit } });
+export const getTopDishes = (limit = 5) =>
+  adminApi.get('/analytics/top-dishes', { params: { limit } });
+
+// ── Disputes & refunds ──
+export const getDisputes = () => adminApi.get('/orders/disputes');
+export const refundOrder = (orderId, amount, reason) =>
+  adminApi.patch(`/orders/${orderId}/refund`, { amount, reason });
+export const getOrderMessages = (orderId) => adminApi.get(`/orders/${orderId}/messages`);

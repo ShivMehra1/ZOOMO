@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcryptjs';
@@ -51,6 +52,14 @@ export class AuthService {
     // 🚫 Prevent merchant/admin access
     if (user.role !== "USER") {
       throw new UnauthorizedException("Access denied for this role");
+    }
+
+    if (user.isSuspended) {
+      throw new ForbiddenException(
+        user.suspendedReason
+          ? `Account suspended: ${user.suspendedReason}`
+          : "Account suspended. Contact support."
+      );
     }
 
     return this.makeTokenResponse(user);

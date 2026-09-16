@@ -1,12 +1,12 @@
 const C = {
-  primary: "#0F3D2E", accent: "#22C55E",
+  primary: "#0F3D2D", accent: "#1F7A52",
 };
 
 export default function Footer() {
   return (
     <footer style={{
       background: C.primary, padding: "48px 20px 28px", marginTop: 64,
-      fontFamily: "'Poppins', system-ui, sans-serif"
+      fontFamily: "'Satoshi', system-ui, sans-serif"
     }}>
       <div style={{ maxWidth: 1152, margin: "0 auto" }}>
         <div style={{
@@ -23,14 +23,14 @@ export default function Footer() {
               />
             </div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: "20px", maxWidth: 220 }}>
-              Fastest food delivery platform with real-time tracking & exciting offers.
+              Zoom it. Eat it. Love it. One town, hot bags, live tracking all the way to your gate.
             </p>
           </div>
 
           <div>
             <h3 style={{ color: "#fff", fontWeight: 600, fontSize: 13, marginBottom: 14, letterSpacing: "0.02em" }}>Explore</h3>
             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-              {[["Restaurants", "/restaurants"], ["Offers", "#"], ["Support", "#"]].map(([label, href]) => (
+              {[["Restaurants", "/restaurants"], ["Search", "/search"], ["Track order", "/orders"]].map(([label, href]) => (
                 <li key={label}>
                   <a href={href} style={{
                     color: "rgba(255,255,255,0.5)", fontSize: 13, textDecoration: "none",
@@ -66,7 +66,7 @@ export default function Footer() {
           borderTop: "1px solid rgba(255,255,255,0.10)", paddingTop: 20,
           color: "rgba(255,255,255,0.35)", fontSize: 12, textAlign: "center"
         }}>
-          © {new Date().getFullYear()} Zoomo Eats. All rights reserved.
+          © {new Date().getFullYear()} Zoomo Eats · Made for one town. That's the point.
         </div>
       </div>
     </footer>

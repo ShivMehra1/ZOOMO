@@ -56,9 +56,9 @@ export default function CartProvider({ children }) {
 
   /* ================= ADD ITEM ================== */
   /* ================= ADD ITEM ================== */
-  async function addToCart(dishId) {
+  async function addToCart(dishId, dishSizeId) {
     try {
-      console.log("🛒 Add clicked:", dishId);
+      console.log("🛒 Add clicked:", dishId, dishSizeId);
 
 
       const dishRes = await api.get(`/dishes/${dishId}`);
@@ -87,13 +87,13 @@ export default function CartProvider({ children }) {
         currentItems[0]?.dish?.restaurantId !== newRestaurantId
       ) {
         console.warn("⚠️ Conflict detected → opening confirmation modal");
-        setRestaurantConflict({ newDishId: dishId, newRestaurantId });
+        setRestaurantConflict({ newDishId: dishId, newDishSizeId: dishSizeId, newRestaurantId });
         return;
       }
 
 
       console.log("📦 Sending add item request to backend...");
-      const added = await api.post("/cart/items", { dishId, quantity: 1 });
+      const added = await api.post("/cart/items", { dishId, quantity: 1, dishSizeId });
       console.log("📩 Backend response to add:", added);
 
 
@@ -112,7 +112,7 @@ export default function CartProvider({ children }) {
   async function confirmReplaceCart() {
     if (!restaurantConflict) return;
     await clearCart();
-    await addToCart(restaurantConflict.newDishId);
+    await addToCart(restaurantConflict.newDishId, restaurantConflict.newDishSizeId);
     setRestaurantConflict(null);
   }
 
@@ -160,8 +160,11 @@ export default function CartProvider({ children }) {
     cart.items.reduce((sum, i) => sum + i.quantity, 0);
 
 
+  const itemUnitPrice = (i) =>
+    (i.dishSizeId && i.dish?.sizes?.find((s) => s.id === i.dishSizeId)?.price) ?? i.dish.price;
+
   const getSubtotal = () =>
-    cart.items.reduce((sum, i) => sum + i.quantity * i.dish.price, 0);
+    cart.items.reduce((sum, i) => sum + i.quantity * itemUnitPrice(i), 0);
 
 
   /* ============ EXPORT ============ */
@@ -177,6 +180,7 @@ export default function CartProvider({ children }) {
         clearCart,
         getTotalItemCount,
         getSubtotal,
+        itemUnitPrice,
         restaurantConflict,
         confirmReplaceCart,
         cancelReplaceCart,

@@ -5,7 +5,7 @@
 /* ================= GLOBAL RESET ================= */
 
 * {
-  font-family: 'Poppins', sans-serif !important;
+  font-family: 'Satoshi', ui-sans-serif, system-ui, sans-serif !important;
   box-sizing: border-box;
 }
 
@@ -20,14 +20,14 @@ html, body, #root {
 
 /* Light mode */
 body {
-  background-color: #ffffff;
-  color: #111827;
+  background-color: #F4F7F5;
+  color: #0C1612;
 }
 
 /* Dark mode */
 html.dark body {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: #0B1512;
+  color: #F4F7F5;
 }
 
 /* ================= ZOOMO INPUT SYSTEM ================= */
@@ -58,12 +58,12 @@ html.dark .input-zoomo::placeholder {
 .input-zoomo:focus {
   outline: none;
   background-color: #ffffff;
-  box-shadow: 0 0 0 2px rgba(16,185,129,0.4);
+  box-shadow: 0 0 0 2px rgba(15,61,45,0.4);
 }
 
 html.dark .input-zoomo:focus {
   background-color: #262626;
-  box-shadow: 0 0 0 2px rgba(16,185,129,0.4);
+  box-shadow: 0 0 0 2px rgba(31,122,82,0.4);
 }
 
 textarea.input-zoomo {
@@ -81,8 +81,8 @@ html.dark input[type="file"] {
 /* ================= BUTTON SYSTEM ================= */
 
 .btn-zoomo {
-  @apply px-6 py-3 rounded-2xl font-semibold bg-emerald-600 text-white
-         hover:bg-emerald-700 transition;
+  @apply px-6 py-3 rounded-2xl font-semibold bg-z-primary text-white
+         hover:bg-z-hover transition;
 }
 
 .btn-ghost {

@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from './users.service';
 
@@ -16,4 +16,10 @@ async getMe(@Req() req) {
 
 }
 
+  // PATCH /users/me
+  @UseGuards(JwtAuthGuard)
+  @Patch("me")
+  async updateMe(@Req() req, @Body() body) {
+    return this.usersService.updateMe(req.user.id, body);
+  }
 }

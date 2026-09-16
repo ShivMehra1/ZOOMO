@@ -97,4 +97,54 @@ export class AdminOrdersService {
       data: { status: status as OrderStatus },
     });
   }
+
+  /* ===========================
+     DISPUTES — cancelled orders, low ratings, un-refunded
+  ============================ */
+  async getDisputes() {
+    return this.prisma.order.findMany({
+      where: {
+        OR: [
+          { status: OrderStatus.CANCELLED },
+          { rating: { lte: 2 } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        restaurant: { select: { name: true } },
+        user: { select: { name: true, email: true } },
+        messages: true,
+      },
+    });
+  }
+
+  async refundOrder(orderId: string, amount: number, reason: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+    if (order.refundedAt) throw new BadRequestException("Order already refunded");
+
+    const refundAmount = amount ?? order.total;
+    if (refundAmount <= 0 || refundAmount > order.total) {
+      throw new BadRequestException("Invalid refund amount");
+    }
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        refundAmount,
+        refundedAt: new Date(),
+        cancelReason: reason || order.cancelReason,
+      },
+    });
+  }
+
+  async getOrderMessages(orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+
+    return this.prisma.orderMessage.findMany({
+      where: { orderId },
+      orderBy: { createdAt: "asc" },
+    });
+  }
 }
