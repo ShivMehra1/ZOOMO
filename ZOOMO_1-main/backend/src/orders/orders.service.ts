@@ -10,6 +10,9 @@ import {
   computeDeliveryFee,
   computeRevenueSplit,
   computeTax,
+  resolveKmSlab,
+  MIN_CART_FOR_DELIVERY,
+  MAX_DELIVERY_KM,
 } from "../common/revenue-split.util";
 import { haversineKm } from "../common/geo.util";
 import { resolveJourianCoords } from "../common/jourian-areas.util";
@@ -117,6 +120,12 @@ export class OrdersService {
       : OrderType.DELIVERY;
     const isDelivery = resolvedOrderType === OrderType.DELIVERY;
 
+    if (isDelivery && subtotal < MIN_CART_FOR_DELIVERY) {
+      throw new BadRequestException(
+        `Delivery needs a ₹${MIN_CART_FOR_DELIVERY}+ cart — choose pickup or dine-in for smaller orders`,
+      );
+    }
+
     /* ── Restaurant ── */
     const restaurantDish = await this.prisma.dish.findUnique({
       where: { id: cart.items[0].dishId },
@@ -150,13 +159,23 @@ export class OrdersService {
       }
     }
 
-    // Informational only — not used to gate or price the order.
-    const kmSlab: string | null =
-      distanceKm == null ? null : distanceKm <= 2 ? "near" : distanceKm <= 5 ? "town" : "far";
+    let kmSlab: string | null = null;
+    if (isDelivery) {
+      if (distanceKm == null) {
+        throw new BadRequestException("A delivery address is required for delivery orders");
+      }
+      const slab = resolveKmSlab(distanceKm);
+      if (!slab) {
+        throw new BadRequestException(
+          `That address is ${distanceKm}km away — beyond our ${MAX_DELIVERY_KM}km delivery range. Choose pickup or dine-in instead.`,
+        );
+      }
+      kmSlab = slab;
+    }
 
     /* ── Promo ── */
     let discount = 0;
-    let deliveryFee = computeDeliveryFee(subtotal, isDelivery);
+    let deliveryFee = isDelivery ? computeDeliveryFee(subtotal, distanceKm as number) : 0;
     let validatedPromoCode: string | null = null;
 
     if (promoCode) {

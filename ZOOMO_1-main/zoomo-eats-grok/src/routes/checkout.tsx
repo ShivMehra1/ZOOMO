@@ -30,6 +30,8 @@ function CheckoutPage() {
   const [time, setTime] = useState("");
   const [guests, setGuests] = useState(2);
   const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const placing = useRef(false);
   const [dropOff, setDropOff] = useState<(typeof DROP_OFF)[number]["id"]>("MEET_DOOR");
   const [dropNote, setDropNote] = useState("");
@@ -72,6 +74,21 @@ function CheckoutPage() {
 
   const t = quote ?? localTotals;
 
+  const MIN_DELIVERY_SUBTOTAL = 50;
+  const bagSubtotal = bag.reduce((s, i) => s + i.price * i.quantity, 0);
+  const deliveryLocked = bagSubtotal < MIN_DELIVERY_SUBTOTAL;
+
+  // Cart total can drop below the delivery minimum right here on checkout
+  // (removing an item with the stepper) — bounce off Delivery immediately
+  // instead of leaving it selected with no way to actually submit.
+  useEffect(() => {
+    if (deliveryLocked && orderType === "DELIVERY") {
+      setOrderType("TAKEAWAY");
+      setPay("PAY_AT_RESTAURANT");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryLocked]);
+
   useEffect(() => {
     if (!hydrated) return;
     if (!user) nav({ to: "/login" });
@@ -102,16 +119,17 @@ function CheckoutPage() {
   }
 
   async function submit() {
-    if (orderType === "DELIVERY" && !addrId && !adding) return alert("Please select an address");
+    setSubmitError("");
+    if (orderType === "DELIVERY" && !addrId && !adding) return setSubmitError("Select an address to deliver to");
     if (orderType === "DELIVERY" && adding) {
       if (!form.street || !form.city || !form.state || !form.zipCode)
-        return alert("Please fill in the full address");
+        return setSubmitError("Fill in the full address");
     }
     if ((orderType === "DINE_IN" || orderType === "TAKEAWAY") && (!date || !time)) {
-      return alert(`Select a date and time for your ${orderType === "DINE_IN" ? "dine-in" : "takeaway"}`);
+      return setSubmitError(`Pick a date and time for your ${orderType === "DINE_IN" ? "dine-in" : "takeaway"}`);
     }
     if (orderType === "DELIVERY" && schedule && (!date || !time)) {
-      return alert("Select a date and time for your delivery");
+      return setSubmitError("Pick a date and time for your delivery");
     }
     setBusy(true);
     placing.current = true;
@@ -139,11 +157,11 @@ function CheckoutPage() {
         dropNote,
         noCutlery,
       });
-      nav({ to: "/orders/$id", params: { id: order.id } });
+      setPlacedOrderId(order.id);
+      setTimeout(() => nav({ to: "/orders/$id", params: { id: order.id } }), 1100);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not place order.");
+      setSubmitError(err instanceof Error ? err.message : "Could not place order — try again.");
       placing.current = false;
-    } finally {
       setBusy(false);
     }
   }
@@ -190,29 +208,37 @@ function CheckoutPage() {
               { id: "DINE_IN" as const, label: "Dine in", sub: "Eat at the restaurant" },
               { id: "TAKEAWAY" as const, label: "Takeaway", sub: "Pick up yourself" },
             ]
-          ).map((o) => (
-            <label
-              key={o.id}
-              className={`mb-2 flex cursor-pointer items-center gap-2.5 rounded-[14px] border-[1.5px] p-3.5 ${
-                orderType === o.id ? "border-primary bg-sage" : "border-line bg-page"
-              }`}
-            >
-              <input
-                type="radio"
-                name="otype"
-                checked={orderType === o.id}
-                onChange={() => {
-                  setOrderType(o.id);
-                  setPay(o.id === "DELIVERY" ? "COD" : "PAY_AT_RESTAURANT");
-                }}
-                className="accent-primary"
-              />
-              <div>
-                <p className="text-[13px] font-semibold text-ink">{o.label}</p>
-                <p className="text-[11px] text-muted">{o.sub}</p>
-              </div>
-            </label>
-          ))}
+          ).map((o) => {
+            const locked = o.id === "DELIVERY" && deliveryLocked;
+            return (
+              <label
+                key={o.id}
+                className={`mb-2 flex items-center gap-2.5 rounded-[14px] border-[1.5px] p-3.5 ${
+                  locked
+                    ? "cursor-not-allowed border-line bg-page opacity-50"
+                    : "cursor-pointer " + (orderType === o.id ? "border-primary bg-sage" : "border-line bg-page")
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="otype"
+                  checked={orderType === o.id}
+                  disabled={locked}
+                  onChange={() => {
+                    setOrderType(o.id);
+                    setPay(o.id === "DELIVERY" ? "COD" : "PAY_AT_RESTAURANT");
+                  }}
+                  className="accent-primary"
+                />
+                <div>
+                  <p className="text-[13px] font-semibold text-ink">{o.label}</p>
+                  <p className="text-[11px] text-muted">
+                    {locked ? `Add ${inr(MIN_DELIVERY_SUBTOTAL - bagSubtotal)} more to unlock delivery` : o.sub}
+                  </p>
+                </div>
+              </label>
+            );
+          })}
         </Section>
 
         {(orderType === "DINE_IN" || orderType === "TAKEAWAY") && (
@@ -567,12 +593,12 @@ function CheckoutPage() {
           {orderType === "DELIVERY" && (
             <p className="mt-3 rounded-2xl bg-sage px-3 py-2 text-[12px] leading-5 text-primary">
               At your gate by <b>{gateBy(etaMinOf(restaurantById(activeBag || bag[0]?.restaurantId)))}</b>
-              . Shop keeps 70% of the food price.
+              . Shop keeps 80% of the food price.
             </p>
           )}
           {(orderType === "DINE_IN" || orderType === "TAKEAWAY") && (
             <p className="mt-3 rounded-2xl bg-sage px-3 py-2 text-[12px] leading-5 text-primary">
-              No delivery fee for {orderType === "DINE_IN" ? "dine-in" : "takeaway"} — shop keeps 70% of the food price.
+              No delivery fee for {orderType === "DINE_IN" ? "dine-in" : "takeaway"} — shop keeps 95% of the food price.
             </p>
           )}
           {quoteError && (
