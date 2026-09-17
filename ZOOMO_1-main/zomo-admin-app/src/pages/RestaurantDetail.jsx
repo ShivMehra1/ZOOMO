@@ -188,8 +188,8 @@ export default function RestaurantDetail() {
       setBusy(`order-${orderId}`);
       await deleteOrder(orderId);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    } catch {
-      alert("Failed to delete order");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete order");
     } finally {
       setBusy(null);
     }

@@ -89,10 +89,21 @@ export class AdminOrdersService {
   /* ===========================
      DELETE ORDER (ADMIN)
      Hard delete — cascades OrderItem/Payment/OrderMessage via schema FKs.
+     Only for orders that never earned real revenue (PENDING/SCHEDULED/
+     CANCELLED junk or test orders) — a DELIVERED order's totals are already
+     baked into restaurant/driver payout balances and the platform business
+     summary, so deleting it would silently corrupt those figures with no
+     audit trail. Use CANCELLED status (already supported elsewhere) to
+     remove a delivered order from view instead.
   ============================ */
   async deleteOrder(orderId: string) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException("Order not found");
+    if (order.status === OrderStatus.DELIVERED) {
+      throw new BadRequestException(
+        "Delivered orders can't be deleted — their revenue is already reflected in payout balances and business totals. Cancel or refund instead.",
+      );
+    }
     await this.prisma.order.delete({ where: { id: orderId } });
     this.realtime.emitToRooms(
       [`order:${orderId}`, `restaurant:${order.restaurantId}`, "admin"],
