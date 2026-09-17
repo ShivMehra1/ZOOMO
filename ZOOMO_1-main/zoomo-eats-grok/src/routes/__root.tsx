@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
-import { getRealToken, loadRealCatalog } from "@/lib/real-api";
+import { applyCatalog, getRealToken, loadRealCatalog, type CatalogPayload } from "@/lib/real-api";
 import { useLocationMemory } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
 import appCss from "../styles.css?url";
@@ -10,13 +9,13 @@ import appCss from "../styles.css?url";
 const APP_NAME = "Zoomo Eats";
 
 export const Route = createRootRoute({
-  loader: async () => {
-    if (typeof window === "undefined") return;
-    await loadRealCatalog();
-    if (getRealToken()) {
+  loader: async (): Promise<{ catalog: CatalogPayload }> => {
+    const catalog = await loadRealCatalog();
+    if (typeof window !== "undefined" && getRealToken()) {
       const { refreshCart, refreshAddresses, refreshOrders, refreshFavorites, refreshProfile } = useZoomo.getState();
       await Promise.all([refreshCart(), refreshAddresses(), refreshOrders(), refreshFavorites(), refreshProfile()]);
     }
+    return { catalog };
   },
   head: () => ({
     meta: [
@@ -50,38 +49,9 @@ function LocationMemory() {
   return null;
 }
 
-function BootScreen() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-page px-6">
-      <img src="/brand/mark-on-white.png" alt="Zoomo" className="mb-5 size-14 object-contain" />
-      <p className="text-sm font-bold tracking-wide text-ink">Loading kitchens in Jourian…</p>
-    </div>
-  );
-}
-
 function RootComponent() {
-  const [ready, setReady] = useState(false);
-  const [catalogVersion, setCatalogVersion] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    loadRealCatalog()
-      .then(() => {
-        if (!alive) return;
-        const token = getRealToken();
-        if (!token) return;
-        const { refreshCart, refreshAddresses, refreshOrders, refreshFavorites, refreshProfile } = useZoomo.getState();
-        return Promise.all([refreshCart(), refreshAddresses(), refreshOrders(), refreshFavorites(), refreshProfile()]);
-      })
-      .finally(() => {
-        if (!alive) return;
-        setCatalogVersion((v) => v + 1);
-        setReady(true);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const { catalog } = Route.useLoaderData();
+  applyCatalog(catalog);
 
   return (
     <html lang="en" className="antialiased" suppressHydrationWarning>
@@ -92,7 +62,7 @@ function RootComponent() {
         <PreviewHostBridge />
         <AuthProvider>
           <LocationMemory />
-          {ready ? <Outlet key={catalogVersion} /> : <BootScreen />}
+          <Outlet />
         </AuthProvider>
         <Scripts />
       </body>

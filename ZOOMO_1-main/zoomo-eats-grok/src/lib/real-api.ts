@@ -131,44 +131,14 @@ export async function realGoogleAuth(email: string, name: string): Promise<RealU
   return res.user;
 }
 
-/* ── Real restaurant/dish catalog (replaces the static demo arrays) ── */
-const DUMMY_SLUGS = new Set([
-  "pizza-palace",
-  "burger-barn",
-  "healthy-bites",
-  "spice-route",
-  "dragon-wok",
-  "sweet-theory",
-  "i-love-pizza",
-]);
-const DUMMY_NAMES =
-  /^(pizza palace|burger barn|healthy bites|spice route|dragon wok|sweet theory|xyzad|qwdsasa|122321|burger best|rfc(\s+fast\s+food)?)$/i;
-
-function isDummyKitchen(r: { id?: string; name?: string }) {
-  const id = String(r.id || "");
-  const name = String(r.name || "").trim();
-  if (DUMMY_SLUGS.has(id)) return true;
-  return DUMMY_NAMES.test(name);
-}
-
-function pickLiveKitchens(list: any[]) {
-  const kept: any[] = [];
-  const seen = new Map<string, number>();
-  for (const r of list) {
-    if (!r || r.isActive === false || isDummyKitchen(r)) continue;
-    const key = String(r.name || "").trim().toLowerCase();
-    if (!key) continue;
-    const score = (Array.isArray(r.dishes) ? r.dishes.length : 0) * 10 + (r.imageUrl ? 1 : 0);
-    const idx = seen.get(key);
-    if (idx == null) {
-      seen.set(key, kept.length);
-      kept.push(r);
-    } else if (score > (Array.isArray(kept[idx].dishes) ? kept[idx].dishes.length : 0) * 10 + (kept[idx].imageUrl ? 1 : 0)) {
-      kept[idx] = r;
-    }
-  }
-  return kept;
-}
+/* ── Real restaurant/dish catalog — whatever GET /restaurants returns ── */
+export type CatalogPayload = {
+  restaurants: Restaurant[];
+  dishes: Dish[];
+  reviews: { id: string; restaurantId: string; name: string; rating: number; text: string }[];
+  coupons: Record<string, { type: string; value: number; label: string; max?: number | null }>;
+  offers: { code: string; title: string; subtitle: string; expires: string; image: string; restaurantId: string | null }[];
+};
 
 function toRestaurant(r: any): Restaurant {
   const area = (r.address || "").split(",")[1]?.trim() || TOWN;
@@ -181,7 +151,7 @@ function toRestaurant(r: any): Restaurant {
     area,
     cuisineType: r.cuisineType || "Various",
     priceRange: r.priceRange || "$$",
-    rating: r.rating ?? 4.3,
+    rating: Number(r.rating) || 4.3,
     openingHours: r.openingHours || "",
     eta: r.etaMin ? `${r.etaMin}–${r.etaMin + 10} min` : "25–40 min",
     costForTwo: r.costForTwo ?? 400,
@@ -211,52 +181,47 @@ function toDish(d: any, restaurantId: string): Dish {
   };
 }
 
-// Tracks whether a real fetch has ever succeeded (used by __root.tsx to
-// decide whether SSR already has real data). This used to also gate
-// loadRealCatalog() itself into a one-shot cache — but that module-level
-// flag lives for the whole SSR server process, not per-request, so once
-// any request populated it the catalog was frozen for that process's
-// lifetime: restaurant/dish edits in the DB would never show up without a
-// dev-server restart. loadRealCatalog() now always fetches fresh.
+export function applyCatalog(payload?: CatalogPayload | null) {
+  if (!payload) return;
+  setCatalog(payload.restaurants, payload.dishes);
+  setLiveReviews(payload.reviews);
+  if (payload.offers.length) setPromos(payload.coupons, payload.offers);
+  catalogLoaded = true;
+}
+
 let catalogLoaded = false;
 
 export function isCatalogLoaded(): boolean {
   return catalogLoaded;
 }
 
-export async function loadRealCatalog(): Promise<void> {
+export async function loadRealCatalog(): Promise<CatalogPayload> {
+  const empty: CatalogPayload = { restaurants: [], dishes: [], reviews: [], coupons: {}, offers: [] };
   try {
     const [list, offers] = await Promise.all([
       realApi.get("/restaurants"),
       realApi.get("/offers").catch(() => []),
     ]);
-    if (!Array.isArray(list)) {
-      setCatalog([], []);
-      catalogLoaded = true;
-      return;
-    }
-    const live = pickLiveKitchens(list);
-    const restaurants = live.map(toRestaurant);
-    const dishes = live.flatMap((r: any) =>
+    const rows = Array.isArray(list) ? list.filter((r: any) => r && r.isActive !== false) : [];
+    const restaurants = rows.map(toRestaurant);
+    const dishes = rows.flatMap((r: any) =>
       Array.isArray(r.dishes) ? r.dishes.map((d: any) => toDish(d, r.id)) : [],
     );
-    setCatalog(restaurants, dishes);
-    setLiveReviews(
-      list.flatMap((r: any) =>
-        Array.isArray(r.reviews)
-          ? r.reviews.map((rv: any) => ({
-              id: String(rv.id),
-              restaurantId: r.id,
-              name: rv.user?.name || "Guest",
-              rating: Number(rv.rating) || 0,
-              text: rv.comment || rv.text || "",
-            }))
-          : [],
-      ),
+    const reviews = rows.flatMap((r: any) =>
+      Array.isArray(r.reviews)
+        ? r.reviews.map((rv: any) => ({
+            id: String(rv.id),
+            restaurantId: r.id,
+            name: rv.user?.name || "Guest",
+            rating: Number(rv.rating) || 0,
+            text: rv.comment || rv.text || "",
+          }))
+        : [],
     );
-    if (Array.isArray(offers) && offers.length) {
-      const coupons: Record<string, { type: string; value: number; label: string; max?: number | null }> = {};
-      const cards = offers.map((o: any) => {
+    const coupons: CatalogPayload["coupons"] = {};
+    const cards: CatalogPayload["offers"] = [];
+    if (Array.isArray(offers)) {
+      for (const o of offers) {
         const type = o.discountType === "FLAT" ? "flat" : o.discountType === "FREE_DELIVERY" ? "ship" : "percent";
         coupons[o.code] = {
           type,
@@ -264,22 +229,23 @@ export async function loadRealCatalog(): Promise<void> {
           label: o.title || o.code,
           max: o.maxDiscount ?? null,
         };
-        return {
+        cards.push({
           code: o.code,
           title: o.title || o.code,
           subtitle: o.subtitle || "Jourian",
           expires: o.expires || "Always on",
           image: IMG.hero,
           restaurantId: o.restaurantId ?? null,
-        };
-      });
-      setPromos(coupons, cards);
+        });
+      }
     }
-    catalogLoaded = true;
+    const payload: CatalogPayload = { restaurants, dishes, reviews, coupons, offers: cards };
+    applyCatalog(payload);
+    return payload;
   } catch (err) {
     console.error("[real-api] Could not load live catalog:", err);
-    setCatalog([], []);
-    catalogLoaded = true;
+    applyCatalog(empty);
+    return empty;
   }
 }
 
