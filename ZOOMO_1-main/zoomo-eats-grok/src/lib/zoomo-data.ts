@@ -44,7 +44,7 @@ export const IMG = {
   pizza: pic("1513104890138-7c749659a591"),
   pizza2: pic("1604382354936-07c5d9983bd3"),
   tandoori: pic("1565299624946-b28f40a0ae38"),
-  burger: pic("1568901345023-21c4c7672033"),
+  burger: "http://localhost:3000/static/eloteburgers6.jpg", // the pic() Unsplash id 404s
   cheeseburger: pic("1550547660-d9450f859349"),
   veggie: pic("1520072959219-c595dc870360"),
   fries: pic("1573080496219-bb080dd4f877"),
@@ -158,17 +158,13 @@ export const COUPONS: Record<string, { type: string; value: number; label: strin
   ZOOMO50: { type: "percent", value: 50, label: "50% off", max: 120 },
   BOGO: { type: "flat", value: 80, label: "₹80 off", max: null },
   FREESHIP: { type: "ship", value: 29, label: "Free delivery", max: null },
-  HEALTHY20: { type: "percent", value: 20, label: "20% off", max: 80 },
   NEWUSER: { type: "flat", value: 80, label: "₹80 off", max: null },
-  SPICE20: { type: "percent", value: 20, label: "20% off", max: 100 },
-  DESSERT30: { type: "percent", value: 30, label: "30% off", max: 90 },
 };
 
 export const OFFERS = [
   { code: "ZOOMO50", title: "50% off first bag", subtitle: "Cap ₹120. Jourian only.", expires: "This week", image: IMG.hero, restaurantId: null as string | null },
-  { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "I Love Pizza. Medium pies.", expires: "Wednesdays", image: IMG.pizza, restaurantId: "i-love-pizza" },
+  { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "I Love Pizza. Medium pies.", expires: "Wednesdays", image: IMG.pizza, restaurantId: "pizza-palace" },
   { code: "FREESHIP", title: "Ride on us", subtitle: "Delivery fee gone.", expires: "Always on for Pass", image: IMG.burger, restaurantId: null },
-  { code: "HEALTHY20", title: "20% off bowls", subtitle: "Healthy Bites.", expires: "Weekdays", image: IMG.salad, restaurantId: "healthy-bites" },
 ];
 
 export const MAP_NODES = [
@@ -279,47 +275,35 @@ export function normalizeStatus(s: string) {
   };
   return map[s] ?? s;
 }
-export function liveStatus(order: { createdAt: string; orderType: string; status: string; statusLive?: string | null }) {
+// Status/progress below come only from the real backend (order.status,
+// pushed live over the order:<id> socket room and refetched via
+// refreshOrders) — never fabricated from elapsed time. `statusLive` is set
+// from the real order.status on every fetch (see real-api.ts), so it's
+// only absent for a moment before the very first fetch resolves.
+export function liveStatus(order: { status: string; statusLive?: string | null }) {
   if (order.status === "CANCELLED" || order.statusLive === "CANCELLED") return "CANCELLED";
-  if (order.statusLive) return normalizeStatus(order.statusLive);
-  const steps = stepsFor(order.orderType);
-  const t = elapsedSec(order.createdAt);
-  let current = steps[0].key;
-  for (const s of steps) if (t >= s.at) current = s.key;
-  return current;
+  return normalizeStatus(order.statusLive || order.status);
 }
-export function liveProgress(order: { createdAt: string; orderType: string; status: string; statusLive?: string | null }) {
+export function liveProgress(order: { orderType: string; status: string; statusLive?: string | null }) {
   if (order.status === "CANCELLED") return 0;
   const steps = stepsFor(order.orderType);
-  if (order.statusLive) {
-    const key = normalizeStatus(order.statusLive);
-    const i = Math.max(0, steps.findIndex((s) => s.key === key));
-    return Math.min(1, (i + (key === "DELIVERED" ? 1 : 0.45)) / steps.length);
-  }
-  const t = elapsedSec(order.createdAt);
-  return Math.min(1, t / steps[steps.length - 1].at);
+  const key = liveStatus(order);
+  const i = Math.max(0, steps.findIndex((s) => s.key === key));
+  return Math.min(1, (i + (key === "DELIVERED" ? 1 : 0.45)) / steps.length);
 }
-export function rideProgress(order: { createdAt: string; orderType: string; status: string; statusLive?: string | null; statusAt?: string | null }) {
+export function rideProgress(order: { orderType: string; status: string; statusLive?: string | null; statusAt?: string | null; createdAt: string }) {
   if (order.status === "CANCELLED") return 0;
   const status = liveStatus(order);
   if (status === "DELIVERED") return 1;
   if (order.orderType !== "DELIVERY") return 0;
-  if (order.statusLive) {
-    const t = elapsedSec(order.statusAt || order.createdAt);
-    if (status === "PENDING" || status === "CONFIRMED") return 0.04;
-    if (status === "PREPARING") return 0.12;
-    if (status === "READYFORPICKUP") return Math.min(0.4, 0.2 + t / 80);
-    if (status === "OUTFORDELIVERY") return Math.min(0.92, 0.45 + t / 95);
-    return 0.08;
-  }
-  const t = elapsedSec(order.createdAt);
-  const pickup = 52;
-  const out = 78;
-  const done = 145;
-  if (t < 22) return 0.03;
-  if (t < pickup) return 0.03 + ((t - 22) / (pickup - 22)) * 0.17;
-  if (t < out) return 0.2 + ((t - pickup) / (out - pickup)) * 0.25;
-  return 0.45 + Math.min(0.5, ((t - out) / (done - out)) * 0.5);
+  // Within a real status, ease the marker forward with time-in-status —
+  // motion grounded in a real status change, not a fabricated one.
+  const t = elapsedSec(order.statusAt || order.createdAt);
+  if (status === "PENDING" || status === "CONFIRMED") return 0.04;
+  if (status === "PREPARING") return 0.12;
+  if (status === "READYFORPICKUP") return Math.min(0.4, 0.2 + t / 80);
+  if (status === "OUTFORDELIVERY") return Math.min(0.92, 0.45 + t / 95);
+  return 0.08;
 }
 export function isNearby(order: Parameters<typeof rideProgress>[0]) {
   return liveStatus(order) === "OUTFORDELIVERY" && rideProgress(order) >= 0.82;
@@ -334,23 +318,23 @@ export function trackHeadline(status: string, riderName?: string | null, nearby?
   if (status === "CONFIRMED") return "Restaurant confirmed";
   return "We’ve got your order";
 }
-export function etaMinutes(order: { createdAt: string; orderType: string; status: string; statusLive?: string | null }) {
+export function etaMinutes(order: { orderType: string; status: string; statusLive?: string | null }) {
   if (order.status === "CANCELLED") return 0;
   const status = liveStatus(order);
   if (status === "DELIVERED") return 0;
-  if (order.statusLive) {
-    const map: Record<string, number> = { PENDING: 22, CONFIRMED: 18, PREPARING: 14, READYFORPICKUP: 10, OUTFORDELIVERY: 8 };
-    return map[status] ?? 12;
-  }
-  const steps = stepsFor(order.orderType);
-  return Math.max(0, Math.ceil((steps[steps.length - 1].at - elapsedSec(order.createdAt)) / 60));
+  const map: Record<string, number> = { PENDING: 22, CONFIRMED: 18, PREPARING: 14, READYFORPICKUP: 10, OUTFORDELIVERY: 8 };
+  return map[status] ?? 12;
 }
 export function riderAssigned(status: string) {
   return ["CONFIRMED", "PREPARING", "READYFORPICKUP", "OUTFORDELIVERY", "DELIVERED"].includes(status);
 }
-export function riderFinding(order: { createdAt: string; statusLive?: string | null }) {
-  if (order.statusLive) return false;
-  return elapsedSec(order.createdAt) < 10;
+// "Finding a rider" is real: true only while no driver has been assigned
+// yet (order.realDriver is only ever populated from the actual backend
+// assignment) and the order hasn't progressed past confirmation.
+export function riderFinding(order: { status: string; statusLive?: string | null; realDriver?: unknown }) {
+  if (order.realDriver) return false;
+  const status = liveStatus(order);
+  return status === "PENDING" || status === "CONFIRMED";
 }
 export const WHY = [
   { title: "One town. That’s it.", desc: "Zoomo only cooks for Jourian. No other city, no thin routes, no cold bags." },

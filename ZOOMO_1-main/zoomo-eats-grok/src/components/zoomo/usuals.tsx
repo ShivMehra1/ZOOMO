@@ -48,7 +48,6 @@ export function UsualsRow() {
                   onClick={() => {
                     const d = DISHES.find((x) => x.id === u.dishId);
                     if (d) addToCart(d, d.sizes ? "M" : undefined);
-                    else nav({ to: "/restaurant/$id", params: { id: u.restaurantId } });
                     nav({ to: "/restaurant/$id", params: { id: u.restaurantId } });
                   }}
                   className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-white"

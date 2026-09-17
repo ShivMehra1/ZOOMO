@@ -11,7 +11,7 @@ export const Route = createFileRoute("/orders")({ component: OrdersPage });
 
 function OrdersPage() {
   const nav = useNavigate();
-  const { orders, user, reorder, hydrated } = useZoomo();
+  const { orders, user, reorder, hydrated, refreshOrders } = useZoomo();
   const [tab, setTab] = useState<"active" | "past">("active");
   useTick(2000);
   useEffect(() => {
@@ -21,6 +21,14 @@ function OrdersPage() {
     // redirecting on that false signal was kicking real sessions to /login.
     if (hydrated && !user) nav({ to: "/login" });
   }, [hydrated, user, nav]);
+  useEffect(() => {
+    // The root loader only refreshes orders on a hard page load — a
+    // client-side nav straight into this route (or backend data changing
+    // underneath an already-open tab) would otherwise keep showing
+    // whatever was last persisted to localStorage. handleApiError's
+    // existing 401 self-heal covers a since-deleted account.
+    if (hydrated && user) refreshOrders();
+  }, [hydrated, user, refreshOrders]);
   if (!hydrated || !user) {
     return (
       <AppShell>

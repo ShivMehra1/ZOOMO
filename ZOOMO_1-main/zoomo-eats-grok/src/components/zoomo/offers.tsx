@@ -95,7 +95,10 @@ export function OffersSection() {
       </div>
       <p className="mt-3 text-xs text-muted">Two offers at a time. They apply at checkout.</p>
       {toast && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[90] flex justify-center px-4 md:bottom-8">
+        // Sits above the sticky "View bag" cart bar (fixed at bottom-24 on
+        // mobile, bottom-5 on desktop) — they were both anchored to the same
+        // offset and rendering on top of each other.
+        <div className="pointer-events-none fixed inset-x-0 bottom-40 z-[90] flex justify-center px-4 md:bottom-24">
           <p className="rounded-full bg-primary px-4 py-2.5 text-[13px] font-bold text-white shadow-lift">
             {toast}
           </p>

@@ -50,6 +50,7 @@ export function UberTrack({ order }: { order: Order }) {
     sendRideChat,
     rateOrder,
     setProof,
+    reorder,
   } = useZoomo();
   const [sheet, setSheet] = useState<"mini" | "full">("mini");
   const [chatOpen, setChatOpen] = useState(false);
@@ -342,7 +343,9 @@ export function UberTrack({ order }: { order: Order }) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => nav({ to: "/restaurant/$id", params: { id: order.restaurantId } })}
+                    onClick={() => {
+                      if (reorder(order.id) === "ok") nav({ to: "/cart" });
+                    }}
                     className="btn-primary mt-4 h-12 w-full text-sm"
                   >
                     Order again

@@ -16,6 +16,7 @@ function OrderDetailPage() {
   const back = useGoBack("/orders");
   const order = useZoomo((s) => s.orders.find((o) => o.id === id));
   const cancelOrder = useZoomo((s) => s.cancelOrder);
+  const reorder = useZoomo((s) => s.reorder);
   const [confirmCancel, setConfirmCancel] = useState(false);
   useTick(1000);
 
@@ -81,7 +82,9 @@ function OrderDetailPage() {
 
         {kitchen && !active && status === "DELIVERED" && (
           <button
-            onClick={() => nav({ to: "/restaurant/$id", params: { id: kitchen.id } })}
+            onClick={() => {
+              if (reorder(order.id) === "ok") nav({ to: "/cart" });
+            }}
             className="btn-primary mb-4 w-full py-3 text-sm"
           >
             Order again
