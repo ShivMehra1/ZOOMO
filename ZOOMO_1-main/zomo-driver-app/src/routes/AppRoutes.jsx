@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Landing from "../pages/Landing";
 import Login from "../pages/login";
 import Home from "../pages/Home";
 import Orders from "../pages/Orders";
@@ -14,6 +15,7 @@ export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
 
         <Route
