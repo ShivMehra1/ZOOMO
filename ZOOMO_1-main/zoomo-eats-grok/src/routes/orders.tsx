@@ -11,13 +11,25 @@ export const Route = createFileRoute("/orders")({ component: OrdersPage });
 
 function OrdersPage() {
   const nav = useNavigate();
-  const { orders, user, reorder } = useZoomo();
+  const { orders, user, reorder, hydrated } = useZoomo();
   const [tab, setTab] = useState<"active" | "past">("active");
   useTick(2000);
   useEffect(() => {
-    if (!user) nav({ to: "/login" });
-  }, [user, nav]);
-  if (!user) return null;
+    // Wait for the persisted store to rehydrate from localStorage before
+    // deciding the user is logged out — on a hard page load `user` starts
+    // as null for one tick even for an already-signed-in session, and
+    // redirecting on that false signal was kicking real sessions to /login.
+    if (hydrated && !user) nav({ to: "/login" });
+  }, [hydrated, user, nav]);
+  if (!hydrated || !user) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="size-8 animate-spin rounded-full border-2 border-line border-t-primary" />
+        </div>
+      </AppShell>
+    );
+  }
 
   const active = orders.filter((o) => {
     const s = liveStatus(o);
@@ -65,7 +77,10 @@ function OrdersPage() {
             {list.map((o) => {
               const r = restaurantById(o.restaurantId);
               const st = liveStatus(o);
-              const rider = o.orderType === "DELIVERY" && riderAssigned(st) ? riderById(o.driverId) ?? riderFor(o.id) : null;
+              const rider =
+                o.orderType === "DELIVERY" && riderAssigned(st)
+                  ? o.driver ?? riderById(o.driverId) ?? riderFor(o.id)
+                  : null;
               const eta = etaMinutes(o);
               return (
                 <div key={o.id} className="w-full overflow-hidden rounded-[24px] bg-surface text-left shadow-card">

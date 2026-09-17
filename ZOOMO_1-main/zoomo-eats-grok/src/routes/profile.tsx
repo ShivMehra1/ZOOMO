@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Heart, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, Heart, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/zoomo/shell";
 import { RESTAURANTS, inr, liveStatus } from "@/lib/zoomo-data";
 import { useGoBack } from "@/lib/zoomo-nav";
@@ -22,18 +22,22 @@ function ProfilePage() {
     favorites,
     visits,
     orders,
+    uploadAvatar,
+    hydrated,
   } = useZoomo();
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ street: "", city: "Jourian", state: "Jammu", zipCode: "" });
 
   useEffect(() => {
-    if (!user) nav({ to: "/login" });
-  }, [user, nav]);
+    if (hydrated && !user) nav({ to: "/login" });
+  }, [hydrated, user, nav]);
 
   useEffect(() => {
     if (!user) return;
@@ -69,7 +73,15 @@ function ProfilePage() {
     flash();
   }
 
-  if (!user) return null;
+  if (!hydrated || !user) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="size-8 animate-spin rounded-full border-2 border-line border-t-primary" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -88,6 +100,48 @@ function ProfilePage() {
             <h1 className="display text-[26px] text-ink">Your profile</h1>
           </div>
         </div>
+
+        <section className="mb-4 flex items-center gap-4 rounded-[24px] bg-surface p-5 shadow-card">
+          <div className="relative shrink-0">
+            <div className="flex size-16 items-center justify-center overflow-hidden rounded-full bg-sage text-xl font-bold text-primary">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+              ) : (
+                (user.name || "?")[0]?.toUpperCase()
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full bg-primary text-white shadow-sm"
+              aria-label="Change photo"
+            >
+              <Camera className="size-3" />
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                try {
+                  await uploadAvatar(file);
+                } finally {
+                  setUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-bold text-ink">{user.name}</p>
+            <p className="truncate text-xs text-sub">{uploading ? "Uploading…" : user.email}</p>
+          </div>
+        </section>
 
         <section className="mb-4 rounded-[24px] bg-surface p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">

@@ -73,7 +73,27 @@ export const realApi = {
 };
 
 /* ── Real auth (replaces the fake, no-password-check store login) ── */
-export type RealUser = { id: string; name: string; email: string; phone?: string | null; role: string };
+export type RealUser = { id: string; name: string; email: string; phone?: string | null; avatarUrl?: string | null; role: string };
+
+export async function realGetProfile(): Promise<RealUser> {
+  return realApi.get("/users/me");
+}
+
+export async function realUpdateProfile(patch: { name?: string; phone?: string; avatarUrl?: string }): Promise<RealUser> {
+  return realApi.patch("/users/me", patch);
+}
+
+export async function realUploadAvatar(file: File): Promise<{ url: string }> {
+  const token = getRealToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/upload/image?folder=avatars`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  return handle(res);
+}
 
 export async function realLogin(email: string, password: string): Promise<RealUser> {
   const res = await realApi.post("/auth/login", { email, password });
@@ -434,6 +454,17 @@ export function toStoreOrder(o: any) {
     quantity: i.quantity,
     note: i.specialInstructions || undefined,
   }));
+  const driver = o.driver
+    ? {
+        id: o.driver.id,
+        name: o.driver.user?.name ?? "Your rider",
+        phone: o.driver.user?.phone ?? "",
+        avatarUrl: o.driver.user?.avatarUrl ?? undefined,
+        rating: o.driver.rating ?? 4.8,
+        vehicleType: o.driver.vehicleType ?? "",
+        vehiclePlate: o.driver.vehiclePlate ?? "",
+      }
+    : null;
   return {
     id: o.id,
     restaurantId: o.restaurantId,
@@ -459,6 +490,7 @@ export function toStoreOrder(o: any) {
     statusLive: o.status,
     statusAt: o.updatedAt,
     driverId: o.driverId ?? null,
+    driver,
     dropOff: (o.dropOffPreference ?? "MEET_DOOR") as any,
     dropNote: o.dropOffNote ?? "",
     chat: (o.messages ?? []).map((m: any) => ({ id: m.id, from: m.sender === "CUSTOMER" ? "me" : "rider", text: m.text, at: m.createdAt })),

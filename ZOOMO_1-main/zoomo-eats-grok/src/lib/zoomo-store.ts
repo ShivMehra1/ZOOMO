@@ -37,6 +37,9 @@ import {
   realSetCartItemQty,
   realSetDropOff,
   realUpdateAddress,
+  realGetProfile,
+  realUpdateProfile,
+  realUploadAvatar,
   setRealToken,
   toStoreOrder,
   type RealCartItem,
@@ -112,6 +115,16 @@ export type Order = {
   statusLive?: string | null;
   statusAt?: string | null;
   driverId?: string | null;
+  /** The real assigned driver's info from the backend — null until a driver is assigned. */
+  driver?: {
+    id: string;
+    name: string;
+    phone: string;
+    avatarUrl?: string;
+    rating: number;
+    vehicleType: string;
+    vehiclePlate: string;
+  } | null;
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
@@ -140,6 +153,7 @@ export type User = {
   name: string;
   email: string;
   phone: string;
+  avatarUrl?: string;
   vegOnly: boolean;
   notifyOrders: boolean;
   paymentPref: string;
@@ -190,6 +204,8 @@ type State = {
   refreshAddresses: () => Promise<void>;
   refreshOrders: () => Promise<void>;
   refreshFavorites: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
   cancelOrder: (id: string) => void;
   pingGate: (id: string) => void;
   grantLateCredit: (id: string) => number;
@@ -296,6 +312,7 @@ export const useZoomo = create<State>()(
           get().refreshAddresses();
           get().refreshOrders();
           get().refreshFavorites();
+          get().refreshProfile();
         }
       },
       logout: () => {
@@ -306,6 +323,33 @@ export const useZoomo = create<State>()(
         const user = get().user;
         if (!user) return;
         set({ user: { ...user, ...patch } });
+        // Only name/phone/avatarUrl exist on the real User record — vegOnly/
+        // notifyOrders/paymentPref/email stay local-only preferences.
+        const { name, phone, avatarUrl } = patch;
+        if (getRealToken() && (name !== undefined || phone !== undefined || avatarUrl !== undefined)) {
+          realUpdateProfile({ name, phone, avatarUrl }).catch((err) =>
+            get().handleApiError(err, "Could not save your profile."),
+          );
+        }
+      },
+      refreshProfile: async () => {
+        if (!getRealToken()) return;
+        try {
+          const u = await realGetProfile();
+          const prev = get().user;
+          if (!prev) return;
+          set({ user: { ...prev, name: u.name, phone: u.phone || "", avatarUrl: u.avatarUrl || undefined } });
+        } catch (err) {
+          get().handleApiError(err, "Could not load your profile.");
+        }
+      },
+      uploadAvatar: async (file: File) => {
+        try {
+          const { url } = await realUploadAvatar(file);
+          get().updateUser({ avatarUrl: url });
+        } catch (err) {
+          get().handleApiError(err, "Could not upload that photo.");
+        }
       },
       setLocation: (loc) => set({ location: loc, locationPrompted: true }),
       markLocationPrompted: () => set({ locationPrompted: true }),

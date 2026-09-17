@@ -110,9 +110,14 @@ export function UberTrack({ order }: { order: Order }) {
   const idx = Math.max(0, steps.findIndex((s) => s.key === status));
   const kitchen = restaurantById(order.restaurantId);
   const finding = riderFinding(order) && status !== "DELIVERED";
+  // Prefer the real assigned driver's actual info (name, phone, photo,
+  // rating, vehicle) from the backend; only fall back to a mock rider for
+  // edge cases where an order has no real driver record at all.
   const rider =
     order.orderType === "DELIVERY" && riderAssigned(status) && !finding
-      ? riderById(order.driverId) ?? riderFor(order.id)
+      ? order.driver
+        ? { name: order.driver.name, phone: order.driver.phone, bike: order.driver.vehicleType, plate: order.driver.vehiclePlate, rating: order.driver.rating, avatarUrl: order.driver.avatarUrl }
+        : riderById(order.driverId) ?? riderFor(order.id)
       : null;
   const dest = order.address?.city || "Jourian";
   const late = Boolean(active && order.promisedAt && Date.now() > new Date(order.promisedAt).getTime());
@@ -232,7 +237,10 @@ export function UberTrack({ order }: { order: Order }) {
           {rider && (
             <div className="mt-4 flex items-center gap-3 rounded-[22px] bg-page p-3">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(rider.name)}&background=0F3D2D&color=fff&size=96`}
+                src={
+                  (rider as { avatarUrl?: string }).avatarUrl ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(rider.name)}&background=0F3D2D&color=fff&size=96`
+                }
                 alt=""
                 className="size-14 rounded-full object-cover"
               />

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/checkout")({ component: CheckoutPage });
 
 function CheckoutPage() {
   const nav = useNavigate();
-  const { cart, user, addresses, saveAddress, placeOrder, activatedOffers, activeBag, setQty } = useZoomo();
+  const { cart, user, addresses, saveAddress, placeOrder, activatedOffers, activeBag, setQty, hydrated } = useZoomo();
   const [orderType, setOrderType] = useState<OrderType>("DELIVERY");
   const [pay, setPay] = useState("COD");
   const [addrId, setAddrId] = useState(addresses[0]?.id ?? null);
@@ -41,10 +41,20 @@ function CheckoutPage() {
   );
 
   useEffect(() => {
+    if (!hydrated) return;
     if (!user) nav({ to: "/login" });
     else if (bag.length === 0 && !placing.current) nav({ to: "/cart" });
-  }, [user, bag.length, nav]);
+  }, [hydrated, user, bag.length, nav]);
 
+  if (!hydrated) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="size-8 animate-spin rounded-full border-2 border-line border-t-primary" />
+        </div>
+      </AppShell>
+    );
+  }
   if (!user || bag.length === 0) return null;
 
   function applyPromo() {

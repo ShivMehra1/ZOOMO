@@ -8,7 +8,7 @@ import { UberTrack } from "@/components/zoomo/uber-track";
 import { inr, liveStatus, restaurantById } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
 
-export const Route = createFileRoute("/orders/$id")({ component: OrderDetailPage });
+export const Route = createFileRoute("/orders_/$id")({ component: OrderDetailPage });
 
 function OrderDetailPage() {
   const { id } = Route.useParams();

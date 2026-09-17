@@ -14,8 +14,8 @@ export const Route = createRootRoute({
     // Refresh this account's real cart/addresses/orders on a hard page load
     // (client-side nav after login already does this in the store's login()).
     if (getRealToken()) {
-      const { refreshCart, refreshAddresses, refreshOrders, refreshFavorites } = useZoomo.getState();
-      await Promise.all([refreshCart(), refreshAddresses(), refreshOrders(), refreshFavorites()]);
+      const { refreshCart, refreshAddresses, refreshOrders, refreshFavorites, refreshProfile } = useZoomo.getState();
+      await Promise.all([refreshCart(), refreshAddresses(), refreshOrders(), refreshFavorites(), refreshProfile()]);
     }
   },
   head: () => ({
