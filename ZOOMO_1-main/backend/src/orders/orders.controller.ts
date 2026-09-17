@@ -47,6 +47,16 @@ export class OrdersController {
     return this.ordersService.createOrder(req.user.id, body);
   }
 
+  /* ================= QUOTE (preview fee/tax/total before placing) ================= */
+  @Post("quote")
+  getQuote(@Req() req, @Body() body) {
+    if (req.user.role !== "USER") {
+      throw new ForbiddenException("Access denied");
+    }
+
+    return this.ordersService.getQuote(req.user.id, body);
+  }
+
   /* ================= CANCEL ORDER ================= */
   @Patch(":id/cancel")
   cancelOrder(@Param("id") id: string, @Req() req) {

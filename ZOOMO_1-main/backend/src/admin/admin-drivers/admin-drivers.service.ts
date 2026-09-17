@@ -17,7 +17,7 @@ export class AdminDriversService {
           orderBy: { createdAt: "desc" },
           take: 20,
           select: {
-            id: true, status: true, total: true, deliveryFee: true, driverCommission: true, createdAt: true,
+            id: true, status: true, total: true, deliveryFee: true, driverCommission: true, tip: true, createdAt: true,
             restaurant: { select: { name: true } },
           },
         },
@@ -27,9 +27,9 @@ export class AdminDriversService {
 
     const delivered = await this.prisma.order.findMany({
       where: { driverId: id, status: OrderStatus.DELIVERED },
-      select: { deliveryFee: true, driverCommission: true },
+      select: { deliveryFee: true, driverCommission: true, tip: true },
     });
-    const earned = delivered.reduce((sum, o) => sum + (o.deliveryFee || 0) + (o.driverCommission || 0), 0);
+    const earned = delivered.reduce((sum, o) => sum + (o.deliveryFee || 0) + (o.driverCommission || 0) + (o.tip || 0), 0);
     const paidAgg = await this.prisma.payout.aggregate({
       where: { driverId: id, recipientType: "DRIVER", status: { in: ["PENDING", "COMPLETED"] } },
       _sum: { amount: true },

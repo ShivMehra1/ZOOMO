@@ -284,13 +284,41 @@ export async function realPlaceOrder(payload: {
   return realApi.post("/orders", {
     addressId: payload.addressId,
     paymentMethod: payload.paymentMethod,
-    orderType: payload.orderType === "DELIVERY" ? "DELIVERY" : "PICKUP",
+    orderType:
+      payload.orderType === "DELIVERY" ? "DELIVERY" : payload.orderType === "DINE_IN" ? "DINE_IN" : "PICKUP",
     dropOffPreference: payload.dropOff || "MEET_DOOR",
     dropOffNote: payload.dropNote || null,
     includeCutlery: !payload.noCutlery,
     promoCode: payload.promoCode,
     tip: payload.tip,
     scheduledFor: payload.scheduledFor,
+  });
+}
+
+export type OrderQuote = {
+  subtotal: number;
+  deliveryFee: number;
+  tax: number;
+  discount: number;
+  tip: number;
+  total: number;
+  distanceKm: number | null;
+  kmSlab: "near" | "town" | "far" | null;
+  orderType: "DELIVERY" | "PICKUP" | "DINE_IN";
+};
+
+export async function realQuoteOrder(payload: {
+  orderType: "DELIVERY" | "DINE_IN" | "TAKEAWAY";
+  addressId: string | null;
+  promoCode: string | null;
+  tip: number;
+}): Promise<OrderQuote> {
+  return realApi.post("/orders/quote", {
+    addressId: payload.addressId,
+    orderType:
+      payload.orderType === "DELIVERY" ? "DELIVERY" : payload.orderType === "DINE_IN" ? "DINE_IN" : "PICKUP",
+    promoCode: payload.promoCode,
+    tip: payload.tip,
   });
 }
 
@@ -477,7 +505,7 @@ export function toStoreOrder(o: any) {
     tip: o.tip ?? 0,
     total: o.total,
     status: o.status,
-    orderType: o.orderType === "PICKUP" ? "TAKEAWAY" : "DELIVERY",
+    orderType: o.orderType === "PICKUP" ? "TAKEAWAY" : o.orderType === "DINE_IN" ? "DINE_IN" : "DELIVERY",
     paymentMethod: o.payment?.method ?? "COD",
     promoCode: o.promoCode ?? null,
     address: o.address ? { id: o.address.id, street: o.address.street, city: o.address.city, state: o.address.state, zipCode: o.address.zipCode } : null,

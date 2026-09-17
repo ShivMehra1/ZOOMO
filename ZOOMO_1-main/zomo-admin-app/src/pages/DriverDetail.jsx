@@ -228,7 +228,7 @@ export default function DriverDetail() {
                   <td className="px-6 py-3 text-z-sub font-mono text-xs">#{o.id.slice(0, 8)}</td>
                   <td className="px-6 py-3 text-z-ink">{o.restaurant?.name || "—"}</td>
                   <td className="px-6 py-3 text-z-ink font-medium tabular-nums">₹{o.total.toFixed(0)}</td>
-                  <td className="px-6 py-3 text-z-sub tabular-nums">₹{((o.deliveryFee || 0) + (o.driverCommission || 0)).toFixed(0)}</td>
+                  <td className="px-6 py-3 text-z-sub tabular-nums">₹{((o.deliveryFee || 0) + (o.driverCommission || 0) + (o.tip || 0)).toFixed(0)}</td>
                   <td className="px-6 py-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[o.status] || "bg-z-page text-z-muted border-z-line"}`}>
                       {o.status}

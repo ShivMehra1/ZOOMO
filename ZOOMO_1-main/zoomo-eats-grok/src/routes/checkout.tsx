@@ -5,8 +5,9 @@ import { AppShell } from "@/components/zoomo/shell";
 import { BackBar } from "@/components/zoomo/back-bar";
 import { FoodImg } from "@/components/zoomo/food-img";
 import { QtyStepper } from "@/components/zoomo/qty";
-import { COUPONS, DROP_OFF, IMG, SHOP_KEEP_PCT, TIP_PRESETS, etaMinOf, gateBy, inr, restaurantById } from "@/lib/zoomo-data";
+import { COUPONS, DROP_OFF, IMG, TIP_PRESETS, etaMinOf, gateBy, inr, restaurantById } from "@/lib/zoomo-data";
 import { cartTotals, useZoomo, type OrderType } from "@/lib/zoomo-store";
+import { realQuoteOrder, type OrderQuote } from "@/lib/real-api";
 
 export const Route = createFileRoute("/checkout")({ component: CheckoutPage });
 
@@ -35,10 +36,41 @@ function CheckoutPage() {
   const [noCutlery, setNoCutlery] = useState(false);
 
   const bag = cart.filter((i) => i.restaurantId === (activeBag || cart[0]?.restaurantId));
-  const t = useMemo(
+  const localTotals = useMemo(
     () => cartTotals(bag, promo, customTip ? Number(customVal) || 0 : tip, orderType, false),
     [bag, promo, tip, customTip, customVal, orderType],
   );
+  const [quote, setQuote] = useState<OrderQuote | null>(null);
+  const [quoteError, setQuoteError] = useState("");
+
+  // The delivery fee is distance-dependent (real km to the address), so the
+  // client can't compute an accurate preview itself — ask the backend for
+  // the same numbers it'll actually charge when the order is placed.
+  useEffect(() => {
+    if (!user || bag.length === 0) return;
+    let cancelled = false;
+    setQuoteError("");
+    realQuoteOrder({
+      orderType,
+      addressId: orderType === "DELIVERY" ? addrId : null,
+      promoCode: promo,
+      tip: customTip ? Number(customVal) || 0 : tip,
+    })
+      .then((q) => {
+        if (cancelled) return;
+        setQuote(q);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setQuote(null);
+        setQuoteError(err?.message || "Could not calculate totals");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, bag.length, orderType, addrId, promo, tip, customTip, customVal]);
+
+  const t = quote ?? localTotals;
 
   useEffect(() => {
     if (!hydrated) return;
@@ -535,8 +567,16 @@ function CheckoutPage() {
           {orderType === "DELIVERY" && (
             <p className="mt-3 rounded-2xl bg-sage px-3 py-2 text-[12px] leading-5 text-primary">
               At your gate by <b>{gateBy(etaMinOf(restaurantById(activeBag || bag[0]?.restaurantId)))}</b>
-              . Shop keeps {SHOP_KEEP_PCT}% of this bill.
+              . Shop keeps 80% of the food price.
             </p>
+          )}
+          {(orderType === "DINE_IN" || orderType === "TAKEAWAY") && (
+            <p className="mt-3 rounded-2xl bg-sage px-3 py-2 text-[12px] leading-5 text-primary">
+              No delivery fee for {orderType === "DINE_IN" ? "dine-in" : "takeaway"} — shop keeps 95% of the food price.
+            </p>
+          )}
+          {quoteError && (
+            <p className="mt-3 rounded-2xl bg-danger/10 px-3 py-2 text-[12px] leading-5 text-danger">{quoteError}</p>
           )}
         </Section>
       </div>
@@ -550,7 +590,7 @@ function CheckoutPage() {
           <button
             type="button"
             onClick={submit}
-            disabled={busy}
+            disabled={busy || !!quoteError}
             className="rounded-xl bg-white px-5 py-3 text-[13px] font-bold text-primary disabled:opacity-60"
           >
             {busy ? "Placing…" : cta}

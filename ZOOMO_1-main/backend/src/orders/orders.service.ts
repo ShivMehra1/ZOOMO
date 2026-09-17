@@ -6,7 +6,14 @@ import {
 import { PrismaService } from "../common/prisma.service";
 import { MessageSender, OrderStatus, OrderType } from "@prisma/client";
 import { PROMO_CODES } from "../common/promo-codes";
-import { computeDeliveryFee, computeRevenueSplit } from "../common/revenue-split.util";
+import {
+  computeDeliveryFee,
+  computeRevenueSplit,
+  computeTax,
+  resolveKmSlab,
+  MIN_CART_FOR_DELIVERY,
+  MAX_DELIVERY_KM,
+} from "../common/revenue-split.util";
 import { haversineKm } from "../common/geo.util";
 import { resolveJourianCoords } from "../common/jourian-areas.util";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
@@ -58,19 +65,29 @@ export class OrdersService {
   /* ===========================
      CREATE ORDER + PAYMENT
   ============================ */
-  async createOrder(userId: string, data: any) {
-    const {
-      addressId,
-      specialInstructions,
-      tip,
-      paymentMethod,
-      promoCode,
-      scheduledFor,
-      orderType,
-      dropOffPreference,
-      dropOffNote,
-      includeCutlery,
-    } = data;
+  /* ===========================
+     QUOTE — same math as createOrder, no side effects. Lets the checkout
+     screen preview an accurate delivery fee/tax/total (distance-dependent,
+     so it can't be computed client-side without duplicating the geocoding
+     fallback table) before actually placing the order.
+  ============================ */
+  async getQuote(userId: string, data: { addressId?: string | null; orderType?: string; promoCode?: string | null; tip?: number }) {
+    const q = await this.quoteFromCart(userId, data);
+    return {
+      subtotal: q.subtotal,
+      deliveryFee: q.deliveryFee,
+      tax: q.tax,
+      discount: q.discount,
+      tip: q.tipAmount,
+      total: q.total,
+      distanceKm: q.distanceKm,
+      kmSlab: q.kmSlab,
+      orderType: q.resolvedOrderType,
+    };
+  }
+
+  private async quoteFromCart(userId: string, data: any) {
+    const { addressId, tip, promoCode, orderType } = data;
 
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
@@ -94,11 +111,71 @@ export class OrdersService {
       0
     );
     const tipAmount = tip || 0;
-    const tax = parseFloat((subtotal * 0.05).toFixed(2));
+    const tax = computeTax(subtotal);
+
+    /* ── Order type ── */
+    const resolvedOrderType: OrderType =
+      orderType === "PICKUP" ? OrderType.PICKUP
+      : orderType === "DINE_IN" ? OrderType.DINE_IN
+      : OrderType.DELIVERY;
+    const isDelivery = resolvedOrderType === OrderType.DELIVERY;
+
+    if (isDelivery && subtotal < MIN_CART_FOR_DELIVERY) {
+      throw new BadRequestException(
+        `Delivery needs a ₹${MIN_CART_FOR_DELIVERY}+ cart — choose pickup or dine-in for smaller orders`,
+      );
+    }
+
+    /* ── Restaurant ── */
+    const restaurantDish = await this.prisma.dish.findUnique({
+      where: { id: cart.items[0].dishId },
+      include: { restaurant: true },
+    });
+
+    if (!restaurantDish) throw new BadRequestException("Invalid restaurant");
+    if (!restaurantDish.restaurant.isApproved) {
+      throw new BadRequestException("This restaurant is no longer available");
+    }
+    if (!restaurantDish.restaurant.isActive) {
+      throw new BadRequestException("This restaurant is currently closed");
+    }
+
+    /* ── Distance (real haversine, using real lat/lng where available, else
+       a Jourian-area-name fallback since Mapbox can't geocode a fictional
+       town) ── */
+    let distanceKm: number | null = null;
+    if (addressId) {
+      const address = await this.prisma.address.findUnique({ where: { id: addressId } });
+      if (address) {
+        const origin =
+          restaurantDish.restaurant.lat != null && restaurantDish.restaurant.lng != null
+            ? { lat: restaurantDish.restaurant.lat, lng: restaurantDish.restaurant.lng }
+            : resolveJourianCoords(restaurantDish.restaurant.address);
+        const dest =
+          address.lat != null && address.lng != null
+            ? { lat: address.lat, lng: address.lng }
+            : resolveJourianCoords(`${address.street} ${address.city}`);
+        distanceKm = parseFloat(haversineKm(origin.lat, origin.lng, dest.lat, dest.lng).toFixed(2));
+      }
+    }
+
+    let kmSlab: string | null = null;
+    if (isDelivery) {
+      if (distanceKm == null) {
+        throw new BadRequestException("A delivery address is required for delivery orders");
+      }
+      const slab = resolveKmSlab(distanceKm);
+      if (!slab) {
+        throw new BadRequestException(
+          `That address is ${distanceKm}km away — beyond our ${MAX_DELIVERY_KM}km delivery range. Choose pickup or dine-in instead.`,
+        );
+      }
+      kmSlab = slab;
+    }
 
     /* ── Promo ── */
     let discount = 0;
-    let deliveryFee = computeDeliveryFee(subtotal);
+    let deliveryFee = isDelivery ? computeDeliveryFee(subtotal, distanceKm as number) : 0;
     let validatedPromoCode: string | null = null;
 
     if (promoCode) {
@@ -121,39 +198,28 @@ export class OrdersService {
       (subtotal + deliveryFee + tax + tipAmount - discount).toFixed(2)
     );
 
-    /* ── Restaurant ── */
-    const restaurantDish = await this.prisma.dish.findUnique({
-      where: { id: cart.items[0].dishId },
-      include: { restaurant: true },
-    });
+    const { restaurantEarning, platformFee, driverCommission } = computeRevenueSplit(subtotal, resolvedOrderType);
 
-    if (!restaurantDish) throw new BadRequestException("Invalid restaurant");
-    if (!restaurantDish.restaurant.isApproved) {
-      throw new BadRequestException("This restaurant is no longer available");
-    }
-    if (!restaurantDish.restaurant.isActive) {
-      throw new BadRequestException("This restaurant is currently closed");
-    }
+    return {
+      cart, restaurantDish, itemPrice,
+      subtotal, tipAmount, tax, deliveryFee, discount, total, validatedPromoCode,
+      resolvedOrderType, distanceKm, kmSlab,
+      restaurantEarning, platformFee, driverCommission,
+    };
+  }
 
-    /* ── Distance (real haversine, using real lat/lng where available, else
-       a Jourian-area-name fallback since Mapbox can't geocode a fictional
-       town) and revenue split ── */
-    let distanceKm: number | null = null;
-    if (addressId) {
-      const address = await this.prisma.address.findUnique({ where: { id: addressId } });
-      if (address) {
-        const origin =
-          restaurantDish.restaurant.lat != null && restaurantDish.restaurant.lng != null
-            ? { lat: restaurantDish.restaurant.lat, lng: restaurantDish.restaurant.lng }
-            : resolveJourianCoords(restaurantDish.restaurant.address);
-        const dest =
-          address.lat != null && address.lng != null
-            ? { lat: address.lat, lng: address.lng }
-            : resolveJourianCoords(`${address.street} ${address.city}`);
-        distanceKm = parseFloat(haversineKm(origin.lat, origin.lng, dest.lat, dest.lng).toFixed(2));
-      }
-    }
-    const { restaurantEarning, platformFee, driverCommission } = computeRevenueSplit(subtotal);
+  /* ===========================
+     CREATE ORDER + PAYMENT
+  ============================ */
+  async createOrder(userId: string, data: any) {
+    const { specialInstructions, paymentMethod, scheduledFor, addressId, dropOffPreference, dropOffNote, includeCutlery } = data;
+
+    const {
+      cart, restaurantDish, itemPrice,
+      subtotal, tipAmount, tax, deliveryFee, discount, total, validatedPromoCode,
+      resolvedOrderType, distanceKm, kmSlab,
+      restaurantEarning, platformFee, driverCommission,
+    } = await this.quoteFromCart(userId, data);
 
     /* ── Status ── */
     const orderStatus = scheduledFor
@@ -181,7 +247,7 @@ export class OrdersService {
           promoCode: validatedPromoCode,
           discount,
           scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-          orderType: orderType === "PICKUP" ? OrderType.PICKUP : OrderType.DELIVERY,
+          orderType: resolvedOrderType,
           dropOffPreference: dropOffPreference || "MEET_DOOR",
           dropOffNote: dropOffNote || null,
           includeCutlery: includeCutlery !== false,
@@ -192,8 +258,9 @@ export class OrdersService {
           platformFee,
           driverCommission,
           distanceKm,
+          kmSlab,
           items: {
-            create: cart.items.map((item) => ({
+            create: cart.items.map((item: (typeof cart.items)[number]) => ({
               dishId: item.dishId,
               dishSizeId: item.dishSizeId,
               quantity: item.quantity,

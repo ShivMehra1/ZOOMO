@@ -27,6 +27,7 @@ enum OrderStatus {
 enum OrderType {
   DELIVERY
   PICKUP
+  DINE_IN
 }
 
 enum MessageSender {
@@ -199,6 +200,7 @@ model Order {
   platformFee       Float?
   driverCommission  Float?
   distanceKm        Float?
+  kmSlab            String?
 
   userId       String
   user         User           @relation(fields: [userId], references: [id])

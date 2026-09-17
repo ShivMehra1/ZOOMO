@@ -41,9 +41,9 @@ export class PayoutsService {
   private async driverBalance(driverId: string) {
     const orders = await this.prisma.order.findMany({
       where: { driverId, status: OrderStatus.DELIVERED },
-      select: { deliveryFee: true, driverCommission: true },
+      select: { deliveryFee: true, driverCommission: true, tip: true },
     });
-    const earned = orders.reduce((sum, o) => sum + (o.deliveryFee || 0) + (o.driverCommission || 0), 0);
+    const earned = orders.reduce((sum, o) => sum + (o.deliveryFee || 0) + (o.driverCommission || 0) + (o.tip || 0), 0);
     const paidAgg = await this.prisma.payout.aggregate({
       where: { driverId, recipientType: "DRIVER", status: { in: ["PENDING", "COMPLETED"] } },
       _sum: { amount: true },
@@ -153,7 +153,7 @@ export class PayoutsService {
         user: { select: { name: true, email: true } },
         orders: {
           where: { status: OrderStatus.DELIVERED },
-          select: { deliveryFee: true, driverCommission: true, total: true },
+          select: { deliveryFee: true, driverCommission: true, tip: true, total: true },
         },
       },
     });
@@ -161,7 +161,7 @@ export class PayoutsService {
     const driverBreakdown = drivers
       .map((d) => {
         const deliveries = d.orders.length;
-        const earnings = d.orders.reduce((s, o) => s + (o.deliveryFee || 0) + (o.driverCommission || 0), 0);
+        const earnings = d.orders.reduce((s, o) => s + (o.deliveryFee || 0) + (o.driverCommission || 0) + (o.tip || 0), 0);
         return {
           driverId: d.id,
           name: d.user.name,
