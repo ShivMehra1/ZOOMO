@@ -27,6 +27,7 @@ export class OrdersService {
         payment: true,
         driver: { include: { user: true } },
         address: true,
+        messages: { orderBy: { createdAt: "asc" } },
       },
       orderBy: { createdAt: "desc" },
     });
