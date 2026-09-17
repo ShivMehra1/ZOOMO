@@ -177,6 +177,8 @@ the symptom to check for regressing.
 
 ## Recent history (most recent first, 2026-09-17 session — one long session)
 
+0. **Back never dumps you on a restaurant menu.** `useGoBack` (`zoomo-eats-grok/src/lib/zoomo-nav.ts`) used `history.back()` whenever the stack allowed it, so: restaurant → Eat tab / another kitchen → Back returned to that restaurant's menu instead of home/list. Back from a menu now skips other menus and returns to the last real hub (`/`, `/restaurants`, `/search`, …). Header uses the same helper. Restaurant page also keeps a compact back+name bar once you scroll past the hero (the overlay back used to vanish into the menu).
+
 1. **Full database wipe and reseed.** Deleted every restaurant, order,
    review, and user except the one merchant account that had to survive
    (Prisma FK: `Restaurant.ownerId` is required, can't delete an owner

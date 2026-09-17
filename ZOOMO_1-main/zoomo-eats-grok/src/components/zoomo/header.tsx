@@ -1,27 +1,19 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, LogIn, MapPin, ShoppingBag, User, UserPlus } from "lucide-react";
 import { ZoomoMark } from "./mark";
+import { useGoBack } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export function Header({ onLocationClick }: { onLocationClick: () => void }) {
   const nav = useNavigate();
-  const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, location, cart, setAccountOpen } = useZoomo();
   const [scrolled, setScrolled] = useState(false);
   const count = cart.reduce((s, i) => s + i.quantity, 0);
   const isHome = pathname === "/";
   const atTopHome = isHome && !scrolled;
-
-  function goBack() {
-    const hist = router.history as { canGoBack?: () => boolean; back: () => void };
-    if (typeof hist.canGoBack === "function" ? hist.canGoBack() : false) {
-      hist.back();
-    } else {
-      nav({ to: "/" });
-    }
-  }
+  const goBack = useGoBack("/");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);

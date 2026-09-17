@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, Heart, MapPin, Minus, Plus, ShoppingBag, Star, Users, UtensilsCrossed, X } from "lucide-react";
 import { ZoomoChat } from "@/components/zoomo/chat";
@@ -27,6 +27,14 @@ function RestaurantPage() {
   const [guestDraft, setGuestDraft] = useState("");
   const [revStars, setRevStars] = useState(5);
   const [revText, setRevText] = useState("");
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 160);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -70,6 +78,31 @@ function RestaurantPage() {
 
   return (
     <div className={`min-h-screen bg-page md:pb-28 ${count > 0 ? "pb-52" : "pb-36"}`}>
+      {scrolled && (
+        <div className="fixed inset-x-0 top-0 z-30 border-b border-line bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+          <div className="mx-auto flex h-12 max-w-[920px] items-center gap-2 px-3">
+            <button
+              type="button"
+              onClick={back}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+            <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{r.name}</p>
+            {user && (
+              <button
+                type="button"
+                onClick={() => toggleFavorite(id)}
+                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
+                aria-label="Favourite"
+              >
+                <Heart className={`size-4 ${loved ? "fill-primary text-primary" : ""}`} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="relative h-60 overflow-hidden">
         <FoodImg src={r.imageUrl || IMG.restaurantFallback} alt={r.name} className="size-full object-cover" />
         <div
@@ -82,7 +115,7 @@ function RestaurantPage() {
         <button
           type="button"
           onClick={back}
-          className="absolute top-4 left-4 flex size-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm"
+          className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm"
           aria-label="Back"
         >
           <ArrowLeft className="size-4" />
@@ -90,7 +123,7 @@ function RestaurantPage() {
         {user && (
           <button
             onClick={() => toggleFavorite(id)}
-            className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm"
+            className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 flex size-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm"
             aria-label="Favourite"
           >
             <Heart className={`size-4 ${loved ? "fill-primary text-primary" : ""}`} />
@@ -188,7 +221,7 @@ function RestaurantPage() {
       </div>
 
       {groups.length > 1 && (
-        <div className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur-md">
+        <div className={`sticky z-20 border-b border-line bg-surface/95 backdrop-blur-md ${scrolled ? "top-12" : "top-0"}`}>
           <div className="no-scrollbar mx-auto flex max-w-[920px] gap-2 overflow-x-auto px-5 py-3">
             {["All", ...groups.map((g) => g.cat)].map((c) => (
               <button

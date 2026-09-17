@@ -3,6 +3,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { getRealToken, isCatalogLoaded, loadRealCatalog } from "@/lib/real-api";
+import { useLocationMemory } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
 import appCss from "../styles.css?url";
 
@@ -46,6 +47,11 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
+function LocationMemory() {
+  useLocationMemory();
+  return null;
+}
+
 /**
  * TanStack Start's SSR render always has the real catalog (the root `loader`
  * above blocks it server-side), which is why `curl`/view-source always look
@@ -79,6 +85,7 @@ function RootComponent() {
       <body>
         <PreviewHostBridge />
         <AuthProvider>
+          <LocationMemory />
           <Outlet key={catalogVersion} />
         </AuthProvider>
         <Scripts />
