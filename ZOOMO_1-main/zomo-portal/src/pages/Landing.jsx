@@ -8,7 +8,7 @@ const PORTALS = [
     description:
       "Browse Jourian's restaurants, build your bag, and watch it move to your door in real time.",
     buttonText: "Start ordering",
-    href: "http://localhost:5173",
+    href: import.meta.env.VITE_CUSTOMER_URL || "http://localhost:5173",
     badge: "For customers",
   },
   {
@@ -17,7 +17,7 @@ const PORTALS = [
     description:
       "Accept tickets, keep the menu current, and see every order the moment it lands.",
     buttonText: "Manage restaurant",
-    href: "http://localhost:5175",
+    href: import.meta.env.VITE_MERCHANT_URL || "http://localhost:5175",
     badge: "For merchants",
   },
   {
@@ -26,7 +26,7 @@ const PORTALS = [
     description:
       "Go online, accept rides, navigate the drop, and watch your earnings add up.",
     buttonText: "Start delivering",
-    href: "http://localhost:5174",
+    href: import.meta.env.VITE_DRIVER_URL || "http://localhost:5174",
     badge: "For drivers",
   },
   {
@@ -35,7 +35,7 @@ const PORTALS = [
     description:
       "Every user, restaurant, driver, and order — the whole town from one screen.",
     buttonText: "Open admin panel",
-    href: "http://localhost:5176",
+    href: import.meta.env.VITE_ADMIN_URL || "http://localhost:5176",
     badge: "Admin only",
   },
 ];
@@ -134,10 +134,10 @@ export default function Landing() {
           </div>
 
           <div className="flex items-center gap-6 text-xs text-white/50">
-            <a href="http://localhost:5173" className="hover:text-white transition">Customer · 5173</a>
-            <a href="http://localhost:5174" className="hover:text-white transition">Driver · 5174</a>
-            <a href="http://localhost:5175" className="hover:text-white transition">Merchant · 5175</a>
-            <a href="http://localhost:5176" className="hover:text-white transition">Admin · 5176</a>
+            <a href={import.meta.env.VITE_CUSTOMER_URL || "http://localhost:5173"} className="hover:text-white transition">Order</a>
+            <a href={import.meta.env.VITE_DRIVER_URL || "http://localhost:5174"} className="hover:text-white transition">Ride</a>
+            <a href={import.meta.env.VITE_MERCHANT_URL || "http://localhost:5175"} className="hover:text-white transition">Kitchen</a>
+            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5176"} className="hover:text-white transition">HQ</a>
           </div>
         </div>
       </footer>

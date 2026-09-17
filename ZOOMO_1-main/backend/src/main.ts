@@ -18,12 +18,22 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
 
       // Allow all localhost ports
-      if (origin.startsWith('http://localhost:')) {
+      if (origin.startsWith("http://localhost:")) {
         return callback(null, true);
       }
 
-      // Allow ALL vercel.app subdomains permanently
-      if (origin.endsWith('.vercel.app')) {
+      // Production domain + every subdomain (www, kitchen, ride, hq, api)
+      try {
+        const host = new URL(origin).hostname;
+        if (host === "zoomoeats.com" || host.endsWith(".zoomoeats.com")) {
+          return callback(null, true);
+        }
+      } catch {
+        // fall through
+      }
+
+      // Allow ALL vercel.app subdomains (preview deploys)
+      if (origin.endsWith(".vercel.app")) {
         return callback(null, true);
       }
 
