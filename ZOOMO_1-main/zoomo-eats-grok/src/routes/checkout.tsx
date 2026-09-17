@@ -567,12 +567,12 @@ function CheckoutPage() {
           {orderType === "DELIVERY" && (
             <p className="mt-3 rounded-2xl bg-sage px-3 py-2 text-[12px] leading-5 text-primary">
               At your gate by <b>{gateBy(etaMinOf(restaurantById(activeBag || bag[0]?.restaurantId)))}</b>
-              . Shop keeps 80% of the food price.
+              . Shop keeps 70% of the food price.
             </p>
           )}
           {(orderType === "DINE_IN" || orderType === "TAKEAWAY") && (
             <p className="mt-3 rounded-2xl bg-sage px-3 py-2 text-[12px] leading-5 text-primary">
-              No delivery fee for {orderType === "DINE_IN" ? "dine-in" : "takeaway"} — shop keeps 95% of the food price.
+              No delivery fee for {orderType === "DINE_IN" ? "dine-in" : "takeaway"} — shop keeps 70% of the food price.
             </p>
           )}
           {quoteError && (
