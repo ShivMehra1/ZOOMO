@@ -23,14 +23,16 @@ export default function BottomNav() {
           flex flex-col items-center justify-center gap-1
           flex-1 py-2
           transition
-          ${
-            active
-              ? "text-z-primary"
-              : "text-z-muted"
-          }
+          ${active ? "text-z-primary" : "text-z-muted"}
         `}
       >
-        <Icon size={20} />
+        <span
+          className={`flex size-9 items-center justify-center rounded-full transition-all duration-200 ${
+            active ? "bg-z-sage shadow-glow" : ""
+          }`}
+        >
+          <Icon size={19} />
+        </span>
         <span
           className={`text-xs ${
             active ? "font-semibold" : ""

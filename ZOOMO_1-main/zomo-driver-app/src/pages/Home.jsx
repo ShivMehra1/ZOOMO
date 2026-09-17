@@ -42,16 +42,16 @@ export default function Home() {
         </h1>
 
         <div
-          className={`rounded-card p-6 shadow-card mb-6 transition ${
+          className={`rounded-card p-6 mb-6 transition-all duration-300 ${
             isOnline
-              ? "bg-z-primary text-white"
-              : "bg-z-surface border border-z-line-soft"
+              ? "bg-z-sage text-z-ink shadow-glow"
+              : "bg-z-surface border border-z-line-soft shadow-card"
           }`}
         >
-          <p className={`text-[11px] font-bold tracking-wide uppercase mb-1 ${isOnline ? "text-white/70" : "text-z-muted"}`}>
+          <p className={`text-[11px] font-bold tracking-wide uppercase mb-1 ${isOnline ? "text-z-primary/70" : "text-z-muted"}`}>
             Status
           </p>
-          <h2 className="display text-[32px] mb-5">
+          <h2 className="display text-[32px] mb-5 text-z-primary">
             {isOnline ? "Online" : "Offline"}
           </h2>
 
@@ -60,7 +60,7 @@ export default function Home() {
             disabled={loading}
             className={`w-full h-14 rounded-xl text-base font-bold transition active:scale-[0.98] disabled:opacity-60 ${
               isOnline
-                ? "bg-white text-z-primary"
+                ? "bg-z-surface text-z-primary shadow-card"
                 : "bg-z-primary text-white hover:bg-z-hover"
             }`}
           >

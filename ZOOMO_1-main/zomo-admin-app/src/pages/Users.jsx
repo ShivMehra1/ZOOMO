@@ -261,8 +261,8 @@ export default function Users() {
             <button
               key={r}
               onClick={() => setRoleFilter(r)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                roleFilter === r ? "bg-z-primary text-white" : "bg-z-surface border border-z-line text-z-sub hover:border-z-primary"
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                roleFilter === r ? "bg-z-sage text-z-primary shadow-glow" : "bg-z-surface border border-z-line text-z-sub hover:border-z-primary"
               }`}
             >
               {r}

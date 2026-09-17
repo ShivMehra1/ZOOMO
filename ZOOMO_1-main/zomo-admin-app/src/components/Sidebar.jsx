@@ -34,10 +34,10 @@ function SidebarItem({ to, label, Icon }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition
+        `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
         ${
           isActive
-            ? "bg-z-primary text-white"
+            ? "bg-z-sage text-z-primary shadow-glow"
             : "text-z-sub hover:bg-z-page hover:text-z-ink"
         }`
       }

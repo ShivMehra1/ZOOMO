@@ -51,7 +51,13 @@ export default function BottomNav() {
               ${active ? "text-z-primary" : "text-z-muted"}
             `}
           >
-            <Icon size={18} />
+            <span
+              className={`flex size-8 items-center justify-center rounded-full transition-all duration-200 ${
+                active ? "bg-z-sage shadow-glow" : ""
+              }`}
+            >
+              <Icon size={17} />
+            </span>
             <span className={`text-[11px] ${active ? "font-semibold" : ""}`}>
               {label}
             </span>
