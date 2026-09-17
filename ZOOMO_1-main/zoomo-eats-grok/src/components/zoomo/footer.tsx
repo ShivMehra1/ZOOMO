@@ -21,7 +21,7 @@ export function Footer() {
           </Link>
         </div>
 
-        <div className="mb-12 grid grid-cols-2 gap-10 md:grid-cols-4">
+        <div className="mb-12 grid grid-cols-2 gap-10 md:grid-cols-3">
           <div className="col-span-2 md:col-span-1">
             <div className="mb-4 flex items-center gap-2.5">
               <ZoomoMark size={36} onGreen />
@@ -47,14 +47,6 @@ export function Footer() {
               <li><Link to="/signup" className="hover:text-white">Create account</Link></li>
               <li><Link to="/profile" className="hover:text-white">Account</Link></li>
               <li><Link to="/cart" className="hover:text-white">Your bags</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="mb-4 text-[11px] font-bold tracking-[0.16em] text-white/40 uppercase">For restaurants</h4>
-            <ul className="flex flex-col gap-2.5 text-sm text-white/70">
-              <li><Link to="/portals" className="hover:text-white">Staff portals</Link></li>
-              <li><Link to="/merchant" className="hover:text-white">Partner kitchen</Link></li>
-              <li><Link to="/driver" className="hover:text-white">Ride with Zoomo</Link></li>
             </ul>
           </div>
         </div>

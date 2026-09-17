@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { ZoomoMark } from "@/components/zoomo/mark";
-import { STAFF_ACCOUNTS, useZoomo } from "@/lib/zoomo-store";
+import { useZoomo } from "@/lib/zoomo-store";
 import { IMG, PUNCHLINE, TOWN } from "@/lib/zoomo-data";
 import { realLogin, realRequestOtp, realVerifyOtp } from "@/lib/real-api";
 import { GoogleAuthButton } from "@/components/zoomo/google-auth-button";
@@ -12,7 +12,6 @@ export const Route = createFileRoute("/login")({ component: LoginPage });
 function LoginPage() {
   const nav = useNavigate();
   const login = useZoomo((s) => s.login);
-  const staffLogin = useZoomo((s) => s.staffLogin);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -28,15 +27,6 @@ function LoginPage() {
     e.preventDefault();
     if (!email.trim()) return setErr("Please enter your email.");
     if (!password) return setErr("Please enter your password.");
-    const staffRow = STAFF_ACCOUNTS.find((a) => a.email.toLowerCase() === email.trim().toLowerCase());
-    if (staffRow) {
-      if (staffRow.password !== password) return setErr("Wrong password.");
-      staffLogin(staffRow.email, staffRow.password);
-      if (staffRow.staff.role === "MERCHANT") nav({ to: "/merchant" });
-      else if (staffRow.staff.role === "DRIVER") nav({ to: "/driver" });
-      else nav({ to: "/admin" });
-      return;
-    }
     setBusy(true);
     setErr("");
     try {

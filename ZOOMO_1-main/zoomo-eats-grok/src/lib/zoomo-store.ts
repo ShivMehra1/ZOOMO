@@ -139,15 +139,6 @@ export type Order = {
   realDriver?: { name: string; phone: string | null; vehicleType: string; vehiclePlate: string; rating: number } | null;
 };
 
-export type StaffRole = "MERCHANT" | "DRIVER" | "ADMIN";
-export type Staff = {
-  role: StaffRole;
-  name: string;
-  email: string;
-  restaurantId?: string | null;
-  driverId?: string | null;
-};
-
 export type User = {
   id?: string;
   name: string;
@@ -174,7 +165,6 @@ type State = {
   activatedOffers: string[];
   accountOpen: boolean;
   conflict: { dish: Dish } | null;
-  staff: Staff | null;
   dishOff: string[];
   group: string[];
   reviews: Review[];
@@ -209,11 +199,6 @@ type State = {
   cancelOrder: (id: string) => void;
   pingGate: (id: string) => void;
   grantLateCredit: (id: string) => number;
-  staffLogin: (email: string, password: string) => Staff | null;
-  staffLogout: () => void;
-  setOrderLiveStatus: (id: string, status: string) => void;
-  assignDriver: (orderId: string, driverId: string) => void;
-  toggleDishOff: (dishId: string) => void;
   setDropOff: (id: string, dropOff: DropOff, dropNote?: string) => void;
   sendRideChat: (id: string, text: string) => void;
   rateOrder: (id: string, rating: number) => void;
@@ -259,16 +244,6 @@ export function cartTotals(
   return { subtotal: +subtotal.toFixed(2), deliveryFee: delivery, tax, discount: +discount.toFixed(2), tip, total };
 }
 
-export const STAFF_ACCOUNTS: { email: string; password: string; staff: Staff }[] = [
-  { email: "kitchen@zoomo.eats", password: "zoomo123", staff: { role: "MERCHANT", name: "Jourian kitchen", email: "kitchen@zoomo.eats", restaurantId: null } },
-  { email: "owner1@zoomoeats.com", password: "owner123", staff: { role: "MERCHANT", name: "Pizza Palace", email: "owner1@zoomoeats.com", restaurantId: "pizza-palace" } },
-  { email: "ilp@zoomo.eats", password: "zoomo123", staff: { role: "MERCHANT", name: "I Love Pizza", email: "ilp@zoomo.eats", restaurantId: "i-love-pizza" } },
-  { email: "driver@zoomoeats.com", password: "driver123", staff: { role: "DRIVER", name: "Mike Driver", email: "driver@zoomoeats.com", driverId: "ravi" } },
-  { email: "aman@zoomo.eats", password: "zoomo123", staff: { role: "DRIVER", name: "Aman Sharma", email: "aman@zoomo.eats", driverId: "aman" } },
-  { email: "admin@zoomo.eats", password: "zoomo123", staff: { role: "ADMIN", name: "Zoomo HQ", email: "admin@zoomo.eats" } },
-  { email: "admin@zoomoeats.com", password: "admin123", staff: { role: "ADMIN", name: "Admin User", email: "admin@zoomoeats.com" } },
-];
-
 export const useZoomo = create<State>()(
   persist(
     (set, get) => ({
@@ -286,7 +261,6 @@ export const useZoomo = create<State>()(
       activatedOffers: [],
       accountOpen: false,
       conflict: null,
-      staff: null,
       dishOff: [],
       group: [],
       reviews: [],
@@ -511,31 +485,6 @@ export const useZoomo = create<State>()(
         realGrantLateCredit(id).then(() => get().refreshOrders()).catch((err) => get().handleApiError(err, "Could not apply the late credit."));
         return LATE_CREDIT;
       },
-      staffLogin: (email, password) => {
-        const row = STAFF_ACCOUNTS.find(
-          (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
-        );
-        if (!row) return null;
-        set({ staff: row.staff });
-        return row.staff;
-      },
-      staffLogout: () => set({ staff: null }),
-      setOrderLiveStatus: (id, status) => {
-        set({
-          orders: get().orders.map((x) =>
-            x.id === id
-              ? { ...x, statusLive: status, statusAt: new Date().toISOString(), status: status === "CANCELLED" ? "CANCELLED" : x.status }
-              : x,
-          ),
-        });
-      },
-      assignDriver: (orderId, driverId) => {
-        set({ orders: get().orders.map((x) => (x.id === orderId ? { ...x, driverId } : x)) });
-      },
-      toggleDishOff: (dishId) => {
-        const off = get().dishOff ?? [];
-        set({ dishOff: off.includes(dishId) ? off.filter((d) => d !== dishId) : [...off, dishId] });
-      },
       setDropOff: (id, dropOff, dropNote) => {
         set({
           orders: get().orders.map((x) => (x.id === id ? { ...x, dropOff, dropNote: dropNote ?? x.dropNote } : x)),
@@ -633,7 +582,6 @@ export const useZoomo = create<State>()(
         favorites: state.favorites,
         visits: state.visits,
         activatedOffers: state.activatedOffers,
-        staff: state.staff,
         dishOff: state.dishOff,
         group: state.group,
         reviews: state.reviews,
@@ -646,7 +594,6 @@ export const useZoomo = create<State>()(
           favorites: state?.favorites ?? [],
           visits: state?.visits ?? {},
           activatedOffers: (state?.activatedOffers ?? []).slice(0, 2),
-          staff: state?.staff ?? null,
           dishOff: state?.dishOff ?? [],
           group: state?.group ?? [],
           reviews: state?.reviews ?? [],

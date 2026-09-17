@@ -10,15 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AiSpecRouteImport } from './routes/ai-spec'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as DriverRouteImport } from './routes/driver'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as MerchantRouteImport } from './routes/merchant'
 import { Route as OrdersRouteImport } from './routes/orders'
-import { Route as PortalsRouteImport } from './routes/portals'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as SearchRouteImport } from './routes/search'
@@ -29,11 +25,6 @@ import { Route as RestaurantIdRouteImport } from './routes/restaurant.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiSpecRoute = AiSpecRouteImport.update({
@@ -51,29 +42,14 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DriverRoute = DriverRouteImport.update({
-  id: '/driver',
-  path: '/driver',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MerchantRoute = MerchantRouteImport.update({
-  id: '/merchant',
-  path: '/merchant',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortalsRoute = PortalsRouteImport.update({
-  id: '/portals',
-  path: '/portals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -109,15 +85,11 @@ const RestaurantIdRoute = RestaurantIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/ai-spec': typeof AiSpecRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
-  '/driver': typeof DriverRoute
   '/login': typeof LoginRoute
-  '/merchant': typeof MerchantRoute
   '/orders': typeof OrdersRoute
-  '/portals': typeof PortalsRoute
   '/profile': typeof ProfileRoute
   '/restaurants': typeof RestaurantsRoute
   '/search': typeof SearchRoute
@@ -127,15 +99,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/ai-spec': typeof AiSpecRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
-  '/driver': typeof DriverRoute
   '/login': typeof LoginRoute
-  '/merchant': typeof MerchantRoute
   '/orders': typeof OrdersRoute
-  '/portals': typeof PortalsRoute
   '/profile': typeof ProfileRoute
   '/restaurants': typeof RestaurantsRoute
   '/search': typeof SearchRoute
@@ -146,15 +114,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/ai-spec': typeof AiSpecRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
-  '/driver': typeof DriverRoute
   '/login': typeof LoginRoute
-  '/merchant': typeof MerchantRoute
   '/orders': typeof OrdersRoute
-  '/portals': typeof PortalsRoute
   '/profile': typeof ProfileRoute
   '/restaurants': typeof RestaurantsRoute
   '/search': typeof SearchRoute
@@ -166,15 +130,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/ai-spec'
     | '/cart'
     | '/checkout'
-    | '/driver'
     | '/login'
-    | '/merchant'
     | '/orders'
-    | '/portals'
     | '/profile'
     | '/restaurants'
     | '/search'
@@ -184,15 +144,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/ai-spec'
     | '/cart'
     | '/checkout'
-    | '/driver'
     | '/login'
-    | '/merchant'
     | '/orders'
-    | '/portals'
     | '/profile'
     | '/restaurants'
     | '/search'
@@ -202,15 +158,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/admin'
     | '/ai-spec'
     | '/cart'
     | '/checkout'
-    | '/driver'
     | '/login'
-    | '/merchant'
     | '/orders'
-    | '/portals'
     | '/profile'
     | '/restaurants'
     | '/search'
@@ -221,15 +173,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
   AiSpecRoute: typeof AiSpecRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
-  DriverRoute: typeof DriverRoute
   LoginRoute: typeof LoginRoute
-  MerchantRoute: typeof MerchantRoute
   OrdersRoute: typeof OrdersRoute
-  PortalsRoute: typeof PortalsRoute
   ProfileRoute: typeof ProfileRoute
   RestaurantsRoute: typeof RestaurantsRoute
   SearchRoute: typeof SearchRoute
@@ -245,13 +193,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-spec': {
@@ -275,13 +216,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/driver': {
-      id: '/driver'
-      path: '/driver'
-      fullPath: '/driver'
-      preLoaderRoute: typeof DriverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -289,25 +223,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/merchant': {
-      id: '/merchant'
-      path: '/merchant'
-      fullPath: '/merchant'
-      preLoaderRoute: typeof MerchantRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/orders': {
       id: '/orders'
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/portals': {
-      id: '/portals'
-      path: '/portals'
-      fullPath: '/portals'
-      preLoaderRoute: typeof PortalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -357,15 +277,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
   AiSpecRoute: AiSpecRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
-  DriverRoute: DriverRoute,
   LoginRoute: LoginRoute,
-  MerchantRoute: MerchantRoute,
   OrdersRoute: OrdersRoute,
-  PortalsRoute: PortalsRoute,
   ProfileRoute: ProfileRoute,
   RestaurantsRoute: RestaurantsRoute,
   SearchRoute: SearchRoute,
