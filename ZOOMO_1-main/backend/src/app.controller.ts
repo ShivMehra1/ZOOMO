@@ -1,6 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-import { OFFERS } from './common/promo-codes';
+import { Controller, Get } from "@nestjs/common";
+import { AppService } from "./app.service";
 
 @Controller()
 export class AppController {
@@ -11,8 +10,8 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get('offers')
+  @Get("offers")
   getOffers() {
-    return OFFERS;
+    return this.appService.getOffers();
   }
 }

@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Clock, Heart, MapPin, Minus, Plus, S
 import { ZoomoChat } from "@/components/zoomo/chat";
 import { FoodImg } from "@/components/zoomo/food-img";
 import { MobileDock } from "@/components/zoomo/dock";
-import { dishesFor, etaMinOf, gateBy, IMG, inr, restaurantById, REVIEWS, type Dish } from "@/lib/zoomo-data";
+import { dishesFor, etaMinOf, gateBy, IMG, inr, LIVE_REVIEWS, restaurantById, type Dish } from "@/lib/zoomo-data";
 import { useGoBack } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
 
@@ -342,7 +342,7 @@ function RestaurantPage() {
 
         <ReviewsBlock
           restaurantId={id}
-          canned={REVIEWS[id] ?? []}
+          canned={LIVE_REVIEWS.filter((rv) => rv.restaurantId === id)}
           live={reviews.filter((rv) => rv.restaurantId === id)}
           user={user}
           stars={revStars}

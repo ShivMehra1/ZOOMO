@@ -3,7 +3,7 @@
 // "login" and static demo restaurant/dish arrays. Cart/orders/reviews are
 // deliberately NOT wired here yet — see the summary given alongside this
 // file's introduction for what's covered in this pass.
-import { IMG, TOWN, setCatalog, type Dish, type Restaurant } from "./zoomo-data";
+import { IMG, TOWN, setCatalog, setLiveReviews, setPromos, type Dish, type Restaurant } from "./zoomo-data";
 
 const API_BASE =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
@@ -191,11 +191,48 @@ export function isCatalogLoaded(): boolean {
 
 export async function loadRealCatalog(): Promise<void> {
   try {
-    const list = await realApi.get("/restaurants");
+    const [list, offers] = await Promise.all([
+      realApi.get("/restaurants"),
+      realApi.get("/offers").catch(() => []),
+    ]);
     if (!Array.isArray(list)) return;
     const restaurants = list.map(toRestaurant);
     const dishes = list.flatMap((r: any) => (Array.isArray(r.dishes) ? r.dishes.map((d: any) => toDish(d, r.id)) : []));
     setCatalog(restaurants, dishes);
+    setLiveReviews(
+      list.flatMap((r: any) =>
+        Array.isArray(r.reviews)
+          ? r.reviews.map((rv: any) => ({
+              id: String(rv.id),
+              restaurantId: r.id,
+              name: rv.user?.name || "Guest",
+              rating: Number(rv.rating) || 0,
+              text: rv.comment || rv.text || "",
+            }))
+          : [],
+      ),
+    );
+    if (Array.isArray(offers) && offers.length) {
+      const coupons: Record<string, { type: string; value: number; label: string; max?: number | null }> = {};
+      const cards = offers.map((o: any) => {
+        const type = o.discountType === "FLAT" ? "flat" : o.discountType === "FREE_DELIVERY" ? "ship" : "percent";
+        coupons[o.code] = {
+          type,
+          value: Number(o.value) || 0,
+          label: o.title || o.code,
+          max: o.maxDiscount ?? null,
+        };
+        return {
+          code: o.code,
+          title: o.title || o.code,
+          subtitle: o.subtitle || "Jourian",
+          expires: o.expires || "Always on",
+          image: IMG.hero,
+          restaurantId: o.restaurantId ?? null,
+        };
+      });
+      setPromos(coupons, cards);
+    }
     catalogLoaded = true;
   } catch (err) {
     // Backend unreachable — keep the built-in demo catalog so the app still renders.
@@ -261,6 +298,10 @@ export function realAddFavorite(restaurantId: string) {
 }
 export function realRemoveFavorite(restaurantId: string) {
   return realApi.delete(`/favorites/${restaurantId}`);
+}
+
+export function realAddReview(restaurantId: string, rating: number, comment: string) {
+  return realApi.post(`/restaurants/${restaurantId}/reviews`, { rating, comment });
 }
 
 /* ── Real search ── */

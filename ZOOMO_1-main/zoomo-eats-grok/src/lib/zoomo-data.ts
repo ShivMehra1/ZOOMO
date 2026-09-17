@@ -154,14 +154,14 @@ export let DISHES: Dish[] = [
   d("st-cake", "sweet-theory", "Chocolate Fudge Cake", "Triple layer, ganache.", 249, IMG.cake, true, { category: "Cakes" }),
 ];
 
-export const COUPONS: Record<string, { type: string; value: number; label: string; max?: number | null }> = {
+export let COUPONS: Record<string, { type: string; value: number; label: string; max?: number | null }> = {
   ZOOMO50: { type: "percent", value: 50, label: "50% off", max: 120 },
   BOGO: { type: "flat", value: 80, label: "₹80 off", max: null },
   FREESHIP: { type: "ship", value: 29, label: "Free delivery", max: null },
   NEWUSER: { type: "flat", value: 80, label: "₹80 off", max: null },
 };
 
-export const OFFERS = [
+export let OFFERS = [
   { code: "ZOOMO50", title: "50% off first bag", subtitle: "Cap ₹120. Jourian only.", expires: "This week", image: IMG.hero, restaurantId: null as string | null },
   { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "I Love Pizza. Medium pies.", expires: "Wednesdays", image: IMG.pizza, restaurantId: "pizza-palace" },
   { code: "FREESHIP", title: "Ride on us", subtitle: "Delivery fee gone.", expires: "Always on for Pass", image: IMG.burger, restaurantId: null },
@@ -201,18 +201,10 @@ export const FILTERS = [
   { id: "veg", label: "Pure veg" },
 ] as const;
 
-export const REVIEWS: Record<string, { name: string; rating: number; text: string }[]> = {
-  "i-love-pizza": [
-    { name: "Arjun", rating: 5, text: "Medium paneer pizza hits. Hot in 22 min to Mandiwala." },
-    { name: "Sana", rating: 4, text: "Garlic bread is the move. Size picker is clear." },
-  ],
-  "pizza-palace": [{ name: "Rohit", rating: 5, text: "Wood-fired, not cardboard." }],
-  "burger-barn": [{ name: "Meera", rating: 5, text: "Smash burger stayed crisp." }],
-  "healthy-bites": [{ name: "Kabir", rating: 4, text: "Bowl was fresh." }],
-  "spice-route": [{ name: "Neha", rating: 5, text: "Dum biryani like the bazaar." }],
-  "dragon-wok": [{ name: "Vik", rating: 4, text: "Noodles had wok hei." }],
-  "sweet-theory": [{ name: "Isha", rating: 5, text: "Tiramisu for a Tuesday." }],
-};
+export const REVIEWS: Record<string, { name: string; rating: number; text: string }[]> = {};
+
+/** Live reviews from Postgres, swapped in by loadRealCatalog(). */
+export let LIVE_REVIEWS: { id: string; restaurantId: string; name: string; rating: number; text: string }[] = [];
 
 export function etaMinOf(r?: Restaurant | null) {
   if (!r) return 22;
@@ -395,4 +387,16 @@ export function popularDishes() {
 export function setCatalog(restaurants: Restaurant[], dishes: Dish[]) {
   RESTAURANTS = restaurants;
   DISHES = dishes;
+}
+
+export function setPromos(
+  coupons: Record<string, { type: string; value: number; label: string; max?: number | null }>,
+  offers: typeof OFFERS,
+) {
+  COUPONS = coupons;
+  OFFERS = offers;
+}
+
+export function setLiveReviews(rows: typeof LIVE_REVIEWS) {
+  LIVE_REVIEWS = rows;
 }

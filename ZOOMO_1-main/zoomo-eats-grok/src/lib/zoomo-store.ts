@@ -18,6 +18,7 @@ import {
   ApiError,
   getRealToken,
   realAddFavorite,
+  realAddReview,
   realAddToCart,
   realCancelOrder,
   realClearCart,
@@ -530,6 +531,9 @@ export const useZoomo = create<State>()(
           at: new Date().toISOString(),
         };
         set({ reviews: [row, ...get().reviews] });
+        realAddReview(restaurantId, rating, text.trim()).catch((err) =>
+          get().handleApiError(err, "Could not post your review."),
+        );
       },
       reorder: (orderId) => {
         const o = get().orders.find((x) => x.id === orderId);

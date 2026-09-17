@@ -5,7 +5,6 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
 import { MessageSender, OrderStatus, OrderType } from "@prisma/client";
-import { PROMO_CODES } from "../common/promo-codes";
 import {
   computeDeliveryFee,
   computeRevenueSplit,
@@ -173,23 +172,22 @@ export class OrdersService {
       kmSlab = slab;
     }
 
-    /* ── Promo ── */
+    /* ── Promo (Postgres Promotion table — platform + kitchen codes) ── */
     let discount = 0;
     let deliveryFee = isDelivery ? computeDeliveryFee(subtotal, distanceKm as number) : 0;
     let validatedPromoCode: string | null = null;
 
     if (promoCode) {
-      const promo = PROMO_CODES[promoCode.toUpperCase()];
-      if (!promo) throw new BadRequestException("Invalid promo code");
-      validatedPromoCode = promoCode.toUpperCase();
-      if (promo.type === "percent") {
+      const promo = await this.resolvePromo(promoCode, restaurantDish.restaurant.id, subtotal);
+      validatedPromoCode = promo.code;
+      if (promo.discountType === "PERCENT") {
         discount = Math.min(
           parseFloat(((subtotal * promo.value) / 100).toFixed(2)),
-          promo.max ?? Infinity
+          promo.maxDiscount ?? Infinity,
         );
-      } else if (promo.type === "flat") {
+      } else if (promo.discountType === "FLAT") {
         discount = Math.min(promo.value, subtotal);
-      } else if (promo.type === "ship") {
+      } else if (promo.discountType === "FREE_DELIVERY") {
         deliveryFee = 0;
       }
     }
@@ -206,6 +204,28 @@ export class OrdersService {
       resolvedOrderType, distanceKm, kmSlab,
       restaurantEarning, platformFee, driverCommission,
     };
+  }
+
+  private async resolvePromo(code: string, restaurantId: string, subtotal: number) {
+    const now = new Date();
+    const rows = await this.prisma.promotion.findMany({
+      where: {
+        code: code.toUpperCase().trim(),
+        isActive: true,
+        OR: [{ restaurantId }, { restaurantId: null }],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+    });
+    const promo =
+      rows.find((p) => p.restaurantId === restaurantId) ??
+      rows.find((p) => p.restaurantId == null);
+    if (!promo) throw new BadRequestException("Invalid promo code");
+    if (promo.minOrderValue != null && subtotal < promo.minOrderValue) {
+      throw new BadRequestException(
+        `Add ₹${Math.ceil(promo.minOrderValue - subtotal)} more to use ${promo.code}`,
+      );
+    }
+    return promo;
   }
 
   /* ===========================

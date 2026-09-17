@@ -1,3 +1,11 @@
+/**
+ * STALE — do not run `prisma db seed`.
+ *
+ * This file still creates the old San Francisco demo kitchens (Pizza Palace,
+ * Burger Barn, Healthy Bites) and would resurrect them on top of the live
+ * Jourian restaurants. Staff + platform promos: `scripts/seed-platform.ts`.
+ * Real menus: `scripts/seed-real-menus.ts` (already applied).
+ */
 import { PrismaClient, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 

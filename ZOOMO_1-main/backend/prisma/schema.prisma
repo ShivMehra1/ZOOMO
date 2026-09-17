@@ -300,7 +300,7 @@ model Promotion {
   id            String    @id @default(uuid())
   code          String
   description   String?
-  discountType  String    @default("PERCENT") // PERCENT | FLAT
+  discountType  String    @default("PERCENT") // PERCENT | FLAT | FREE_DELIVERY
   value         Float
   maxDiscount   Float?
   minOrderValue Float?
@@ -309,8 +309,8 @@ model Promotion {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, code])
 }

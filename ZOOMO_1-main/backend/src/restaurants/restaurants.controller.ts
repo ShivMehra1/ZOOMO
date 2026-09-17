@@ -28,6 +28,12 @@ export class RestaurantsController {
     return this.restaurantsService.search(q);
   }
 
+  // GET /restaurants/promotions — all active platform + kitchen codes
+  @Get("promotions")
+  listPromotions() {
+    return this.restaurantsService.listAllActivePromotions();
+  }
+
   @Get(":id")
   getOne(@Param("id") id: string) {
     return this.restaurantsService.findOne(id);

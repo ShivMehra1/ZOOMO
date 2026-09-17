@@ -10,7 +10,7 @@ export class RestaurantsService {
     return this.prisma.restaurant.findMany({
       where: { isApproved: true },
       include: {
-        reviews: true,
+        reviews: { include: { user: { select: { name: true } } } },
         dishes: { include: { sizes: true } },
       },
     });
@@ -74,14 +74,28 @@ export class RestaurantsService {
   }
 
   // Active, non-expired promotions for a restaurant — public, used by the customer app.
+  // Includes platform-wide codes (restaurantId null) plus this kitchen's own codes.
   listActivePromotions(restaurantId: string) {
     const now = new Date();
     return this.prisma.promotion.findMany({
       where: {
-        restaurantId,
+        isActive: true,
+        OR: [{ restaurantId }, { restaurantId: null }],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+      include: { restaurant: { select: { id: true, name: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  listAllActivePromotions() {
+    const now = new Date();
+    return this.prisma.promotion.findMany({
+      where: {
         isActive: true,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
+      include: { restaurant: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
   }

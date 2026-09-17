@@ -14,6 +14,17 @@ NestJS backend plus multiple separate frontends, one per role. It's a real
 system with a real Postgres database (not just mock data), currently run
 entirely locally for development.
 
+**One database. Don't add another.** All four apps talk to the NestJS API on
+`:3000`, which is the only writer to Postgres (`zoomo`). The customer app
+(`zoomo-eats-grok`) still has leftover Grok-template PGLite / Better Auth
+files — those are not Zoomo data. Carts, orders, menus, users, promos, and
+reviews live in Postgres.
+
+Uber Eats-shaped next (not started): Razorpay capture + webhooks, driver
+auto-assign, SMS OTP, kill the demo catalog fallback in grok. Do those on
+this same schema — don't stand up a second DB.
+
+
 ## The apps
 
 All under `ZOOMO_1-main/`. Each frontend is its own Vite app with its own
@@ -177,7 +188,8 @@ the symptom to check for regressing.
 
 ## Recent history (most recent first, 2026-09-17 session — one long session)
 
-0. **Back never dumps you on a restaurant menu.** `useGoBack` (`zoomo-eats-grok/src/lib/zoomo-nav.ts`) used `history.back()` whenever the stack allowed it, so: restaurant → Eat tab / another kitchen → Back returned to that restaurant's menu instead of home/list. Back from a menu now skips other menus and returns to the last real hub (`/`, `/restaurants`, `/search`, …). Header uses the same helper. Restaurant page also keeps a compact back+name bar once you scroll past the hero (the overlay back used to vanish into the menu).
+0. **Postgres is the source of truth for promos, reviews, and staff.** One database — don't add another. `Promotion.restaurantId` is now optional so platform codes (ZOOMO50 / FREESHIP / NEWUSER) live next to merchant codes. Checkout quote/place and GET `/offers` read that table instead of the hardcoded `PROMO_CODES` map. Customer reviews POST to `/restaurants/:id/reviews`. Staff accounts (admin / driver / customer) restored via `backend/scripts/seed-platform.ts` — run that once after `prisma migrate deploy`. Do not re-run `prisma/seed.ts` (stale SF demo kitchens).
+1. **Back never dumps you on a restaurant menu.** `useGoBack` (`zoomo-eats-grok/src/lib/zoomo-nav.ts`) used `history.back()` whenever the stack allowed it, so: restaurant → Eat tab / another kitchen → Back returned to that restaurant's menu instead of home/list. Back from a menu now skips other menus and returns to the last real hub (`/`, `/restaurants`, `/search`, …). Header uses the same helper. Restaurant page also keeps a compact back+name bar once you scroll past the hero (the overlay back used to vanish into the menu).
 
 1. **Full database wipe and reseed.** Deleted every restaurant, order,
    review, and user except the one merchant account that had to survive
@@ -267,11 +279,20 @@ this session did.
 - Merchant, In The Hood Cafe: `owner-moonlight@zoomoeats.com` / `owner123`
 - Merchant, Moonlight Cafe: `owner-mlmoonlight@zoomoeats.com` / `owner123`
 - Merchant, Coffee Xpress: `owner-coffeexpress@zoomoeats.com` / `owner123`
-- **No admin or driver account exists** — both were deleted in the wipe and
-  nothing recreated them. `zomo-admin-app`/`zomo-driver-app` are currently
-  unusable without creating fresh accounts.
-- Regular customer users: none — every non-owner account was deleted. Sign
-  up fresh through grok's `/signup`.
+- Admin: `admin@zoomoeats.com` / `admin123` — restored by `backend/scripts/seed-platform.ts`
+- Driver: `driver@zoomoeats.com` / `driver123` — same script (bike, Jourian coords)
+- Customer: `customer@zoomoeats.com` / `customer123` — same script, Jourian default address
+- Regular customer users can also sign up fresh through grok's `/signup`.
+
+**One-time after pull:** from `backend/`, run the platform-promotions migration then the staff seed:
+
+```
+npx prisma migrate deploy
+npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/seed-platform.ts
+```
+
+Do **not** run `prisma db seed` — `prisma/seed.ts` is the old SF demo and would resurrect deleted kitchens.
+
 
 ## Things to double-check before trusting old context
 
