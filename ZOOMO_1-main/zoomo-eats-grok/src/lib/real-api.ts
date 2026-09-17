@@ -5,6 +5,7 @@
 // file's introduction for what's covered in this pass.
 import { IMG, TOWN, setCatalog, setLiveReviews, setPromos, type Dish, type Restaurant } from "./zoomo-data";
 import { getApiBase, publicMedia } from "./api-base";
+import jourianCatalog from "@/data/jourian-catalog.json";
 
 const TOKEN_KEY = "zoomo_real_token";
 
@@ -196,40 +197,25 @@ export function isCatalogLoaded(): boolean {
 }
 
 export async function loadRealCatalog(): Promise<CatalogPayload> {
-  const empty: CatalogPayload = { restaurants: [], dishes: [], reviews: [], coupons: {}, offers: [] };
+  const payload: CatalogPayload = {
+    restaurants: jourianCatalog.restaurants as Restaurant[],
+    dishes: jourianCatalog.dishes as Dish[],
+    reviews: jourianCatalog.reviews as CatalogPayload["reviews"],
+    coupons: (jourianCatalog.coupons || {}) as CatalogPayload["coupons"],
+    offers: (jourianCatalog.offers || []) as CatalogPayload["offers"],
+  };
   try {
-    const [list, offers] = await Promise.all([
-      realApi.get("/restaurants"),
-      realApi.get("/offers").catch(() => []),
-    ]);
-    const rows = Array.isArray(list) ? list.filter((r: any) => r && r.isActive !== false) : [];
-    const restaurants = rows.map(toRestaurant);
-    const dishes = rows.flatMap((r: any) =>
-      Array.isArray(r.dishes) ? r.dishes.map((d: any) => toDish(d, r.id)) : [],
-    );
-    const reviews = rows.flatMap((r: any) =>
-      Array.isArray(r.reviews)
-        ? r.reviews.map((rv: any) => ({
-            id: String(rv.id),
-            restaurantId: r.id,
-            name: rv.user?.name || "Guest",
-            rating: Number(rv.rating) || 0,
-            text: rv.comment || rv.text || "",
-          }))
-        : [],
-    );
-    const coupons: CatalogPayload["coupons"] = {};
-    const cards: CatalogPayload["offers"] = [];
-    if (Array.isArray(offers)) {
+    const offers = await realApi.get("/offers").catch(() => []);
+    if (Array.isArray(offers) && offers.length) {
       for (const o of offers) {
         const type = o.discountType === "FLAT" ? "flat" : o.discountType === "FREE_DELIVERY" ? "ship" : "percent";
-        coupons[o.code] = {
+        payload.coupons[o.code] = {
           type,
           value: Number(o.value) || 0,
           label: o.title || o.code,
           max: o.maxDiscount ?? null,
         };
-        cards.push({
+        payload.offers.push({
           code: o.code,
           title: o.title || o.code,
           subtitle: o.subtitle || "Jourian",
@@ -239,14 +225,11 @@ export async function loadRealCatalog(): Promise<CatalogPayload> {
         });
       }
     }
-    const payload: CatalogPayload = { restaurants, dishes, reviews, coupons, offers: cards };
-    applyCatalog(payload);
-    return payload;
-  } catch (err) {
-    console.error("[real-api] Could not load live catalog:", err);
-    applyCatalog(empty);
-    return empty;
+  } catch {
+    /* offers are optional — menus come from the Jourian seed */
   }
+  applyCatalog(payload);
+  return payload;
 }
 
 /* ── Real cart ── */
