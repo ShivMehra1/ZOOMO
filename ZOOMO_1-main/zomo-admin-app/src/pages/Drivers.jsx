@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import adminApi from "../services/adminApi";
-import { FiTruck, FiRefreshCw } from "react-icons/fi";
+import { FiTruck, FiRefreshCw, FiChevronRight } from "react-icons/fi";
 
 export default function Drivers() {
+  const nav = useNavigate();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,25 +65,30 @@ export default function Drivers() {
                 <th className="px-6 py-4 text-z-muted font-medium">Vehicle</th>
                 <th className="px-6 py-4 text-z-muted font-medium">Status</th>
                 <th className="px-6 py-4 text-z-muted font-medium">Active Orders</th>
+                <th className="px-6 py-4 text-z-muted font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-z-muted">
+                  <td colSpan={5} className="px-6 py-12 text-center text-z-muted">
                     Loading drivers...
                   </td>
                 </tr>
               )}
               {!loading && drivers.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-z-muted">
+                  <td colSpan={5} className="px-6 py-12 text-center text-z-muted">
                     No drivers found
                   </td>
                 </tr>
               )}
               {!loading && drivers.map((driver) => (
-                <tr key={driver.id} className="border-t border-z-line-soft hover:bg-z-page transition">
+                <tr
+                  key={driver.id}
+                  onClick={() => nav(`/admin/drivers/${driver.id}`)}
+                  className="cursor-pointer border-t border-z-line-soft hover:bg-z-page transition"
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-z-sage border border-z-primary/30 flex items-center justify-center text-z-primary font-semibold text-sm">
@@ -108,6 +115,9 @@ export default function Drivers() {
                   </td>
                   <td className="px-6 py-4 text-z-sub">
                     {driver.activeOrderCount ?? 0}
+                  </td>
+                  <td className="px-6 py-4 text-z-muted">
+                    <FiChevronRight size={16} />
                   </td>
                 </tr>
               ))}

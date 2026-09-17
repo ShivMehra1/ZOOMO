@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Orders from "../pages/Orders";
 import Drivers from "../pages/Drivers";
+import DriverDetail from "../pages/DriverDetail";
 import Users from "../pages/Users";
 import Restaurants from "../pages/Restaurants";
 import RestaurantDetail from "../pages/RestaurantDetail";
@@ -16,6 +17,7 @@ export default function AdminRoutes() {
       <Route path="analytics" element={<Analytics />} />
       <Route path="orders" element={<Orders />} />
       <Route path="drivers" element={<Drivers />} />
+      <Route path="drivers/:id" element={<DriverDetail />} />
       <Route path="users" element={<Users />} />
       <Route path="restaurants" element={<Restaurants />} />
       <Route path="restaurants/:id" element={<RestaurantDetail />} />

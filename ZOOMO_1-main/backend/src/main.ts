@@ -1,8 +1,16 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Seed dish/restaurant photos — served here so every portal (admin,
+  // merchant, driver, customer) resolves the same absolute URL regardless
+  // of which frontend origin is rendering them. See
+  // scripts/migrate-seed-images-to-local-static.mjs.
+  app.useStaticAssets(join(__dirname, '..', '..', 'public', 'static'), { prefix: '/static' });
 
   app.enableCors({
     origin: (origin, callback) => {

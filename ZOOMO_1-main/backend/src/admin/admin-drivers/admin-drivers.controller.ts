@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
 import { AdminDriversService } from "./admin-drivers.service";
 import { UseGuards } from "@nestjs/common";
 import { AdminJwtGuard } from "../guards/admin-jwt/admin-jwt.guard";
@@ -12,5 +12,10 @@ export class AdminDriversController {
   @Get()
   getAllDrivers() {
     return this.adminDriversService.getAllDrivers();
+  }
+
+  @Get(":id")
+  getDriverById(@Param("id") id: string) {
+    return this.adminDriversService.getDriverById(id);
   }
 }

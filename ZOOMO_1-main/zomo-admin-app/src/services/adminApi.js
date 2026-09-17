@@ -19,6 +19,7 @@ export const assignDriver = (orderId, driverId) =>
 export const getOrders = (restaurantId) => adminApi.get('/orders', { params: { restaurantId } });
 export const deleteOrder = (orderId) => adminApi.delete(`/orders/${orderId}`);
 export const getDrivers = () => adminApi.get('/drivers');
+export const getDriverById = (id) => adminApi.get(`/drivers/${id}`);
 
 // ✅ NEW — update order status (used for scheduled order force confirm / cancel)
 export const updateOrderStatus = (orderId, status) =>
