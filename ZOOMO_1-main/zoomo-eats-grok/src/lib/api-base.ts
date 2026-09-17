@@ -23,5 +23,9 @@ export function getApiBase(): string {
 export function publicMedia(url?: string | null, fallback = ""): string {
   if (!url) return fallback;
   const origin = typeof window === "undefined" ? getApiBase() : BACKEND_PROXY;
-  return url.replace(/https?:\/\/(localhost|127\.0\.0\.1):\d+/g, origin);
+  let next = url.replace(/https?:\/\/(localhost|127\.0\.0\.1):\d+/g, origin);
+  if (next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/backend") && !next.startsWith("/brand") && !next.startsWith("/__grok")) {
+    next = `${origin}${next}`;
+  }
+  return next || fallback;
 }

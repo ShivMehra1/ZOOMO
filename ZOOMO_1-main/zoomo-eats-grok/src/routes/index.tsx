@@ -40,7 +40,7 @@ function Home() {
     return s !== "DELIVERED" && s !== "CANCELLED";
   });
 
-  const filtered = useMemo(() => {
+  const kitchens = useMemo(() => {
     const vegOnly = Boolean(user?.vegOnly);
     return RESTAURANTS.filter((r) => {
       if (chip !== "All" && !matchesCuisine(r, chip)) return false;
@@ -55,7 +55,6 @@ function Home() {
   );
 
   const popular = popularDishes();
-  const preview = filtered.slice(0, 4);
 
   useEffect(() => {
     const jump = () => {
@@ -85,41 +84,69 @@ function Home() {
         )}
       </div>
 
-      <main className="mx-auto max-w-6xl px-5 pt-10 pb-16">
+      <main className="mx-auto max-w-6xl px-5 pt-8 pb-16">
+        <FoodRow
+          chip={chip}
+          onChip={(id) => {
+            setChip((c) => (c === id ? "All" : (id as typeof c)));
+            gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
+
+        <div ref={gridRef} className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="kicker mb-1">{chip === "All" ? "Open now" : chip}</p>
+            <h2 className="display text-[22px] text-ink">{kitchens.length} restaurants nearby</h2>
+          </div>
+        </div>
+
+        {kitchens.length === 0 ? (
+          <EmptyState
+            icon={<UtensilsCrossed className="size-7" />}
+            title="No kitchens yet"
+            sub="Menus load from the live Zoomo backend"
+            cta="Reset"
+            onCta={() => setChip("All")}
+          />
+        ) : (
+          <div className="mb-12 grid grid-cols-1 gap-5 md:grid-cols-2">
+            {kitchens.map((r) => (
+              <RestaurantCard
+                key={r.id}
+                r={r}
+                onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
+              />
+            ))}
+          </div>
+        )}
+
+        <UsualsRow />
+
+        {saved.length > 0 && (
+          <div className="mb-12">
+            <p className="kicker mb-1">Yours</p>
+            <h2 className="display mb-4 text-[22px] text-ink">Saved kitchens</h2>
+            <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+              {saved.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
+                  className="w-[220px] shrink-0 overflow-hidden rounded-[22px] bg-surface text-left shadow-card"
+                >
+                  <FoodImg src={r.imageUrl} alt={r.name} className="h-28 w-full object-cover" />
+                  <div className="p-3">
+                    <p className="truncate text-sm font-bold text-ink">{r.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted">{r.cuisineType} · {r.eta}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {popular.length > 0 && (
           <>
-            <FoodRow
-              chip={chip}
-              onChip={(id) => {
-                setChip((c) => (c === id ? "All" : (id as typeof c)));
-                gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-            />
-
-            <UsualsRow />
-
-            {saved.length > 0 && (
-              <div className="mb-12">
-                <p className="kicker mb-1">Yours</p>
-                <h2 className="display mb-4 text-[22px] text-ink">Saved kitchens</h2>
-                <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
-                  {saved.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
-                      className="w-[220px] shrink-0 overflow-hidden rounded-[22px] bg-surface text-left shadow-card"
-                    >
-                      <FoodImg src={r.imageUrl} alt={r.name} className="h-28 w-full object-cover" />
-                      <div className="p-3">
-                        <p className="truncate text-sm font-bold text-ink">{r.name}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted">{r.cuisineType} · {r.eta}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="mb-5 flex items-end justify-between">
               <div>
                 <p className="kicker mb-1">Tonight’s usuals</p>
@@ -150,52 +177,16 @@ function Home() {
                 );
               })}
             </div>
-
-            <div className="mb-12">
-              <OffersSection />
-            </div>
-
-            <div ref={gridRef} className="mb-5 flex items-end justify-between gap-3">
-              <div>
-                <p className="kicker mb-1">{chip === "All" ? "Open now" : chip}</p>
-                <h2 className="display text-[22px] text-ink">Restaurants nearby</h2>
-              </div>
-            </div>
-
-            {filtered.length === 0 ? (
-              <EmptyState
-                icon={<UtensilsCrossed className="size-7" />}
-                title="Nothing found"
-                sub="Try another craving"
-                cta="Reset"
-                onCta={() => {
-                  setChip("All");
-                }}
-              />
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                  {preview.map((r) => (
-                    <RestaurantCard
-                      key={r.id}
-                      r={r}
-                      onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={() => nav({ to: "/restaurants" })}
-                  className="btn-ghost mt-6 w-full py-3.5 text-sm"
-                >
-                  View more restaurants
-                </button>
-              </>
-            )}
-
-            <div className="mt-14">
-              <ZoneMap onPick={setLocation} />
-            </div>
           </>
+        )}
+
+        <div className="mb-12">
+          <OffersSection />
+        </div>
+
+        <div className="mt-14">
+          <ZoneMap onPick={setLocation} />
+        </div>
 
         <div className="mt-16 grid grid-cols-1 overflow-hidden rounded-[28px] bg-primary md:grid-cols-2">
           <div className="px-7 py-10 text-white">

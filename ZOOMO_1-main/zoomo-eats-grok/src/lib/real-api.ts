@@ -151,11 +151,30 @@ function isDummyKitchen(r: { id?: string; name?: string }) {
   return DUMMY_NAMES.test(name);
 }
 
+function pickLiveKitchens(list: any[]) {
+  const kept: any[] = [];
+  const seen = new Map<string, number>();
+  for (const r of list) {
+    if (!r || r.isActive === false || isDummyKitchen(r)) continue;
+    const key = String(r.name || "").trim().toLowerCase();
+    if (!key) continue;
+    const score = (Array.isArray(r.dishes) ? r.dishes.length : 0) * 10 + (r.imageUrl ? 1 : 0);
+    const idx = seen.get(key);
+    if (idx == null) {
+      seen.set(key, kept.length);
+      kept.push(r);
+    } else if (score > (Array.isArray(kept[idx].dishes) ? kept[idx].dishes.length : 0) * 10 + (kept[idx].imageUrl ? 1 : 0)) {
+      kept[idx] = r;
+    }
+  }
+  return kept;
+}
+
 function toRestaurant(r: any): Restaurant {
   const area = (r.address || "").split(",")[1]?.trim() || TOWN;
   return {
     id: r.id,
-    name: r.name,
+    name: String(r.name || "").trim(),
     description: r.description || "",
     imageUrl: publicMedia(r.imageUrl, IMG.restaurantFallback),
     address: r.address || "",
@@ -216,7 +235,7 @@ export async function loadRealCatalog(): Promise<void> {
       catalogLoaded = true;
       return;
     }
-    const live = list.filter((r: any) => r && r.isActive !== false && !isDummyKitchen(r));
+    const live = pickLiveKitchens(list);
     const restaurants = live.map(toRestaurant);
     const dishes = live.flatMap((r: any) =>
       Array.isArray(r.dishes) ? r.dishes.map((d: any) => toDish(d, r.id)) : [],

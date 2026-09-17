@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
-import { getRealToken, isCatalogLoaded, loadRealCatalog } from "@/lib/real-api";
+import { getRealToken, loadRealCatalog } from "@/lib/real-api";
 import { useLocationMemory } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
 import appCss from "../styles.css?url";
@@ -11,9 +11,8 @@ const APP_NAME = "Zoomo Eats";
 
 export const Route = createRootRoute({
   loader: async () => {
+    if (typeof window === "undefined") return;
     await loadRealCatalog();
-    // Refresh this account's real cart/addresses/orders on a hard page load
-    // (client-side nav after login already does this in the store's login()).
     if (getRealToken()) {
       const { refreshCart, refreshAddresses, refreshOrders, refreshFavorites, refreshProfile } = useZoomo.getState();
       await Promise.all([refreshCart(), refreshAddresses(), refreshOrders(), refreshFavorites(), refreshProfile()]);
@@ -27,8 +26,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#0F3D2D" },
       {
         name: "description",
-        content:
-          "Zoomo Eats — food delivery in Jourian. Zoom it. Eat it. Love it.",
+        content: "Zoomo Eats — food delivery in Jourian. Zoom it. Eat it. Love it.",
       },
     ],
     links: [
@@ -52,29 +50,37 @@ function LocationMemory() {
   return null;
 }
 
-/**
- * TanStack Start's SSR render always has the real catalog (the root `loader`
- * above blocks it server-side), which is why `curl`/view-source always look
- * correct. But nothing guarantees that loader re-runs client-side after
- * hydration — if it doesn't, every mounted route silently keeps reading the
- * bundle's original static demo arrays (fake dish ids and all), and every
- * "add to cart" 404s against the real backend forever, even after a hard
- * refresh.
- *
- * First paint must render *identically* on server and client (any difference
- * here is a hydration-mismatch crash, not a warning — learned that the hard
- * way with a conditional-loading-screen version of this). So instead of
- * branching what renders, this always renders `<Outlet>` and, once the
- * client's own `loadRealCatalog()` confirms real data is in place, bumps
- * `key` to force a clean one-time remount — a plain post-mount state update,
- * not part of hydration, so React treats it as an ordinary re-render.
- */
+function BootScreen() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-page px-6">
+      <img src="/brand/mark-on-white.png" alt="Zoomo" className="mb-5 size-14 object-contain" />
+      <p className="text-sm font-bold tracking-wide text-ink">Loading kitchens in Jourian…</p>
+    </div>
+  );
+}
+
 function RootComponent() {
+  const [ready, setReady] = useState(false);
   const [catalogVersion, setCatalogVersion] = useState(0);
 
   useEffect(() => {
-    if (isCatalogLoaded()) return; // SSR's fetch already covered this client instance too
-    loadRealCatalog().then(() => setCatalogVersion((v) => v + 1));
+    let alive = true;
+    loadRealCatalog()
+      .then(() => {
+        if (!alive) return;
+        const token = getRealToken();
+        if (!token) return;
+        const { refreshCart, refreshAddresses, refreshOrders, refreshFavorites, refreshProfile } = useZoomo.getState();
+        return Promise.all([refreshCart(), refreshAddresses(), refreshOrders(), refreshFavorites(), refreshProfile()]);
+      })
+      .finally(() => {
+        if (!alive) return;
+        setCatalogVersion((v) => v + 1);
+        setReady(true);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   return (
@@ -86,7 +92,7 @@ function RootComponent() {
         <PreviewHostBridge />
         <AuthProvider>
           <LocationMemory />
-          <Outlet key={catalogVersion} />
+          {ready ? <Outlet key={catalogVersion} /> : <BootScreen />}
         </AuthProvider>
         <Scripts />
       </body>
