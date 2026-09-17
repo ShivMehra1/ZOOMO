@@ -176,6 +176,13 @@ function toDish(d: any, restaurantId: string): Dish {
   };
 }
 
+// Tracks whether a real fetch has ever succeeded (used by __root.tsx to
+// decide whether SSR already has real data). This used to also gate
+// loadRealCatalog() itself into a one-shot cache — but that module-level
+// flag lives for the whole SSR server process, not per-request, so once
+// any request populated it the catalog was frozen for that process's
+// lifetime: restaurant/dish edits in the DB would never show up without a
+// dev-server restart. loadRealCatalog() now always fetches fresh.
 let catalogLoaded = false;
 
 export function isCatalogLoaded(): boolean {
@@ -183,7 +190,6 @@ export function isCatalogLoaded(): boolean {
 }
 
 export async function loadRealCatalog(): Promise<void> {
-  if (catalogLoaded) return;
   try {
     const list = await realApi.get("/restaurants");
     if (!Array.isArray(list)) return;
