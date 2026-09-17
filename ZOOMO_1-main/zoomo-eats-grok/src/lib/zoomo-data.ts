@@ -44,7 +44,7 @@ export const IMG = {
   pizza: pic("1513104890138-7c749659a591"),
   pizza2: pic("1604382354936-07c5d9983bd3"),
   tandoori: pic("1565299624946-b28f40a0ae38"),
-  burger: "http://localhost:3000/static/eloteburgers6.jpg", // the pic() Unsplash id 404s
+  burger: pic("1550547660-d9450f859349"),
   cheeseburger: pic("1550547660-d9450f859349"),
   veggie: pic("1520072959219-c595dc870360"),
   fries: pic("1573080496219-bb080dd4f877"),
@@ -82,77 +82,9 @@ export const CATEGORIES = [
   { id: "Desserts", label: "Desserts", image: IMG.cake },
 ];
 
-export let RESTAURANTS: Restaurant[] = [
-  { id: "i-love-pizza", name: "I Love Pizza", description: "Jourian’s pizza counter. Choose S / M / L.", imageUrl: IMG.pizza, address: "Jourian bazaar", area: "Jourian", cuisineType: "Pizza", priceRange: "$", rating: 4.7, openingHours: "11:00 AM – 11:00 PM", coupon: "BOGO", eta: "20–30 min", costForTwo: 400, etaMin: 22 },
-  { id: "pizza-palace", name: "Pizza Palace", description: "Wood-fired pies, slow sauce, and a proper Italian oven.", imageUrl: IMG.pizza2, address: "Jourian bazaar", area: "Jourian", cuisineType: "Pizza", priceRange: "$$", rating: 4.6, openingHours: "11:00 AM – 11:00 PM", coupon: "ZOOMO50", eta: "25–35 min", costForTwo: 600, phone: "9419122101", etaMin: 28 },
-  { id: "burger-barn", name: "Burger Barn", description: "Smash burgers, hand-cut fries, and house pickles.", imageUrl: IMG.burger, address: "Jourian", area: "Jourian", cuisineType: "Burgers", priceRange: "$$", rating: 4.5, openingHours: "11:00 AM – 12:00 AM", eta: "20–30 min", costForTwo: 450, phone: "9906055122", etaMin: 22 },
-  { id: "healthy-bites", name: "Healthy Bites", description: "Bowls, smoothies, and clean plates that still taste like lunch.", imageUrl: IMG.salad, address: "Jourian", area: "Jourian", cuisineType: "Healthy", priceRange: "$", rating: 4.8, openingHours: "8:00 AM – 9:00 PM", coupon: "HEALTHY20", eta: "18–28 min", costForTwo: 380, phone: "9796123344", etaMin: 18 },
-  { id: "spice-route", name: "Spice Route", description: "North Indian thalis, dum biryani, and tandoor breads.", imageUrl: IMG.biryani, address: "Jourian", area: "Jourian", cuisineType: "Indian", priceRange: "$$", rating: 4.7, openingHours: "12:00 PM – 11:00 PM", coupon: "SPICE20", eta: "30–40 min", costForTwo: 700, phone: "9419188700", etaMin: 32 },
-  { id: "dragon-wok", name: "Dragon Wok", description: "Wok hei noodles, dumplings, and late-night fried rice.", imageUrl: IMG.chowmein, address: "Jourian", area: "Jourian", cuisineType: "Chinese", priceRange: "$", rating: 4.4, openingHours: "12:00 PM – 11:30 PM", eta: "22–32 min", costForTwo: 420, phone: "7006231190", etaMin: 24, busy: true },
-  { id: "sweet-theory", name: "Sweet Theory", description: "Pastry counter, gelato, and midnight chocolate.", imageUrl: IMG.cake, address: "Jourian", area: "Jourian", cuisineType: "Desserts", priceRange: "$", rating: 4.9, openingHours: "10:00 AM – 12:00 AM", coupon: "DESSERT30", eta: "15–25 min", costForTwo: 320, phone: "9419144567", etaMin: 16 },
-];
+export let RESTAURANTS: Restaurant[] = [];
 
-function sml(s: number, m: number, l: number): DishSize[] {
-  return [
-    { id: "S", label: "Small", price: s },
-    { id: "M", label: "Medium", price: m },
-    { id: "L", label: "Large", price: l },
-  ];
-}
-
-function d(
-  id: string,
-  restaurantId: string,
-  name: string,
-  description: string,
-  price: number,
-  imageUrl: string,
-  isVegetarian: boolean,
-  extra: Partial<Dish> = {},
-): Dish {
-  return { id, restaurantId, name, description, price, imageUrl, isVegetarian, isAvailable: true, ...extra };
-}
-
-const ILP = "i-love-pizza";
-
-export let DISHES: Dish[] = [
-  d("ilp-margherita", ILP, "Pizza Margherita Double Cheese", "Extra mozzarella on a tomato base.", 149, IMG.pizza, true, { category: "Pizza", sizes: sml(89, 149, 199) }),
-  d("ilp-corn", ILP, "Cheese Corn Pizza", "Sweet corn, mozzarella, oregano.", 169, IMG.pizza2, true, { category: "Pizza", sizes: sml(119, 169, 219) }),
-  d("ilp-delight", ILP, "Veg Delight Pizza", "Peppers, onion, tomato, olives.", 179, IMG.tandoori, true, { category: "Pizza", sizes: sml(129, 179, 229) }),
-  d("ilp-paneer", ILP, "Paneer Tikka Pizza", "Tandoori paneer on a masala base.", 199, IMG.paneer, true, { category: "Pizza", sizes: sml(159, 199, 259) }),
-  d("ilp-teekha", ILP, "Teekha Paneer Pizza", "Fiery paneer, green chilli, onion.", 199, IMG.paneer, true, { category: "Pizza", sizes: sml(159, 199, 259) }),
-  d("ilp-makhani", ILP, "Paneer Makhani Pizza", "Buttery makhani and grilled paneer.", 199, IMG.pizza, true, { category: "Pizza", sizes: sml(159, 199, 259) }),
-  d("ilp-deluxe", ILP, "Deluxe Veggie", "Loaded garden veg, extra cheese.", 219, IMG.salad, true, { category: "Pizza", sizes: sml(169, 219, 269) }),
-  d("ilp-mush", ILP, "Mushroom Corn Pizza", "Button mushrooms, sweet corn.", 219, IMG.pizza2, true, { category: "Pizza", sizes: sml(169, 219, 269) }),
-  d("ilp-burger", ILP, "Veg Burger", "Crisp patty, slaw, house sauce.", 89, IMG.veggie, true, { category: "Burgers" }),
-  d("ilp-chaap", ILP, "Soya Chaap Roll", "Tandoori chaap, onion, mint.", 119, IMG.naan, true, { category: "Chaap" }),
-  d("ilp-momos", ILP, "Veg Momos (8)", "Steamed, chilli oil on the side.", 99, IMG.momos, true, { category: "Momos" }),
-  d("ilp-shake", ILP, "Chocolate Shake", "Thick, cold, topped with cream.", 99, IMG.shake, true, { category: "Shakes" }),
-  d("pp-margherita", "pizza-palace", "Margherita", "San Marzano, fior di latte, basil.", 299, IMG.pizza, true, { category: "Pizza", calories: 280, preparationTime: 15 }),
-  d("pp-pepperoni", "pizza-palace", "Pepperoni", "Cupped pepperoni, chilli honey.", 379, IMG.pizza2, false, { category: "Pizza" }),
-  d("pp-tandoori", "pizza-palace", "Tandoori Chicken", "Charred chicken, peppers, pickled onion.", 429, IMG.tandoori, false, { category: "Pizza" }),
-  d("pp-garlic", "pizza-palace", "Garlic Knots", "Six knots, parsley butter.", 149, IMG.naan, true, { category: "Sides" }),
-  d("bb-classic", "burger-barn", "Barn Smash", "Double smash, American cheese, barn sauce.", 249, IMG.burger, false, { category: "Burgers" }),
-  d("bb-cheese", "burger-barn", "Cheddar Stack", "Aged cheddar, caramelised onion.", 279, IMG.cheeseburger, false, { category: "Burgers" }),
-  d("bb-veggie", "burger-barn", "Garden Patty", "Chickpea-beet patty, slaw.", 229, IMG.veggie, true, { category: "Burgers", isVegan: true }),
-  d("bb-fries", "burger-barn", "Truffle Fries", "Hand-cut, rosemary salt.", 149, IMG.fries, true, { category: "Sides" }),
-  d("bb-shake", "burger-barn", "Malted Shake", "Vanilla malt, whipped cream.", 159, IMG.icecream, true, { category: "Shakes" }),
-  d("hb-green", "healthy-bites", "Green Power Smoothie", "Kale, banana, coconut water.", 169, IMG.smoothie, true, { category: "Drinks", isVegan: true }),
-  d("hb-quinoa", "healthy-bites", "Quinoa Power Bowl", "Quinoa, avocado, tahini.", 249, IMG.salad, true, { category: "Bowls", isVegan: true }),
-  d("hb-acai", "healthy-bites", "Acai Berry Bowl", "Acai, granola, berries.", 229, IMG.salad, true, { category: "Bowls" }),
-  d("sr-biryani", "spice-route", "Hyderabadi Dum Biryani", "Saffron rice, bone-in chicken, raita.", 349, IMG.biryani, false, { category: "Mains" }),
-  d("sr-paneer", "spice-route", "Paneer Makhani", "Butter tomato gravy, naan.", 299, IMG.paneer, true, { category: "Mains" }),
-  d("sr-dal", "spice-route", "Dal Tadka Thali", "Yellow dal, jeera rice, papad.", 249, IMG.curry, true, { category: "Thali" }),
-  d("sr-naan", "spice-route", "Butter Naan (2)", "Tandoor bread, garlic butter.", 89, IMG.naan, true, { category: "Breads" }),
-  d("dw-chowmein", "dragon-wok", "Veg Chow Mein", "Wok noodles, cabbage, soy.", 219, IMG.chowmein, true, { category: "Noodles" }),
-  d("dw-manchurian", "dragon-wok", "Chilli Chicken", "Crispy chicken, dry chilli.", 299, IMG.wings, false, { category: "Mains" }),
-  d("dw-dumplings", "dragon-wok", "Prawn Dumplings", "Six steamed, chilli oil.", 269, IMG.dumpling, false, { category: "Dim sum" }),
-  d("dw-friedrice", "dragon-wok", "Egg Fried Rice", "Wok rice, spring onion.", 199, IMG.friedrice, false, { category: "Rice" }),
-  d("st-brownie", "sweet-theory", "Salted Brownie", "Warm dark chocolate, sea salt.", 179, IMG.brownie, true, { category: "Cakes" }),
-  d("st-tiramisu", "sweet-theory", "Tiramisu Slice", "Espresso, mascarpone, cocoa.", 199, IMG.tiramisu, true, { category: "Cakes" }),
-  d("st-gelato", "sweet-theory", "Pistachio Gelato", "Two scoops, waffle shard.", 159, IMG.icecream, true, { category: "Gelato" }),
-  d("st-cake", "sweet-theory", "Chocolate Fudge Cake", "Triple layer, ganache.", 249, IMG.cake, true, { category: "Cakes" }),
-];
+export let DISHES: Dish[] = [];
 
 export let COUPONS: Record<string, { type: string; value: number; label: string; max?: number | null }> = {
   ZOOMO50: { type: "percent", value: 50, label: "50% off", max: 120 },
@@ -163,7 +95,7 @@ export let COUPONS: Record<string, { type: string; value: number; label: string;
 
 export let OFFERS = [
   { code: "ZOOMO50", title: "50% off first bag", subtitle: "Cap ₹120. Jourian only.", expires: "This week", image: IMG.hero, restaurantId: null as string | null },
-  { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "I Love Pizza. Medium pies.", expires: "Wednesdays", image: IMG.pizza, restaurantId: "pizza-palace" },
+  { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "Jourian pizza.", expires: "Wednesdays", image: IMG.pizza, restaurantId: null },
   { code: "FREESHIP", title: "Ride on us", subtitle: "Delivery fee gone.", expires: "Always on for Pass", image: IMG.burger, restaurantId: null },
 ];
 
@@ -374,9 +306,7 @@ export function inr(n: number) {
   return `₹${Math.round(n)}`;
 }
 export function popularDishes() {
-  const ids = ["ilp-paneer", "bb-classic", "hb-quinoa", "sr-biryani", "dw-dumplings", "st-brownie"];
-  const known = DISHES.filter((d) => ids.includes(d.id));
-  return known.length ? known : DISHES.slice(0, 6);
+  return DISHES.filter((d) => d.isAvailable !== false).slice(0, 8);
 }
 
 /**

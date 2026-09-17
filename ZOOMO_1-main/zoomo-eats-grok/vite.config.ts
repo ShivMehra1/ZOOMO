@@ -150,6 +150,18 @@ export default defineConfig(({ command, isPreview }) => ({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
+    proxy: {
+      "/backend": {
+        target:
+          process.env.ZOOMO_API_URL ||
+          (process.env.VITE_API_URL && /^https?:\/\//.test(process.env.VITE_API_URL)
+            ? process.env.VITE_API_URL
+            : "http://localhost:3000"),
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/backend/, ""),
+      },
+    },
   },
   preview: {
     host: "127.0.0.1",

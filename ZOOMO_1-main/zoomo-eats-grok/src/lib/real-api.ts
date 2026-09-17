@@ -4,10 +4,7 @@
 // deliberately NOT wired here yet — see the summary given alongside this
 // file's introduction for what's covered in this pass.
 import { IMG, TOWN, setCatalog, setLiveReviews, setPromos, type Dish, type Restaurant } from "./zoomo-data";
-
-const API_BASE =
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
-  "http://localhost:3000";
+import { getApiBase, publicMedia } from "./api-base";
 
 const TOKEN_KEY = "zoomo_real_token";
 
@@ -43,13 +40,13 @@ async function handle(res: Response) {
 export const realApi = {
   get: (path: string) => {
     const token = getRealToken();
-    return fetch(API_BASE + path, {
+    return fetch(getApiBase() + path, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(handle);
   },
   post: (path: string, body: unknown = {}) => {
     const token = getRealToken();
-    return fetch(API_BASE + path, {
+    return fetch(getApiBase() + path, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(body),
@@ -57,7 +54,7 @@ export const realApi = {
   },
   patch: (path: string, body: unknown = {}) => {
     const token = getRealToken();
-    return fetch(API_BASE + path, {
+    return fetch(getApiBase() + path, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(body),
@@ -65,7 +62,7 @@ export const realApi = {
   },
   delete: (path: string) => {
     const token = getRealToken();
-    return fetch(API_BASE + path, {
+    return fetch(getApiBase() + path, {
       method: "DELETE",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(handle);
@@ -87,7 +84,7 @@ export async function realUploadAvatar(file: File): Promise<{ url: string }> {
   const token = getRealToken();
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${API_BASE}/upload/image?folder=avatars`, {
+  const res = await fetch(`${getApiBase()}/upload/image?folder=avatars`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
@@ -135,13 +132,32 @@ export async function realGoogleAuth(email: string, name: string): Promise<RealU
 }
 
 /* ── Real restaurant/dish catalog (replaces the static demo arrays) ── */
+const DUMMY_SLUGS = new Set([
+  "pizza-palace",
+  "burger-barn",
+  "healthy-bites",
+  "spice-route",
+  "dragon-wok",
+  "sweet-theory",
+  "i-love-pizza",
+]);
+const DUMMY_NAMES =
+  /^(pizza palace|burger barn|healthy bites|spice route|dragon wok|sweet theory|xyzad|qwdsasa|122321|burger best|rfc(\s+fast\s+food)?)$/i;
+
+function isDummyKitchen(r: { id?: string; name?: string }) {
+  const id = String(r.id || "");
+  const name = String(r.name || "").trim();
+  if (DUMMY_SLUGS.has(id)) return true;
+  return DUMMY_NAMES.test(name);
+}
+
 function toRestaurant(r: any): Restaurant {
   const area = (r.address || "").split(",")[1]?.trim() || TOWN;
   return {
     id: r.id,
     name: r.name,
     description: r.description || "",
-    imageUrl: r.imageUrl || IMG.restaurantFallback,
+    imageUrl: publicMedia(r.imageUrl, IMG.restaurantFallback),
     address: r.address || "",
     area,
     cuisineType: r.cuisineType || "Various",
@@ -162,7 +178,7 @@ function toDish(d: any, restaurantId: string): Dish {
     name: d.name,
     description: d.description || "",
     price: d.price,
-    imageUrl: d.imageUrl || IMG.dishFallback,
+    imageUrl: publicMedia(d.imageUrl, IMG.dishFallback),
     calories: d.calories ?? undefined,
     isVegetarian: Boolean(d.isVegetarian),
     isVegan: Boolean(d.isVegan),
@@ -195,9 +211,16 @@ export async function loadRealCatalog(): Promise<void> {
       realApi.get("/restaurants"),
       realApi.get("/offers").catch(() => []),
     ]);
-    if (!Array.isArray(list)) return;
-    const restaurants = list.map(toRestaurant);
-    const dishes = list.flatMap((r: any) => (Array.isArray(r.dishes) ? r.dishes.map((d: any) => toDish(d, r.id)) : []));
+    if (!Array.isArray(list)) {
+      setCatalog([], []);
+      catalogLoaded = true;
+      return;
+    }
+    const live = list.filter((r: any) => r && r.isActive !== false && !isDummyKitchen(r));
+    const restaurants = live.map(toRestaurant);
+    const dishes = live.flatMap((r: any) =>
+      Array.isArray(r.dishes) ? r.dishes.map((d: any) => toDish(d, r.id)) : [],
+    );
     setCatalog(restaurants, dishes);
     setLiveReviews(
       list.flatMap((r: any) =>
@@ -235,8 +258,9 @@ export async function loadRealCatalog(): Promise<void> {
     }
     catalogLoaded = true;
   } catch (err) {
-    // Backend unreachable — keep the built-in demo catalog so the app still renders.
-    console.error("[real-api] Could not load live catalog, using demo data:", err);
+    console.error("[real-api] Could not load live catalog:", err);
+    setCatalog([], []);
+    catalogLoaded = true;
   }
 }
 
@@ -406,7 +430,7 @@ function makeStaffApi(tokenKey: string) {
   };
   const req = (method: string, path: string, body?: unknown) => {
     const token = getToken();
-    return fetch(API_BASE + path, {
+    return fetch(getApiBase() + path, {
       method,
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),

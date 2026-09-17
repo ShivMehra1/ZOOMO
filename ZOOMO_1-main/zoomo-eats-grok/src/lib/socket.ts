@@ -1,15 +1,12 @@
 import { io, type Socket } from "socket.io-client";
-
-const API_BASE =
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
-  "http://localhost:3000";
+import { getApiBase } from "./api-base";
 
 let socket: Socket | null = null;
 
 /** Lazily-created singleton connection to the backend's realtime gateway. */
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(API_BASE, { transports: ["websocket"], autoConnect: true });
+    socket = io(getApiBase(), { transports: ["websocket", "polling"], autoConnect: true });
   }
   return socket;
 }
