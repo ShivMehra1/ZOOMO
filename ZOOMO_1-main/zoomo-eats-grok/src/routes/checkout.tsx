@@ -97,7 +97,7 @@ function CheckoutPage() {
 
   if (!hydrated) {
     return (
-      <AppShell>
+      <AppShell chat={false}>
         <div className="flex min-h-[50vh] items-center justify-center">
           <div className="size-8 animate-spin rounded-full border-2 border-line border-t-primary" />
         </div>
@@ -176,7 +176,7 @@ function CheckoutPage() {
           : `Place Order · ${inr(t.total)}`;
 
   return (
-    <AppShell>
+    <AppShell chat={false}>
       <div className="mx-auto max-w-[640px] px-5 py-6 pb-28">
         <BackBar title="Checkout" to="/cart" />
 
@@ -186,7 +186,6 @@ function CheckoutPage() {
               <FoodImg src={i.imageUrl || IMG.dishFallback} alt="" className="size-14 rounded-xl object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-bold text-ink">{i.name}</p>
-                {i.forPerson && <p className="text-[11px] text-primary">For {i.forPerson}</p>}
                 <p className="text-xs text-muted tabular">{inr(i.price)} each</p>
               </div>
               <QtyStepper
@@ -607,7 +606,7 @@ function CheckoutPage() {
         </Section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-[72px] z-30 px-4 pr-[76px] md:bottom-4 md:pr-[84px]">
+      <div className="fixed inset-x-4 bottom-[72px] z-30 md:bottom-4">
         <div className="mx-auto flex max-w-[640px] items-center gap-3 rounded-[22px] bg-primary p-2 pl-5 text-white shadow-lift">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-white/65">Total</p>

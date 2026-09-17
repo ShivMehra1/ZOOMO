@@ -32,9 +32,8 @@ const WHY_ICONS = [Zap, MapPinned, ShieldCheck];
 
 function Home() {
   const nav = useNavigate();
-  const { user, orders, setLocation, cart } = useZoomo();
+  const { user, orders, setLocation, cart, favorites } = useZoomo();
   const [chip, setChip] = useState<(typeof CATEGORIES)[number]["id"] | "All">("All");
-  const [q, setQ] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
   const activeOrder = orders.find((o) => {
     const s = liveStatus(o);
@@ -42,28 +41,18 @@ function Home() {
   });
 
   const filtered = useMemo(() => {
-    const query = q.trim().toLowerCase();
     const vegOnly = Boolean(user?.vegOnly);
     return RESTAURANTS.filter((r) => {
       if (chip !== "All" && !matchesCuisine(r, chip)) return false;
       if (vegOnly && !DISHES.some((d) => d.restaurantId === r.id && d.isVegetarian)) return false;
-      if (!query) return true;
-      const dishHit = DISHES.some((d) => d.restaurantId === r.id && d.name.toLowerCase().includes(query));
-      return (
-        r.name.toLowerCase().includes(query) ||
-        r.cuisineType.toLowerCase().includes(query) ||
-        r.description.toLowerCase().includes(query) ||
-        r.area.toLowerCase().includes(query) ||
-        dishHit
-      );
+      return true;
     });
-  }, [chip, q, user?.vegOnly]);
+  }, [chip, user?.vegOnly]);
 
-  const dishHits = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return [];
-    return DISHES.filter((d) => d.name.toLowerCase().includes(query) || d.description.toLowerCase().includes(query)).slice(0, 8);
-  }, [q]);
+  const saved = useMemo(
+    () => RESTAURANTS.filter((r) => favorites.includes(r.id)),
+    [favorites],
+  );
 
   const popular = popularDishes();
   const preview = filtered.slice(0, 4);
@@ -85,13 +74,7 @@ function Home() {
   return (
     <AppShell footer>
       <div className="landing-wash">
-      <HomeHero
-        query={q}
-        setQuery={setQ}
-        onSearchFocus={() => {
-          gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-      />
+      <HomeHero onSearch={() => nav({ to: "/search" })} />
 
       <div className="relative z-10 mx-auto max-w-6xl space-y-4 px-5">
         {activeOrder && (
@@ -103,54 +86,6 @@ function Home() {
       </div>
 
       <main className="mx-auto max-w-6xl px-5 pt-10 pb-16">
-        {q.trim() ? (
-          <div ref={gridRef} className="mb-12">
-            <p className="kicker mb-1">On this page</p>
-            <h2 className="display mb-5 text-[22px] text-ink">Results for “{q.trim()}”</h2>
-            {dishHits.length > 0 && (
-              <div className="no-scrollbar mb-8 flex gap-4 overflow-x-auto pb-2">
-                {dishHits.map((d) => {
-                  const r = restaurantById(d.restaurantId);
-                  return (
-                    <button
-                      key={d.id}
-                      onClick={() => nav({ to: "/restaurant/$id", params: { id: d.restaurantId } })}
-                      className="w-[220px] shrink-0 overflow-hidden rounded-[22px] bg-surface text-left shadow-card"
-                    >
-                      <FoodImg src={d.imageUrl} alt={d.name} className="h-32 w-full object-cover" />
-                      <div className="p-3">
-                        <p className="truncate text-sm font-bold text-ink">{d.name}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted">
-                          {r?.name} · {r?.area}
-                        </p>
-                        <p className="mt-2 text-xs font-bold text-primary tabular">{inr(d.price)}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {filtered.length === 0 && dishHits.length === 0 ? (
-              <EmptyState
-                icon={<UtensilsCrossed className="size-7" />}
-                title="Nothing in Jourian"
-                sub="Try another restaurant or dish"
-                cta="Clear"
-                onCta={() => setQ("")}
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                {filtered.map((r) => (
-                  <RestaurantCard
-                    key={r.id}
-                    r={r}
-                    onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
           <>
             <FoodRow
               chip={chip}
@@ -161,6 +96,29 @@ function Home() {
             />
 
             <UsualsRow />
+
+            {saved.length > 0 && (
+              <div className="mb-12">
+                <p className="kicker mb-1">Yours</p>
+                <h2 className="display mb-4 text-[22px] text-ink">Saved kitchens</h2>
+                <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+                  {saved.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
+                      className="w-[220px] shrink-0 overflow-hidden rounded-[22px] bg-surface text-left shadow-card"
+                    >
+                      <FoodImg src={r.imageUrl} alt={r.name} className="h-28 w-full object-cover" />
+                      <div className="p-3">
+                        <p className="truncate text-sm font-bold text-ink">{r.name}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted">{r.cuisineType} · {r.eta}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mb-5 flex items-end justify-between">
               <div>
@@ -211,7 +169,6 @@ function Home() {
                 sub="Try another craving"
                 cta="Reset"
                 onCta={() => {
-                  setQ("");
                   setChip("All");
                 }}
               />
@@ -239,7 +196,6 @@ function Home() {
               <ZoneMap onPick={setLocation} />
             </div>
           </>
-        )}
 
         <div className="mt-16 grid grid-cols-1 overflow-hidden rounded-[28px] bg-primary md:grid-cols-2">
           <div className="px-7 py-10 text-white">
@@ -288,7 +244,7 @@ function Home() {
         <button
           type="button"
           onClick={() => nav({ to: "/cart" })}
-          className="btn-primary fixed right-[76px] bottom-24 left-4 z-30 mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 shadow-lift md:right-[84px] md:bottom-5"
+          className="btn-primary fixed inset-x-4 bottom-24 z-30 mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 shadow-lift md:bottom-5"
         >
           <span className="text-sm font-bold">
             View bag · {cart.reduce((s, i) => s + i.quantity, 0)}

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ChevronDown, ChevronUp, Clock, Heart, MapPin, Minus, Plus, ShoppingBag, Star, Users, UtensilsCrossed, X } from "lucide-react";
-import { ZoomoChat } from "@/components/zoomo/chat";
+import { ArrowLeft, ChevronDown, ChevronUp, Clock, Heart, MapPin, Minus, Phone, Plus, ShoppingBag, Star, UtensilsCrossed } from "lucide-react";
 import { FoodImg } from "@/components/zoomo/food-img";
 import { MobileDock } from "@/components/zoomo/dock";
 import { dishesFor, etaMinOf, gateBy, IMG, inr, LIVE_REVIEWS, restaurantById, type Dish } from "@/lib/zoomo-data";
@@ -15,7 +14,7 @@ function RestaurantPage() {
   const nav = useNavigate();
   const back = useGoBack("/restaurants");
   const r = restaurantById(id);
-  const { cart, addToCart, setQty, user, favorites, toggleFavorite, dishOff = [], group, addGuest, removeGuest, reviews, addReview } = useZoomo();
+  const { cart, addToCart, setQty, user, favorites, toggleFavorite, dishOff = [], reviews, addReview } = useZoomo();
   const dishes = dishesFor(id).filter((d) => !user?.vegOnly || d.isVegetarian);
   const loved = favorites.includes(id);
   const mine = cart.filter((i) => i.restaurantId === id);
@@ -23,8 +22,6 @@ function RestaurantPage() {
   const cartTotal = mine.reduce((s, i) => s + i.price * i.quantity, 0);
   const [cat, setCat] = useState("All");
   const [bagOpen, setBagOpen] = useState(true);
-  const [forWho, setForWho] = useState("");
-  const [guestDraft, setGuestDraft] = useState("");
   const [revStars, setRevStars] = useState(5);
   const [revText, setRevText] = useState("");
   const [scrolled, setScrolled] = useState(false);
@@ -67,13 +64,13 @@ function RestaurantPage() {
 
   function add(d: Dish, size?: string) {
     if (dishOff.includes(d.id)) return;
-    const res = addToCart(d, size, forWho || undefined);
+    const res = addToCart(d, size);
     if (res === "login") nav({ to: "/login" });
     else setBagOpen(true);
   }
 
   function lineOf(d: Dish, size?: string) {
-    return `${d.id}${size ? `__${size}` : ""}${forWho ? `__p_${forWho}` : ""}`;
+    return `${d.id}${size ? `__${size}` : ""}`;
   }
 
   return (
@@ -131,7 +128,7 @@ function RestaurantPage() {
         )}
         <div className="absolute right-5 bottom-5 left-5">
           <h1 className="display text-[28px] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.3)]">{r.name}</h1>
-          <div className="mt-1.5 flex items-center gap-3.5 text-[13px] text-white/85">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-white/85">
             <span className="flex items-center gap-1">
               <Star className="size-3.5 fill-accent text-accent" /> {r.rating.toFixed(1)}
             </span>
@@ -148,80 +145,30 @@ function RestaurantPage() {
 
       {r.phone && (
         <div className="mx-auto max-w-[920px] px-5 pt-4">
-          <a href={`tel:+91${r.phone}`} className="btn-ghost flex h-11 w-full items-center justify-center gap-2 text-sm">
-            Call shop
+          <a href={`tel:${r.phone}`} className="btn-ghost flex h-12 w-full items-center justify-center gap-2 text-sm">
+            <Phone className="size-4" /> Call shop
           </a>
         </div>
       )}
 
       <div className="mx-auto max-w-[920px] px-5 pt-4">
-        <div className="rounded-[22px] bg-surface p-4 shadow-card">
-          <div className="mb-2 flex items-center gap-2">
-            <Users className="size-4 text-primary" />
-            <p className="text-[13px] font-bold text-ink">Group order</p>
-            <p className="text-[11px] text-muted">Add for each person, one bag.</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setForWho("")}
-              className={`rounded-full px-3 py-1.5 text-[12px] font-bold ${forWho === "" ? "bg-primary text-white" : "bg-sage text-primary"}`}
-            >
-              You
-            </button>
-            {group.map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setForWho(g)}
-                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold ${
-                  forWho === g ? "bg-primary text-white" : "bg-sage text-primary"
-                }`}
-              >
-                {g}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (forWho === g) setForWho("");
-                    removeGuest(g);
-                  }}
-                  className="ml-0.5 opacity-70"
-                  aria-label={`Remove ${g}`}
-                >
-                  <X className="size-3" />
-                </span>
-              </button>
-            ))}
-          </div>
-          <form
-            className="mt-2 flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const n = guestDraft.trim();
-              if (!n) return;
-              addGuest(n);
-              setForWho(n);
-              setGuestDraft("");
-            }}
-          >
-            <input
-              value={guestDraft}
-              onChange={(e) => setGuestDraft(e.target.value)}
-              placeholder="Add a name"
-              className="h-10 flex-1 rounded-xl border-[1.5px] border-line bg-page px-3 text-sm"
-            />
-            <button type="submit" className="rounded-xl bg-sage px-3 text-[12px] font-bold text-primary">
-              Add
-            </button>
-          </form>
-          {forWho && <p className="mt-2 text-[11px] text-sub">Adding to {forWho}’s pile.</p>}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <span className="shrink-0 rounded-full bg-sage px-3 py-2 text-[12px] font-bold text-primary">
+            {r.eta} · by {gateBy(etaMinOf(r))}
+          </span>
+          {r.costForTwo ? (
+            <span className="shrink-0 rounded-full bg-surface px-3 py-2 text-[12px] font-bold text-ink shadow-card">
+              ₹{r.costForTwo} for two
+            </span>
+          ) : null}
+          <span className="shrink-0 rounded-full bg-surface px-3 py-2 text-[12px] font-bold text-ink shadow-card">
+            {dishes.filter((d) => d.isVegetarian).length} veg
+          </span>
         </div>
       </div>
 
       {groups.length > 1 && (
-        <div className={`sticky z-20 border-b border-line bg-surface/95 backdrop-blur-md ${scrolled ? "top-12" : "top-0"}`}>
+        <div className={`sticky z-20 border-b border-line bg-surface/95 backdrop-blur-md ${scrolled ? "top-[calc(3rem+env(safe-area-inset-top))]" : "top-0"}`}>
           <div className="no-scrollbar mx-auto flex max-w-[920px] gap-2 overflow-x-auto px-5 py-3">
             {["All", ...groups.map((g) => g.cat)].map((c) => (
               <button
@@ -285,18 +232,18 @@ function RestaurantPage() {
                                     <button
                                       type="button"
                                       onClick={() => add(w, s.id)}
-                                      className="flex items-center gap-1 rounded-full border border-primary px-2.5 py-1 text-[11px] font-bold text-primary"
+                                      className="flex h-11 min-w-[72px] items-center justify-center gap-1 rounded-full border border-primary px-3 text-[13px] font-bold text-primary"
                                     >
                                       <Plus className="size-3" /> Add
                                     </button>
                                   ) : (
-                                    <div className="flex items-center gap-1 rounded-full bg-primary px-1 py-0.5 text-white">
-                                      <button type="button" onClick={() => setQty(line, -1)} className="flex size-6 items-center justify-center" aria-label="Less">
-                                        <Minus className="size-3" />
+                                    <div className="flex items-center gap-1 rounded-full bg-primary px-1 py-1 text-white">
+                                      <button type="button" onClick={() => setQty(line, -1)} className="flex size-10 items-center justify-center" aria-label="Less">
+                                        <Minus className="size-4" />
                                       </button>
-                                      <span className="min-w-4 text-center text-[12px] font-bold tabular">{n}</span>
-                                      <button type="button" onClick={() => setQty(line, 1)} className="flex size-6 items-center justify-center" aria-label="More">
-                                        <Plus className="size-3" />
+                                      <span className="min-w-5 text-center text-[13px] font-bold tabular">{n}</span>
+                                      <button type="button" onClick={() => setQty(line, 1)} className="flex size-10 items-center justify-center" aria-label="More">
+                                        <Plus className="size-4" />
                                       </button>
                                     </div>
                                   )}
@@ -314,18 +261,18 @@ function RestaurantPage() {
                               <button
                                 type="button"
                                 onClick={() => add(w)}
-                                className="rounded-[10px] border-[1.5px] border-primary bg-surface px-4 py-1.5 text-[11px] font-bold text-primary shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+                                className="h-11 rounded-[10px] border-[1.5px] border-primary bg-surface px-5 text-[13px] font-bold text-primary shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
                               >
                                 ADD
                               </button>
                             ) : (
                               <div className="flex items-center gap-1 rounded-[10px] bg-primary px-1 py-1 text-white shadow-md">
-                                <button type="button" onClick={() => setQty(lineOf(w), -1)} className="flex size-7 items-center justify-center" aria-label="Less">
-                                  <Minus className="size-3.5" />
+                                <button type="button" onClick={() => setQty(lineOf(w), -1)} className="flex size-10 items-center justify-center" aria-label="Less">
+                                  <Minus className="size-4" />
                                 </button>
-                                <span className="min-w-5 text-center text-[12px] font-bold tabular">{q}</span>
-                                <button type="button" onClick={() => setQty(lineOf(w), 1)} className="flex size-7 items-center justify-center" aria-label="More">
-                                  <Plus className="size-3.5" />
+                                <span className="min-w-5 text-center text-[13px] font-bold tabular">{q}</span>
+                                <button type="button" onClick={() => setQty(lineOf(w), 1)} className="flex size-10 items-center justify-center" aria-label="More">
+                                  <Plus className="size-4" />
                                 </button>
                               </div>
                             )}
@@ -363,7 +310,7 @@ function RestaurantPage() {
       </div>
 
       {count > 0 && user && (
-        <div className="fixed inset-x-0 bottom-[72px] z-40 px-4 pr-[76px] md:bottom-5 md:pr-[84px]">
+        <div className="fixed inset-x-0 bottom-[72px] z-40 px-4 md:bottom-5">
           <div className="mx-auto max-w-[920px] overflow-hidden rounded-[22px] bg-surface shadow-lift">
             <button
               type="button"
@@ -414,7 +361,6 @@ function RestaurantPage() {
           </div>
         </div>
       )}
-      <ZoomoChat />
       <MobileDock />
     </div>
   );

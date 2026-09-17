@@ -23,7 +23,7 @@ export function Header({ onLocationClick }: { onLocationClick: () => void }) {
   }, []);
 
   return (
-    <header className={`sticky top-0 z-40 w-full transition-[background,backdrop-filter,box-shadow,border-color] duration-300 ${
+    <header className={`sticky top-0 z-40 w-full pt-[env(safe-area-inset-top)] transition-[background,backdrop-filter,box-shadow,border-color] duration-300 ${
       atTopHome ? "border-b border-line bg-surface" : "glass-nav"
     }`}>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-2.5">

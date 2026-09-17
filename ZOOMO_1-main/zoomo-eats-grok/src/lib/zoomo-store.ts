@@ -167,7 +167,6 @@ type State = {
   accountOpen: boolean;
   conflict: { dish: Dish } | null;
   dishOff: string[];
-  group: string[];
   reviews: Review[];
   login: (name: string, email: string, phone?: string, id?: string) => void;
   logout: () => void;
@@ -177,7 +176,7 @@ type State = {
   setAccountOpen: (open: boolean) => void;
   setLocation: (loc: string | null) => void;
   markLocationPrompted: () => void;
-  addToCart: (dish: Dish, size?: string, forPerson?: string, note?: string) => "ok" | "login";
+  addToCart: (dish: Dish, size?: string, note?: string) => "ok" | "login";
   setItemNote: (dishId: string, note: string) => void;
   confirmReplaceCart: () => void;
   cancelReplaceCart: () => void;
@@ -204,8 +203,6 @@ type State = {
   sendRideChat: (id: string, text: string) => void;
   rateOrder: (id: string, rating: number) => void;
   setProof: (id: string) => void;
-  addGuest: (name: string) => void;
-  removeGuest: (name: string) => void;
   addReview: (restaurantId: string, rating: number, text: string) => void;
   reorder: (orderId: string) => "ok" | "empty";
   placeOrder: (payload: {
@@ -263,7 +260,6 @@ export const useZoomo = create<State>()(
       accountOpen: false,
       conflict: null,
       dishOff: [],
-      group: [],
       reviews: [],
       login: (name, email, phone = "", id) => {
         const prev = get().user;
@@ -356,7 +352,7 @@ export const useZoomo = create<State>()(
         return "on";
       },
       setAccountOpen: (open) => set({ accountOpen: open }),
-      addToCart: (dish, size, _forPerson, note) => {
+      addToCart: (dish, size, note) => {
         if (!get().user || !getRealToken()) return "login";
         // Real cart is single-restaurant (backend clears on a restaurant switch) —
         // mirror that here instead of the reference's local multi-bag simulation.
@@ -511,14 +507,6 @@ export const useZoomo = create<State>()(
           orders: get().orders.map((x) => (x.id === id ? { ...x, proofAt: new Date().toISOString() } : x)),
         });
       },
-      addGuest: (name) => {
-        const n = name.trim();
-        if (!n) return;
-        const g = get().group;
-        if (g.includes(n)) return;
-        set({ group: [...g, n] });
-      },
-      removeGuest: (name) => set({ group: get().group.filter((g) => g !== name) }),
       addReview: (restaurantId, rating, text) => {
         const user = get().user;
         if (!user) return;
@@ -587,7 +575,6 @@ export const useZoomo = create<State>()(
         visits: state.visits,
         activatedOffers: state.activatedOffers,
         dishOff: state.dishOff,
-        group: state.group,
         reviews: state.reviews,
       }),
       onRehydrateStorage: () => (state) => {
@@ -599,7 +586,6 @@ export const useZoomo = create<State>()(
           visits: state?.visits ?? {},
           activatedOffers: (state?.activatedOffers ?? []).slice(0, 2),
           dishOff: state?.dishOff ?? [],
-          group: state?.group ?? [],
           reviews: state?.reviews ?? [],
           location: known ? loc : DEFAULT_LOCATION,
         });

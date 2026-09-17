@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon, UtensilsCrossed } from "lucide-react";
 import { AppShell } from "@/components/zoomo/shell";
 import { BackBar } from "@/components/zoomo/back-bar";
+import { EmptyState } from "@/components/zoomo/modals";
 import { RestaurantCard } from "@/components/zoomo/restaurant-card";
+import { FoodImg } from "@/components/zoomo/food-img";
 import { DISHES, RESTAURANTS, inr, restaurantById, type Dish, type Restaurant } from "@/lib/zoomo-data";
 import { realSearchDishes, realSearchRestaurants } from "@/lib/real-api";
 
@@ -12,10 +14,16 @@ export const Route = createFileRoute("/search")({ component: SearchPage });
 function SearchPage() {
   const nav = useNavigate();
   const [q, setQ] = useState("");
-  const query = q.trim().toLowerCase();
+  const [debounced, setDebounced] = useState("");
+  const query = debounced.trim().toLowerCase();
 
   const [remoteKitchens, setRemoteKitchens] = useState<Restaurant[] | null>(null);
   const [remoteDishes, setRemoteDishes] = useState<Dish[] | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(q), 280);
+    return () => clearTimeout(t);
+  }, [q]);
 
   useEffect(() => {
     if (!query) {
@@ -31,7 +39,7 @@ function SearchPage() {
         setRemoteDishes(d);
       })
       .catch(() => {
-        // Backend unreachable — fall back to filtering the local demo catalog below.
+        // keep local catalog
       });
     return () => {
       cancelled = true;
@@ -55,8 +63,10 @@ function SearchPage() {
     return DISHES.filter((d) => d.name.toLowerCase().includes(query) || d.description.toLowerCase().includes(query));
   }, [query, remoteDishes]);
 
+  const empty = query && kitchens.length === 0 && dishes.length === 0;
+
   return (
-    <AppShell>
+    <AppShell chat={false}>
       <main className="mx-auto max-w-3xl px-5 py-6">
         <BackBar title="Search" to="/" />
         <div className="relative mb-8">
@@ -70,33 +80,54 @@ function SearchPage() {
           />
         </div>
 
-        <h2 className="mb-3 text-sm font-bold text-ink">Dishes</h2>
-        <div className="mb-8 space-y-2">
-          {dishes.map((d) => {
-            const r = restaurantById(d.restaurantId);
-            return (
-              <button
-                key={d.id}
-                onClick={() => nav({ to: "/restaurant/$id", params: { id: d.restaurantId } })}
-                className="flex w-full items-center gap-3 rounded-2xl bg-surface p-2.5 text-left shadow-card"
-              >
-                <img src={d.imageUrl} alt="" className="size-14 rounded-xl object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-ink">{d.name}</p>
-                  <p className="truncate text-xs text-muted">{r?.name}</p>
-                </div>
-                <span className="text-sm font-bold text-primary tabular">{inr(d.price)}</span>
-              </button>
-            );
-          })}
-        </div>
+        {empty ? (
+          <EmptyState
+            icon={<UtensilsCrossed className="size-7" />}
+            title="Nothing matches"
+            sub="Try a kitchen name or a dish"
+            cta="Clear"
+            onCta={() => setQ("")}
+          />
+        ) : (
+          <>
+            <h2 className="mb-3 text-sm font-bold text-ink">{query ? "Dishes" : "Popular dishes"}</h2>
+            {dishes.length === 0 ? (
+              <p className="mb-8 text-sm text-muted">No dishes yet.</p>
+            ) : (
+              <div className="mb-8 space-y-2">
+                {dishes.map((d) => {
+                  const r = restaurantById(d.restaurantId);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => nav({ to: "/restaurant/$id", params: { id: d.restaurantId } })}
+                      className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-surface p-2.5 text-left shadow-card"
+                    >
+                      <FoodImg src={d.imageUrl} alt="" className="size-14 rounded-xl object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-ink">{d.name}</p>
+                        <p className="truncate text-xs text-muted">{r?.name}</p>
+                      </div>
+                      <span className="text-sm font-bold text-primary tabular">{inr(d.price)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-        <h2 className="mb-3 text-sm font-bold text-ink">Restaurants</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {kitchens.map((r) => (
-            <RestaurantCard key={r.id} r={r} onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })} />
-          ))}
-        </div>
+            <h2 className="mb-3 text-sm font-bold text-ink">{query ? "Restaurants" : "All kitchens"}</h2>
+            {kitchens.length === 0 ? (
+              <p className="text-sm text-muted">No restaurants yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {kitchens.map((r) => (
+                  <RestaurantCard key={r.id} r={r} onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </main>
     </AppShell>
   );

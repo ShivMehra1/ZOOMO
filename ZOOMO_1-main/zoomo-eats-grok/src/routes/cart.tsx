@@ -24,7 +24,7 @@ function CartPage() {
   const allCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <AppShell>
+    <AppShell chat={false}>
       <div className={`mx-auto max-w-[640px] px-5 py-6 ${cart.length ? "pb-28" : ""}`}>
         <BackBar title={groups.length > 1 ? "Your bags" : "Your bag"} to="/" />
 
@@ -64,7 +64,6 @@ function CartPage() {
                       <FoodImg src={j.imageUrl || IMG.dishFallback} alt="" className="size-[72px] rounded-2xl object-cover" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-ink">{j.name}</p>
-                        {j.forPerson && <p className="text-[11px] text-primary">For {j.forPerson}</p>}
                         <p className="text-xs text-muted tabular">{inr(j.price)} each</p>
                         <p className="mt-1 text-sm font-bold text-primary tabular">{inr(j.price * j.quantity)}</p>
                         {editingNote === j.dishId ? (
@@ -141,15 +140,21 @@ function CartPage() {
         )}
       </div>
 
-      {cart.length > 0 && (
-        <div className="fixed inset-x-0 bottom-[72px] z-30 px-4 pr-[76px] md:bottom-4 md:pr-[84px]">
-          <div className="mx-auto flex max-w-[640px] items-center justify-between rounded-full bg-primary px-5 py-3 text-white shadow-lift">
-            <span className="text-sm font-bold tabular">
-              {allCount} item{allCount === 1 ? "" : "s"} · {inr(allTotal)}
-            </span>
-            <span className="text-[12px] text-white/70">Total</span>
-          </div>
-        </div>
+      {cart.length > 0 && groups[0] && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!user) return nav({ to: "/login" });
+            setActiveBag(groups[0].rid);
+            nav({ to: "/checkout" });
+          }}
+          className="fixed inset-x-0 bottom-[72px] z-30 mx-auto flex max-w-[640px] items-center justify-between rounded-full bg-primary px-5 py-3.5 text-white shadow-lift md:bottom-4"
+        >
+          <span className="text-sm font-bold tabular">
+            {allCount} item{allCount === 1 ? "" : "s"} · {inr(allTotal)}
+          </span>
+          <span className="text-sm font-bold">Checkout</span>
+        </button>
       )}
     </AppShell>
   );

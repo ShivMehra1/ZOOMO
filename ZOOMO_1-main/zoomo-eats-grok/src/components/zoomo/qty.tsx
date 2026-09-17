@@ -10,23 +10,23 @@ export function QtyStepper({
   onMore: () => void;
 }) {
   return (
-    <div className="flex items-center rounded-lg border border-line bg-page">
+    <div className="flex items-center rounded-xl border border-line bg-page">
       <button
         type="button"
         onClick={onLess}
-        className="flex size-7 items-center justify-center text-ink"
+        className="flex size-11 items-center justify-center text-ink"
         aria-label="Less"
       >
-        <Minus className="size-3.5" />
+        <Minus className="size-4" />
       </button>
-      <span className="w-6 text-center text-[13px] font-bold tabular">{value}</span>
+      <span className="w-7 text-center text-sm font-bold tabular">{value}</span>
       <button
         type="button"
         onClick={onMore}
-        className="flex size-7 items-center justify-center text-primary"
+        className="flex size-11 items-center justify-center text-primary"
         aria-label="More"
       >
-        <Plus className="size-3.5" />
+        <Plus className="size-4" />
       </button>
     </div>
   );
