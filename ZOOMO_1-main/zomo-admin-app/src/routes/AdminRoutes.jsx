@@ -3,6 +3,7 @@ import Orders from "../pages/Orders";
 import Drivers from "../pages/Drivers";
 import Users from "../pages/Users";
 import Restaurants from "../pages/Restaurants";
+import RestaurantDetail from "../pages/RestaurantDetail";
 import Analytics from "../pages/Analytics";
 import Disputes from "../pages/Disputes";
 import Finance from "../pages/Finance";
@@ -17,6 +18,7 @@ export default function AdminRoutes() {
       <Route path="drivers" element={<Drivers />} />
       <Route path="users" element={<Users />} />
       <Route path="restaurants" element={<Restaurants />} />
+      <Route path="restaurants/:id" element={<RestaurantDetail />} />
       <Route path="disputes" element={<Disputes />} />
       <Route path="finance" element={<Finance />} />
       <Route path="payouts" element={<Payouts />} />

@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getRestaurants,
   approveRestaurant,
   rejectRestaurant,
   toggleRestaurantActive,
 } from "../services/adminApi";
-import { FiSearch, FiRefreshCw, FiCheckCircle, FiXCircle, FiToggleLeft, FiToggleRight } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiCheckCircle, FiXCircle, FiToggleLeft, FiToggleRight, FiChevronRight } from "react-icons/fi";
 
 export default function Restaurants() {
+  const nav = useNavigate();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -103,17 +105,22 @@ export default function Restaurants() {
                 <th className="px-6 py-4 text-z-muted font-medium">Approval</th>
                 <th className="px-6 py-4 text-z-muted font-medium">Open</th>
                 <th className="px-6 py-4 text-z-muted font-medium">Action</th>
+                <th className="px-6 py-4 text-z-muted font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={8} className="px-6 py-12 text-center text-z-muted">Loading restaurants...</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-z-muted">Loading restaurants...</td></tr>
               )}
               {!loading && restaurants.length === 0 && (
-                <tr><td colSpan={8} className="px-6 py-12 text-center text-z-muted">No restaurants found</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-z-muted">No restaurants found</td></tr>
               )}
               {!loading && restaurants.map((r) => (
-                <tr key={r.id} className="border-t border-z-line-soft hover:bg-z-page transition">
+                <tr
+                  key={r.id}
+                  onClick={() => nav(`/admin/restaurants/${r.id}`)}
+                  className="cursor-pointer border-t border-z-line-soft hover:bg-z-page transition"
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {r.imageUrl && (
@@ -145,7 +152,7 @@ export default function Restaurants() {
                   </td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => handleToggleActive(r.id, r.isActive)}
+                      onClick={(e) => { e.stopPropagation(); handleToggleActive(r.id, r.isActive); }}
                       disabled={busyId === r.id}
                       className="flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
                     >
@@ -162,7 +169,7 @@ export default function Restaurants() {
                   <td className="px-6 py-4">
                     {r.isApproved ? (
                       <button
-                        onClick={() => handleReject(r.id)}
+                        onClick={(e) => { e.stopPropagation(); handleReject(r.id); }}
                         disabled={busyId === r.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-z-danger border border-red-200 text-xs font-semibold transition disabled:opacity-50"
                       >
@@ -170,13 +177,16 @@ export default function Restaurants() {
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleApprove(r.id)}
+                        onClick={(e) => { e.stopPropagation(); handleApprove(r.id); }}
                         disabled={busyId === r.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-z-primary hover:bg-z-hover text-white text-xs font-semibold transition disabled:opacity-50"
                       >
                         <FiCheckCircle size={13} /> Approve
                       </button>
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-z-muted">
+                    <FiChevronRight size={16} />
                   </td>
                 </tr>
               ))}

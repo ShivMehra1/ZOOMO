@@ -1,16 +1,27 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogIn, MapPin, ShoppingBag, User, UserPlus } from "lucide-react";
+import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { ArrowLeft, LogIn, MapPin, ShoppingBag, User, UserPlus } from "lucide-react";
 import { ZoomoMark } from "./mark";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export function Header({ onLocationClick }: { onLocationClick: () => void }) {
   const nav = useNavigate();
+  const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, location, cart, setAccountOpen } = useZoomo();
   const [scrolled, setScrolled] = useState(false);
   const count = cart.reduce((s, i) => s + i.quantity, 0);
-  const atTopHome = pathname === "/" && !scrolled;
+  const isHome = pathname === "/";
+  const atTopHome = isHome && !scrolled;
+
+  function goBack() {
+    const hist = router.history as { canGoBack?: () => boolean; back: () => void };
+    if (typeof hist.canGoBack === "function" ? hist.canGoBack() : false) {
+      hist.back();
+    } else {
+      nav({ to: "/" });
+    }
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -24,12 +35,24 @@ export function Header({ onLocationClick }: { onLocationClick: () => void }) {
       atTopHome ? "border-b border-line bg-surface" : "glass-nav"
     }`}>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-2.5">
-        <button className="shrink-0" onClick={() => nav({ to: "/" })} aria-label="Zoomo Eats home">
-          <span className="flex items-center gap-2.5">
-            <ZoomoMark size={34} />
-            <span className="text-[15px] font-bold tracking-tight text-ink">Zoomo Eats</span>
-          </span>
-        </button>
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+          {!isHome && (
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+          )}
+          <button className="shrink-0" onClick={() => nav({ to: "/" })} aria-label="Zoomo Eats home">
+            <span className="flex items-center gap-2.5">
+              <ZoomoMark size={34} />
+              {isHome && <span className="text-[15px] font-bold tracking-tight text-ink">Zoomo Eats</span>}
+            </span>
+          </button>
+        </div>
 
         <button
           onClick={onLocationClick}

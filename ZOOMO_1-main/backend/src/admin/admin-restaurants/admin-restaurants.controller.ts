@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Patch, Delete, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { AdminRestaurantsService } from "./admin-restaurants.service";
 import { AdminJwtGuard } from "../guards/admin-jwt/admin-jwt.guard";
 
@@ -35,5 +35,15 @@ export class AdminRestaurantsController {
   @Patch(":id")
   update(@Param("id") id: string, @Body() body: any) {
     return this.adminRestaurantsService.update(id, body);
+  }
+
+  @Patch(":id/dishes/:dishId")
+  updateDish(@Param("id") id: string, @Param("dishId") dishId: string, @Body() body: any) {
+    return this.adminRestaurantsService.updateDish(id, dishId, body);
+  }
+
+  @Delete(":id/dishes/:dishId")
+  deleteDish(@Param("id") id: string, @Param("dishId") dishId: string) {
+    return this.adminRestaurantsService.deleteDish(id, dishId);
   }
 }

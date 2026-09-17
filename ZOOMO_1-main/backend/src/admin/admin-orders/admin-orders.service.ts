@@ -71,8 +71,9 @@ export class AdminOrdersService {
   /* ===========================
      GET ALL ORDERS (ADMIN)
   ============================ */
-  async getAllOrders() {
+  async getAllOrders(restaurantId?: string) {
     return this.prisma.order.findMany({
+      where: restaurantId ? { restaurantId } : undefined,
       orderBy: { createdAt: "desc" },
       include: {
         restaurant: true,
@@ -83,6 +84,22 @@ export class AdminOrdersService {
         },
       },
     });
+  }
+
+  /* ===========================
+     DELETE ORDER (ADMIN)
+     Hard delete — cascades OrderItem/Payment/OrderMessage via schema FKs.
+  ============================ */
+  async deleteOrder(orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+    await this.prisma.order.delete({ where: { id: orderId } });
+    this.realtime.emitToRooms(
+      [`order:${orderId}`, `restaurant:${order.restaurantId}`, "admin"],
+      "order:deleted",
+      { id: orderId },
+    );
+    return { ok: true, id: orderId };
   }
 
   /* ===========================

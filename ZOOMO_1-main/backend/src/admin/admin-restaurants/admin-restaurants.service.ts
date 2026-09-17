@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma.service";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class AdminRestaurantsService {
@@ -46,14 +47,17 @@ export class AdminRestaurantsService {
       where: { id },
       include: {
         owner: { select: { id: true, name: true, email: true, phone: true } },
-        dishes: { select: { id: true, name: true, price: true, isAvailable: true } },
+        dishes: {
+          select: { id: true, name: true, description: true, price: true, imageUrl: true, isVegetarian: true, isAvailable: true },
+          orderBy: { name: "asc" },
+        },
       },
     });
     if (!restaurant) throw new NotFoundException("Restaurant not found");
 
     const revenue = await this.prisma.order.aggregate({
       where: { restaurantId: id, status: { not: "CANCELLED" } },
-      _sum: { total: true },
+      _sum: { total: true, restaurantEarning: true, platformFee: true, driverCommission: true },
       _count: true,
     });
 
@@ -61,7 +65,34 @@ export class AdminRestaurantsService {
       ...restaurant,
       totalRevenue: revenue._sum.total || 0,
       totalOrders: revenue._count,
+      totalRestaurantEarning: revenue._sum.restaurantEarning || 0,
+      totalPlatformFee: revenue._sum.platformFee || 0,
+      totalDriverCommission: revenue._sum.driverCommission || 0,
     };
+  }
+
+  async updateDish(restaurantId: string, dishId: string, data: {
+    name?: string; description?: string; price?: number; isAvailable?: boolean;
+  }) {
+    const dish = await this.prisma.dish.findUnique({ where: { id: dishId } });
+    if (!dish || dish.restaurantId !== restaurantId) throw new NotFoundException("Dish not found");
+    return this.prisma.dish.update({ where: { id: dishId }, data });
+  }
+
+  async deleteDish(restaurantId: string, dishId: string) {
+    const dish = await this.prisma.dish.findUnique({ where: { id: dishId } });
+    if (!dish || dish.restaurantId !== restaurantId) throw new NotFoundException("Dish not found");
+    try {
+      await this.prisma.dish.delete({ where: { id: dishId } });
+      return { ok: true, id: dishId };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+        throw new ConflictException(
+          "Can't delete a dish that has order history — mark it unavailable instead.",
+        );
+      }
+      throw err;
+    }
   }
 
   async approve(id: string) {

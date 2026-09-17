@@ -16,7 +16,8 @@ export default adminApi;
 export const assignDriver = (orderId, driverId) =>
   adminApi.patch(`/orders/${orderId}/assign-driver`, { driverId });
 
-export const getOrders = () => adminApi.get('/orders');
+export const getOrders = (restaurantId) => adminApi.get('/orders', { params: { restaurantId } });
+export const deleteOrder = (orderId) => adminApi.delete(`/orders/${orderId}`);
 export const getDrivers = () => adminApi.get('/drivers');
 
 // ✅ NEW — update order status (used for scheduled order force confirm / cancel)
@@ -40,6 +41,10 @@ export const rejectRestaurant = (id) => adminApi.patch(`/restaurants/${id}/rejec
 export const toggleRestaurantActive = (id, isActive) =>
   adminApi.patch(`/restaurants/${id}/active`, { isActive });
 export const updateRestaurant = (id, data) => adminApi.patch(`/restaurants/${id}`, data);
+export const updateDish = (restaurantId, dishId, data) =>
+  adminApi.patch(`/restaurants/${restaurantId}/dishes/${dishId}`, data);
+export const deleteDish = (restaurantId, dishId) =>
+  adminApi.delete(`/restaurants/${restaurantId}/dishes/${dishId}`);
 
 // ── Analytics ──
 export const getAnalyticsSummary = () => adminApi.get('/analytics/summary');
