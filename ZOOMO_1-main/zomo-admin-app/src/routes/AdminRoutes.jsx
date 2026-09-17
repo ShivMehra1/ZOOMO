@@ -3,6 +3,7 @@ import Orders from "../pages/Orders";
 import Drivers from "../pages/Drivers";
 import DriverDetail from "../pages/DriverDetail";
 import Users from "../pages/Users";
+import UserDetail from "../pages/UserDetail";
 import Restaurants from "../pages/Restaurants";
 import RestaurantDetail from "../pages/RestaurantDetail";
 import Analytics from "../pages/Analytics";
@@ -19,6 +20,7 @@ export default function AdminRoutes() {
       <Route path="drivers" element={<Drivers />} />
       <Route path="drivers/:id" element={<DriverDetail />} />
       <Route path="users" element={<Users />} />
+      <Route path="users/:id" element={<UserDetail />} />
       <Route path="restaurants" element={<Restaurants />} />
       <Route path="restaurants/:id" element={<RestaurantDetail />} />
       <Route path="disputes" element={<Disputes />} />

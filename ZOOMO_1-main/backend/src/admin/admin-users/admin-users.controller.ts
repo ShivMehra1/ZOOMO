@@ -17,6 +17,11 @@ export class AdminUsersController {
     return this.adminUsersService.getUserById(id);
   }
 
+  @Patch(":id")
+  updateUser(@Param("id") id: string, @Body() body: any) {
+    return this.adminUsersService.updateUser(id, body);
+  }
+
   @Patch(":id/suspend")
   suspendUser(@Param("id") id: string, @Body("reason") reason: string) {
     return this.adminUsersService.suspendUser(id, reason);

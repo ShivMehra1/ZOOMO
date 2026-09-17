@@ -59,13 +59,21 @@ export class AdminUsersService {
         addresses: true,
         orders: {
           orderBy: { createdAt: "desc" },
-          take: 20,
           select: {
             id: true,
             status: true,
+            orderType: true,
+            subtotal: true,
+            deliveryFee: true,
+            tax: true,
+            tip: true,
             total: true,
             createdAt: true,
             restaurant: { select: { name: true } },
+            driver: { select: { user: { select: { name: true } } } },
+            items: {
+              select: { quantity: true, price: true, dish: { select: { name: true } } },
+            },
           },
         },
       },
@@ -79,6 +87,16 @@ export class AdminUsersService {
     });
 
     return { ...user, totalSpent: totalSpent._sum.total || 0 };
+  }
+
+  async updateUser(id: string, data: { name?: string; email?: string; phone?: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException("User not found");
+    return this.prisma.user.update({
+      where: { id },
+      data: { name: data.name, email: data.email, phone: data.phone },
+      select: { id: true, name: true, email: true, phone: true },
+    });
   }
 
   async suspendUser(id: string, reason: string) {

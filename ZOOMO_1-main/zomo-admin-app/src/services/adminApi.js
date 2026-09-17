@@ -29,6 +29,7 @@ export const updateOrderStatus = (orderId, status) =>
 export const getUsers = (search, role) =>
   adminApi.get('/users', { params: { search, role } });
 export const getUserById = (id) => adminApi.get(`/users/${id}`);
+export const updateUser = (id, data) => adminApi.patch(`/users/${id}`, data);
 export const suspendUser = (id, reason) => adminApi.patch(`/users/${id}/suspend`, { reason });
 export const unsuspendUser = (id) => adminApi.patch(`/users/${id}/unsuspend`);
 export const resetUserPassword = (id) => adminApi.post(`/users/${id}/reset-password`);
