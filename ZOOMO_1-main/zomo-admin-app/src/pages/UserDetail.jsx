@@ -6,7 +6,9 @@ import {
   suspendUser,
   unsuspendUser,
   resetUserPassword,
+  getOrders,
 } from "../services/adminApi";
+import { usersFromOrders, realOrders } from "../lib/real";
 import {
   FiArrowLeft,
   FiRefreshCw,
@@ -55,8 +57,15 @@ export default function UserDetail() {
   async function load() {
     try {
       setLoading(true);
-      const res = await getUserById(id);
-      setUser(res.data);
+      try {
+        const res = await getUserById(id);
+        setUser(res.data);
+      } catch {
+        const orders = realOrders((await getOrders()).data);
+        const u = usersFromOrders(orders).find((x) => x.id === id);
+        if (!u) throw new Error("missing");
+        setUser({ ...u, orders: orders.filter((o) => o.userId === id), totalSpent: orders.filter((o) => o.userId === id && o.status !== "CANCELLED").reduce((s, o) => s + Number(o.total || 0), 0), addresses: [] });
+      }
     } catch {
       alert("Failed to load user");
     } finally {

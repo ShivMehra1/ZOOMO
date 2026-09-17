@@ -77,7 +77,7 @@ export default function Disputes() {
       const res = await getDisputes();
       setOrders(res.data);
     } catch {
-      alert("Failed to load disputes");
+      console.warn("Failed to load disputes");
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import adminApi from "../services/adminApi";
+import { isFakeUser } from "../lib/real";
 import { FiTruck, FiRefreshCw, FiChevronRight } from "react-icons/fi";
 
 export default function Drivers() {
@@ -12,7 +13,7 @@ export default function Drivers() {
     try {
       setLoading(true);
       const res = await adminApi.get("drivers");
-      setDrivers(res.data);
+      setDrivers((res.data || []).filter((d) => !isFakeUser(d.user)));
     } catch {
       alert("Failed to load drivers");
     } finally {

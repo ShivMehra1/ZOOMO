@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getBusinessSummary } from "../services/adminApi";
+import { getBusinessSummary, getOrders } from "../services/adminApi";
+import { realOrders } from "../lib/real";
 import { getAdminSocket } from "../lib/socket";
 import { FiDollarSign, FiShoppingBag, FiTrendingUp, FiAward } from "react-icons/fi";
 
@@ -62,7 +63,21 @@ export default function Finance() {
       const res = await getBusinessSummary();
       setSummary(res.data);
     } catch {
-      // keep last known summary on transient failure rather than blanking the page
+      const orders = realOrders((await getOrders().catch(() => ({ data: [] }))).data || []);
+      const kept = orders.filter((o) => o.status === "DELIVERED");
+      const item = kept.reduce((s, o) => s + Number(o.subtotal || 0), 0);
+      const fees = kept.reduce((s, o) => s + Number(o.deliveryFee || 0), 0);
+      const total = kept.reduce((s, o) => s + Number(o.total || 0), 0);
+      setSummary({
+        totalBusiness: total,
+        totalOrders: kept.length,
+        totalPlatformEarnings: item * 0.25,
+        totalItemRevenue: item,
+        totalDeliveryFees: fees,
+        totalDriverCommission: item * 0.05,
+        totalRestaurantPayout: item * 0.7,
+        driverBreakdown: [],
+      });
     } finally {
       setLoading(false);
     }

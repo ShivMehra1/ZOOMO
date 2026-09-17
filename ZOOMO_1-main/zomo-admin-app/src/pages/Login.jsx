@@ -61,7 +61,7 @@ export default function Login() {
                 <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-z-muted" size={16} />
                 <input
                   type="email"
-                  placeholder="admin@zoomoeats.com"
+                  placeholder="HQ email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma.service";
 import * as bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
@@ -135,5 +135,27 @@ export class AdminUsersService {
 
     // Returned once — never stored or logged in plaintext anywhere else.
     return { tempPassword };
+  }
+
+  async deleteUser(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException("User not found");
+    if (user.role === "ADMIN") throw new BadRequestException("Cannot delete an admin");
+    const owned = await this.prisma.restaurant.count({ where: { ownerId: id } });
+    const orders = await this.prisma.order.count({ where: { userId: id } });
+    if (owned || orders) {
+      return this.prisma.user.update({
+        where: { id },
+        data: {
+          isSuspended: true,
+          suspendedReason: "Removed seed/demo account",
+          name: "Removed",
+          email: `removed+${id.slice(0, 8)}@zoomoeats.com`,
+        },
+        select: { id: true, isSuspended: true, email: true },
+      });
+    }
+    await this.prisma.address.deleteMany({ where: { userId: id } });
+    return this.prisma.user.delete({ where: { id }, select: { id: true } });
   }
 }

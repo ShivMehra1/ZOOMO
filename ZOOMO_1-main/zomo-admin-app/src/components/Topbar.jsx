@@ -1,11 +1,14 @@
 import { useAdminAuth } from "../context/AdminAuthContext";
-import { FiBell, FiLogOut } from "react-icons/fi";
+import { FiMenu, FiLogOut } from "react-icons/fi";
 
-export default function Topbar() {
+export default function Topbar({ onMenu }) {
   const { logout } = useAdminAuth();
   return (
-    <header className="h-16 bg-z-surface border-b border-z-line flex items-center justify-between px-6">
-      <div>
+    <header className="h-16 bg-z-surface border-b border-z-line flex items-center justify-between px-4 sm:px-6">
+      <div className="flex items-center gap-3">
+        <button type="button" className="md:hidden p-2 rounded-xl border border-z-line text-z-ink" onClick={onMenu}>
+          <FiMenu size={16} />
+        </button>
         <h1 className="text-z-ink font-semibold text-base">Dashboard</h1>
         <p className="text-z-muted text-xs">Welcome back, Admin</p>
       </div>

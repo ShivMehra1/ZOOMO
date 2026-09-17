@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AssignDriverModal from "../components/AssignDriverModal";
 import { getOrders, updateOrderStatus } from "../services/adminApi";
 import { getAdminSocket } from "../lib/socket";
+import { realOrders } from "../lib/real";
 import { FiRefreshCw, FiTruck, FiClock, FiAlertCircle } from "react-icons/fi";
 
 const STATUS_COLORS = {
@@ -114,7 +115,7 @@ export default function Orders() {
     try {
       setLoading(true);
       const res = await getOrders();
-      setOrders(res.data);
+      setOrders(realOrders(res.data));
     } catch {
       alert("Failed to load orders");
     } finally {
@@ -127,7 +128,7 @@ export default function Orders() {
   async function silentRefresh() {
     try {
       const res = await getOrders();
-      setOrders(res.data);
+      setOrders(realOrders(res.data));
     } catch {
       // ignore — next successful poll/manual refresh will catch up
     }

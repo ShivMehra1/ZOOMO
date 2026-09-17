@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Param, Body, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Patch, Post, Delete, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { AdminUsersService } from "./admin-users.service";
 import { AdminJwtGuard } from "../guards/admin-jwt/admin-jwt.guard";
 
@@ -35,5 +35,10 @@ export class AdminUsersController {
   @Post(":id/reset-password")
   resetPassword(@Param("id") id: string) {
     return this.adminUsersService.resetPassword(id);
+  }
+
+  @Delete(":id")
+  deleteUser(@Param("id") id: string) {
+    return this.adminUsersService.deleteUser(id);
   }
 }

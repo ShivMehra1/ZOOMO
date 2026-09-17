@@ -11,6 +11,8 @@ import {
   getOrders,
   deleteOrder,
 } from "../services/adminApi";
+import catalog from "../data/jourian-catalog.json";
+import { displayKitchenName, realOrders } from "../lib/real";
 import {
   FiArrowLeft,
   FiEdit2,
@@ -69,9 +71,23 @@ export default function RestaurantDetail() {
   async function load() {
     try {
       setLoading(true);
-      const [rRes, oRes] = await Promise.all([getRestaurantById(id), getOrders(id)]);
-      setRestaurant(rRes.data);
-      setOrders(oRes.data);
+      let restaurant = null;
+      try {
+        restaurant = (await getRestaurantById(id)).data;
+      } catch {
+        const k = catalog.restaurants.find((r) => r.id === id);
+        if (!k) throw new Error("missing");
+        restaurant = { ...k, dishes: catalog.dishes.filter((d) => d.restaurantId === id), isApproved: true, isActive: true };
+      }
+      restaurant = { ...restaurant, name: displayKitchenName(restaurant.name) };
+      let orders = [];
+      try {
+        orders = realOrders((await getOrders()).data).filter(
+          (o) => o.restaurantId === id || displayKitchenName(o.restaurant?.name) === restaurant.name,
+        );
+      } catch {}
+      setRestaurant(restaurant);
+      setOrders(orders);
     } catch {
       alert("Failed to load restaurant");
     } finally {
