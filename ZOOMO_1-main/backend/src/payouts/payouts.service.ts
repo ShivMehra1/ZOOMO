@@ -30,7 +30,7 @@ export class PayoutsService {
       _sum: { restaurantEarning: true },
     });
     const paidAgg = await this.prisma.payout.aggregate({
-      where: { restaurantId, recipientType: "RESTAURANT", status: { in: ["PENDING", "COMPLETED"] } },
+      where: { restaurantId, recipientType: "RESTAURANT", status: { in: ["PENDING", "APPROVED", "COMPLETED"] } },
       _sum: { amount: true },
     });
     const earned = earnedAgg._sum.restaurantEarning || 0;
@@ -45,7 +45,7 @@ export class PayoutsService {
     });
     const earned = orders.reduce((sum, o) => sum + (o.deliveryFee || 0) + (o.driverCommission || 0) + (o.tip || 0), 0);
     const paidAgg = await this.prisma.payout.aggregate({
-      where: { driverId, recipientType: "DRIVER", status: { in: ["PENDING", "COMPLETED"] } },
+      where: { driverId, recipientType: "DRIVER", status: { in: ["PENDING", "APPROVED", "COMPLETED"] } },
       _sum: { amount: true },
     });
     const paidOrPending = paidAgg._sum.amount || 0;
@@ -115,20 +115,72 @@ export class PayoutsService {
   }
 
   /* ── Admin ── */
+  async getMerchantMethod(ownerId: string) {
+    const restaurantId = await this.ownedRestaurantId(ownerId);
+    return this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true },
+    });
+  }
+
+  async setMerchantMethod(ownerId: string, data: { payoutMethod?: string; upiId?: string; bankName?: string; accountLast4?: string }) {
+    const restaurantId = await this.ownedRestaurantId(ownerId);
+    return this.prisma.restaurant.update({
+      where: { id: restaurantId },
+      data: {
+        payoutMethod: data.payoutMethod,
+        upiId: data.upiId,
+        bankName: data.bankName,
+        accountLast4: data.accountLast4,
+      },
+      select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true },
+    });
+  }
+
+  async getDriverMethod(userId: string) {
+    const driverId = await this.ownedDriverId(userId);
+    return this.prisma.driver.findUnique({
+      where: { id: driverId },
+      select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true },
+    });
+  }
+
+  async setDriverMethod(userId: string, data: { payoutMethod?: string; upiId?: string; bankName?: string; accountLast4?: string }) {
+    const driverId = await this.ownedDriverId(userId);
+    return this.prisma.driver.update({
+      where: { id: driverId },
+      data: {
+        payoutMethod: data.payoutMethod,
+        upiId: data.upiId,
+        bankName: data.bankName,
+        accountLast4: data.accountLast4,
+      },
+      select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true },
+    });
+  }
+
   async listAll() {
     return this.prisma.payout.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        restaurant: { select: { name: true } },
-        driver: { select: { user: { select: { name: true } } } },
+        restaurant: { select: { name: true, payoutMethod: true, upiId: true, bankName: true, accountLast4: true } },
+        driver: { select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true, user: { select: { name: true } } } },
       },
     });
   }
 
-  async setStatus(id: string, status: "COMPLETED" | "REJECTED") {
+  async setStatus(id: string, status: "APPROVED" | "COMPLETED" | "REJECTED") {
     const payout = await this.prisma.payout.findUnique({ where: { id } });
     if (!payout) throw new NotFoundException("Payout not found");
-    if (payout.status !== "PENDING") throw new BadRequestException("Payout already resolved");
+    if (status === "APPROVED" && payout.status !== "PENDING") {
+      throw new BadRequestException("Only pending payouts can be approved");
+    }
+    if (status === "COMPLETED" && payout.status !== "APPROVED" && payout.status !== "PENDING") {
+      throw new BadRequestException("Payout is not awaiting payment");
+    }
+    if (status === "REJECTED" && payout.status !== "PENDING" && payout.status !== "APPROVED") {
+      throw new BadRequestException("Payout already resolved");
+    }
 
     const updated = await this.prisma.payout.update({ where: { id }, data: { status } });
 
@@ -136,6 +188,27 @@ export class PayoutsService {
     if (updated.driverId) this.realtime.emitToRoom(`driver:${updated.driverId}`, "payout:updated", updated);
     this.realtime.emitToRoom("admin", "payout:updated", updated);
 
+    return updated;
+  }
+
+  async attachProof(id: string, paymentProofUrl: string) {
+    if (!paymentProofUrl) throw new BadRequestException("Proof image is required");
+    const payout = await this.prisma.payout.findUnique({ where: { id } });
+    if (!payout) throw new NotFoundException("Payout not found");
+    const updated = await this.prisma.payout.update({
+      where: { id },
+      data: {
+        paymentProofUrl,
+        status: payout.status === "PENDING" ? "APPROVED" : payout.status,
+      },
+      include: {
+        restaurant: { select: { name: true, payoutMethod: true, upiId: true, bankName: true, accountLast4: true } },
+        driver: { select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true, user: { select: { name: true } } } },
+      },
+    });
+    if (updated.restaurantId) this.realtime.emitToRoom(`restaurant:${updated.restaurantId}`, "payout:updated", updated);
+    if (updated.driverId) this.realtime.emitToRoom(`driver:${updated.driverId}`, "payout:updated", updated);
+    this.realtime.emitToRoom("admin", "payout:updated", updated);
     return updated;
   }
 

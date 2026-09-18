@@ -35,37 +35,39 @@ export class CartController {
   @Post("items")
   async addItem(@Req() req, @Body() body) {
     this.checkCustomer(req);
-
-    const quantity = body.quantity ?? 1;
-    await this.cartService.addItem(req.user.id, body.dishId, quantity, body.dishSizeId, body.specialInstructions);
-
-    return this.cartService.getCart(req.user.id); // 👈 FIXED
+    return this.cartService.addItem(req.user.id, {
+      dishId: body.dishId,
+      quantity: body.quantity,
+      dishSizeId: body.dishSizeId,
+      specialInstructions: body.specialInstructions,
+      replace: Boolean(body.replace),
+    });
   }
 
   /* ================= UPDATE ITEM ================= */
   @Patch("items/:id")
   async updateItem(@Req() req, @Param("id") id: string, @Body() body) {
     this.checkCustomer(req);
-
-    await this.cartService.updateItem(id, body.quantity ?? 1, body.specialInstructions);
-    return this.cartService.getCart(req.user.id); // 👈 FIXED
+    return this.cartService.updateItem(req.user.id, id, body.quantity ?? 1, body.specialInstructions);
   }
 
   /* ================= REMOVE ITEM ================= */
   @Delete("items/:id")
   async removeItem(@Req() req, @Param("id") id: string) {
     this.checkCustomer(req);
+    return this.cartService.removeItem(req.user.id, id);
+  }
 
-    await this.cartService.removeItem(id);
-    return this.cartService.getCart(req.user.id); // 👈 FIXED
+  @Delete("restaurant/:restaurantId")
+  async clearRestaurant(@Req() req, @Param("restaurantId") restaurantId: string) {
+    this.checkCustomer(req);
+    return this.cartService.clearRestaurant(req.user.id, restaurantId);
   }
 
   /* ================= CLEAR CART ================= */
   @Delete()
   async clearCart(@Req() req) {
     this.checkCustomer(req);
-
-    await this.cartService.clearCart(req.user.id);
-    return this.cartService.getCart(req.user.id); // 👈 FIXED
+    return this.cartService.clearCart(req.user.id);
   }
 }

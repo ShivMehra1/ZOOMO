@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Delete, Param, Body, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Patch, Post, Delete, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { AdminRestaurantsService } from "./admin-restaurants.service";
 import { AdminJwtGuard } from "../guards/admin-jwt/admin-jwt.guard";
 
@@ -12,9 +12,24 @@ export class AdminRestaurantsController {
     return this.adminRestaurantsService.getAllRestaurants(search);
   }
 
+  @Post()
+  createRestaurant(@Body() body: any) {
+    return this.adminRestaurantsService.createRestaurant(body);
+  }
+
   @Get(":id")
   getRestaurantById(@Param("id") id: string) {
     return this.adminRestaurantsService.getRestaurantById(id);
+  }
+
+  @Post(":id/dishes")
+  createDish(@Param("id") id: string, @Body() body: any) {
+    return this.adminRestaurantsService.createDish(id, body);
+  }
+
+  @Delete(":id")
+  deleteRestaurant(@Param("id") id: string) {
+    return this.adminRestaurantsService.deleteRestaurant(id);
   }
 
   @Patch(":id/approve")

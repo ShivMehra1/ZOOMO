@@ -5,6 +5,26 @@ import { PrismaService } from "../../common/prisma.service";
 export class AdminAnalyticsService {
   constructor(private prisma: PrismaService) {}
 
+  async getInbox() {
+    const [unreadOrders, unreadPayouts, disputes, refunds] = await Promise.all([
+      this.prisma.order.count({ where: { status: { in: ["PENDING", "SCHEDULED"] } } }),
+      this.prisma.payout.count({ where: { status: "PENDING" } }),
+      this.prisma.order.count({
+        where: {
+          OR: [
+            { status: "CANCELLED" },
+            { rating: { lte: 2 } },
+            { refundRequested: true, refundedAt: null, refundRejectedAt: null },
+          ],
+        },
+      }),
+      this.prisma.order.count({
+        where: { refundRequested: true, refundedAt: null, refundRejectedAt: null },
+      }),
+    ]);
+    return { unreadOrders, unreadPayouts, disputes, refunds };
+  }
+
   async getSummary() {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);

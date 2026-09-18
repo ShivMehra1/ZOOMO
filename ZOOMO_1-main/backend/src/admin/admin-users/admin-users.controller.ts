@@ -12,6 +12,16 @@ export class AdminUsersController {
     return this.adminUsersService.getAllUsers(search, role);
   }
 
+  @Post()
+  createUser(@Body() body: any) {
+    return this.adminUsersService.createUser(body);
+  }
+
+  @Post("purge-seed")
+  purgeSeed() {
+    return this.adminUsersService.purgeSeed();
+  }
+
   @Get(":id")
   getUserById(@Param("id") id: string) {
     return this.adminUsersService.getUserById(id);

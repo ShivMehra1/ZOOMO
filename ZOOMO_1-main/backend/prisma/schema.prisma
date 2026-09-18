@@ -96,6 +96,10 @@ model Restaurant {
   updatedAt    DateTime @updatedAt
   lat          Float?
   lng          Float?
+  payoutMethod String? // BANK | UPI | CASH
+  upiId        String?
+  bankName     String?
+  accountLast4 String?
 
   ownerId    String
   owner      User        @relation(fields: [ownerId], references: [id])
@@ -180,12 +184,19 @@ model Order {
   dropOffNote           String?
   includeCutlery        Boolean     @default(true)
   rating                Int?
+  kitchenComment        String?
+  driverRating          Int?
+  driverComment         String?
+  postDeliveryTip       Float       @default(0)
   gatePingAt            DateTime?
   promisedAt            DateTime?
   lateCreditApplied     Float?
   cancelReason          String?
   refundAmount          Float?
   refundedAt            DateTime?
+  refundRequested       Boolean   @default(false)
+  refundReason          String?
+  refundRejectedAt      DateTime?
   specialInstructions   String?
   estimatedDeliveryTime DateTime?
   actualDeliveryTime    DateTime?
@@ -262,6 +273,10 @@ model Driver {
   vehicleType  String?
   vehiclePlate String?
   rating       Float?   @default(4.8)
+  payoutMethod String? // BANK | UPI | CASH
+  upiId        String?
+  bankName     String?
+  accountLast4 String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -282,6 +297,7 @@ model Review {
   user         User       @relation(fields: [userId], references: [id])
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderId      String?    @unique
 }
 
 model Favorite {
@@ -321,10 +337,11 @@ model Payout {
   method        String // CASH | UPI | BANK_TRANSFER
   status        String   @default("PENDING") // PENDING | COMPLETED | REJECTED
   recipientType String // RESTAURANT | DRIVER
-  note          String?
-  payoutDetail  String? // UPI id / bank account ref / free text, depending on method
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  note             String?
+  payoutDetail     String? // UPI id / bank account ref / free text, depending on method
+  paymentProofUrl  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   restaurantId String?
   restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)

@@ -23,7 +23,7 @@ function RevenueSplitBar({ restaurant, platform, driver }) {
 
   const segments = [
     { label: "Restaurants", value: restaurant, cls: "bg-z-sage" },
-    { label: "Platform (HQ)", value: platform, cls: "bg-z-primary" },
+    { label: "Platform (Admin)", value: platform, cls: "bg-z-primary" },
     { label: "Drivers", value: driver, cls: "bg-z-accent" },
   ];
 

@@ -134,19 +134,28 @@ export default function Analytics() {
   if (loading) {
     return <div className="text-z-muted text-sm py-12 text-center">Loading analytics...</div>;
   }
-  if (!summary) return null;
+  if (!summary) {
+    return (
+      <div className="text-z-muted text-sm py-12 text-center">
+        Could not load analytics.{" "}
+        <button type="button" className="font-semibold text-z-primary" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-z-ink">Analytics</h2>
-        <p className="text-z-muted text-sm mt-1">Live Jourian numbers — seed kitchens and demo users stripped out</p>
+        <p className="text-z-muted text-sm mt-1">Live Jourian numbers from Postgres</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={FiDollarSign} label="Total Revenue" value={`₹${Number(summary.totalRevenue || 0).toFixed(0)}`} sub={`₹${Number(summary.revenueToday || 0).toFixed(0)} today`} />
         <StatCard icon={FiShoppingBag} label="Total Orders" value={summary.totalOrders} sub={`${summary.ordersToday} today`} />
-        <StatCard icon={FiUsers} label="Customers" value={summary.totalUsers} sub={`${summary.totalRestaurants} kitchens`} />
+        <StatCard icon={FiUsers} label="Customers" value={summary.totalUsers} sub={`${summary.totalRestaurants} restaurants`} />
         <StatCard icon={FiTruck} label="Drivers" value={summary.totalDrivers} sub={`${summary.activeDrivers} online`} />
       </div>
 
@@ -159,7 +168,7 @@ export default function Analytics() {
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-z-surface border border-z-line rounded-card p-5 shadow-card">
-          <h3 className="text-z-ink font-semibold mb-4">Top kitchens</h3>
+          <h3 className="text-z-ink font-semibold mb-4">Top restaurants</h3>
           <div className="space-y-3">
             {topRestaurants.map((r, i) => (
               <div key={r.restaurant?.id || i} className="flex items-center justify-between">
@@ -192,7 +201,7 @@ export default function Analytics() {
                 <span className="text-z-primary text-sm font-semibold">₹{Number(d.revenue || 0).toFixed(0)}</span>
               </div>
             ))}
-            {topDishes.length === 0 && <p className="text-z-muted text-sm">Dish mix appears once the kitchen API is live</p>}
+            {topDishes.length === 0 && <p className="text-z-muted text-sm">Dish mix appears once orders start coming in</p>}
           </div>
         </div>
       </div>

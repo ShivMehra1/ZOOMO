@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
+import AdminLayout from "../layouts/AdminLayout";
 
 export default function ProtectedAdminRoute({ children }) {
   const { admin } = useAdminAuth();
@@ -8,5 +9,5 @@ export default function ProtectedAdminRoute({ children }) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  return children;
+  return children ?? <AdminLayout />;
 }

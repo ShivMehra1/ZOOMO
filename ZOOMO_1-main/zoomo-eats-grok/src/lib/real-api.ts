@@ -1,11 +1,7 @@
-// Bridges this frontend to the real NestJS + Postgres backend (the one also
-// used by zomo-customer-app), replacing this app's own fake client-only
-// "login" and static demo restaurant/dish arrays. Cart/orders/reviews are
-// deliberately NOT wired here yet — see the summary given alongside this
-// file's introduction for what's covered in this pass.
+// Bridges this frontend to the real NestJS + Postgres backend. Menus, cart,
+// orders, and reviews all use live dish/restaurant ids from GET /restaurants.
 import { IMG, TOWN, setCatalog, setLiveReviews, setPromos, type Dish, type Restaurant } from "./zoomo-data";
 import { getApiBase, publicMedia } from "./api-base";
-import jourianCatalog from "@/data/jourian-catalog.json";
 
 const TOKEN_KEY = "zoomo_real_token";
 
@@ -22,18 +18,30 @@ export function setRealToken(token: string | null) {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code?: string;
+  payload?: unknown;
+  constructor(message: string, status: number, code?: string, payload?: unknown) {
     super(message);
     this.status = status;
+    this.code = code;
+    this.payload = payload;
   }
 }
 
 async function handle(res: Response) {
   const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
+  let data: any = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new ApiError(text.slice(0, 160) || `Request failed (${res.status})`, res.status);
+    }
+  }
   if (!res.ok) {
-    const message = (data && (data.message || data.error)) || `Request failed (${res.status})`;
-    throw new ApiError(Array.isArray(message) ? message[0] : message, res.status);
+    const raw = data && (data.message || data.error);
+    const message = Array.isArray(raw) ? raw[0] : typeof raw === "string" ? raw : `Request failed (${res.status})`;
+    throw new ApiError(message, res.status, data?.code, data);
   }
   return data;
 }
@@ -196,17 +204,49 @@ export function isCatalogLoaded(): boolean {
   return catalogLoaded;
 }
 
+function emptyCatalog(): CatalogPayload {
+  return { restaurants: [], dishes: [], reviews: [], coupons: {}, offers: [] };
+}
+
 export async function loadRealCatalog(): Promise<CatalogPayload> {
-  const payload: CatalogPayload = {
-    restaurants: jourianCatalog.restaurants as Restaurant[],
-    dishes: jourianCatalog.dishes as Dish[],
-    reviews: jourianCatalog.reviews as CatalogPayload["reviews"],
-    coupons: (jourianCatalog.coupons || {}) as CatalogPayload["coupons"],
-    offers: (jourianCatalog.offers || []) as CatalogPayload["offers"],
-  };
+  const payload = emptyCatalog();
+  try {
+    let rows: any = null;
+    for (let attempt = 0; attempt < 3 && !rows; attempt++) {
+      try {
+        rows = await realApi.get("/restaurants");
+      } catch (err) {
+        if (attempt === 2) throw err;
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      }
+    }
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        payload.restaurants.push(toRestaurant(r));
+        for (const d of r.dishes || []) {
+          payload.dishes.push(toDish(d, r.id));
+        }
+        for (const rv of r.reviews || []) {
+          payload.reviews.push({
+            id: rv.id,
+            restaurantId: r.id,
+            name: rv.user?.name || "Neighbour",
+            rating: Number(rv.rating) || 0,
+            text: rv.comment || rv.text || "",
+          });
+        }
+      }
+    }
+  } catch (err) {
+    // Never fall back to the bundled slug catalog — those dish ids are not
+    // in Postgres, so Add-to-bag would 404. Empty is better than broken.
+    console.error("[catalog] live restaurants failed", err);
+  }
+
   try {
     const offers = await realApi.get("/offers").catch(() => []);
     if (Array.isArray(offers) && offers.length) {
+      const offerImages = [IMG.offerZoomo50, IMG.offerBogo, IMG.offerFreeship];
       for (const o of offers) {
         const type = o.discountType === "FLAT" ? "flat" : o.discountType === "FREE_DELIVERY" ? "ship" : "percent";
         payload.coupons[o.code] = {
@@ -220,13 +260,13 @@ export async function loadRealCatalog(): Promise<CatalogPayload> {
           title: o.title || o.code,
           subtitle: o.subtitle || "Jourian",
           expires: o.expires || "Always on",
-          image: IMG.hero,
+          image: offerImages[payload.offers.length] || "",
           restaurantId: o.restaurantId ?? null,
         });
       }
     }
   } catch {
-    /* offers are optional — menus come from the Jourian seed */
+    /* offers are optional */
   }
   applyCatalog(payload);
   return payload;
@@ -242,35 +282,65 @@ export type RealCartItem = {
   dish: { id: string; name: string; price: number; imageUrl: string; isVegetarian: boolean; restaurantId: string; sizes?: { id: string; label: string; price: number }[] };
 };
 
-export async function realGetCart(): Promise<RealCartItem[]> {
-  const res = await realApi.get("/cart");
+function cartItemsOf(res: any): RealCartItem[] {
   return Array.isArray(res?.items) ? res.items : [];
 }
 
-export function realAddToCart(dishId: string, quantity: number, dishSizeId?: string, specialInstructions?: string) {
-  return realApi.post("/cart/items", { dishId, quantity, dishSizeId, specialInstructions });
+export async function realGetCart(): Promise<RealCartItem[]> {
+  return cartItemsOf(await realApi.get("/cart"));
 }
 
-export function realSetCartItemQty(cartItemId: string, quantity: number, specialInstructions?: string) {
-  return realApi.patch(`/cart/items/${cartItemId}`, { quantity, specialInstructions });
+export async function realAddToCart(
+  dishId: string,
+  quantity: number,
+  dishSizeId?: string,
+  specialInstructions?: string,
+  replace?: boolean,
+): Promise<RealCartItem[]> {
+  return cartItemsOf(
+    await realApi.post("/cart/items", { dishId, quantity, dishSizeId, specialInstructions, replace: Boolean(replace) }),
+  );
 }
 
-export function realRemoveCartItem(cartItemId: string) {
-  return realApi.delete(`/cart/items/${cartItemId}`);
+export async function realSetCartItemQty(cartItemId: string, quantity: number, specialInstructions?: string) {
+  return cartItemsOf(await realApi.patch(`/cart/items/${cartItemId}`, { quantity, specialInstructions }));
 }
 
-export function realClearCart() {
-  return realApi.delete("/cart");
+export async function realRemoveCartItem(cartItemId: string) {
+  return cartItemsOf(await realApi.delete(`/cart/items/${cartItemId}`));
+}
+
+export async function realClearCart() {
+  return cartItemsOf(await realApi.delete("/cart"));
+}
+export async function realClearRestaurantCart(restaurantId: string) {
+  return cartItemsOf(await realApi.delete(`/cart/restaurant/${encodeURIComponent(restaurantId)}`));
 }
 
 /* ── Real addresses ── */
-export type RealAddress = { id: string; street: string; city: string; state: string; zipCode: string };
+export type RealAddress = {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  lat?: number | null;
+  lng?: number | null;
+};
 
 export async function realGetAddresses(): Promise<RealAddress[]> {
   const res = await realApi.get("/addresses");
   return Array.isArray(res) ? res : [];
 }
-export function realSaveAddress(a: { street: string; city: string; state: string; zipCode: string }) {
+export function realSaveAddress(a: {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  lat?: number | null;
+  lng?: number | null;
+  isDefault?: boolean;
+}) {
   return realApi.post("/addresses", { ...a, country: "India" });
 }
 export function realUpdateAddress(id: string, patch: Partial<{ street: string; city: string; state: string; zipCode: string }>) {
@@ -319,10 +389,12 @@ export async function realPlaceOrder(payload: {
   dropOff?: string;
   dropNote?: string;
   noCutlery?: boolean;
+  restaurantId?: string;
 }) {
   return realApi.post("/orders", {
     addressId: payload.addressId,
     paymentMethod: payload.paymentMethod,
+    restaurantId: payload.restaurantId,
     orderType:
       payload.orderType === "DELIVERY" ? "DELIVERY" : payload.orderType === "DINE_IN" ? "DINE_IN" : "PICKUP",
     dropOffPreference: payload.dropOff || "MEET_DOOR",
@@ -351,9 +423,11 @@ export async function realQuoteOrder(payload: {
   addressId: string | null;
   promoCode: string | null;
   tip: number;
+  restaurantId?: string;
 }): Promise<OrderQuote> {
   return realApi.post("/orders/quote", {
     addressId: payload.addressId,
+    restaurantId: payload.restaurantId,
     orderType:
       payload.orderType === "DELIVERY" ? "DELIVERY" : payload.orderType === "DINE_IN" ? "DINE_IN" : "PICKUP",
     promoCode: payload.promoCode,
@@ -371,8 +445,14 @@ export function realGetOrder(id: string) {
 export function realCancelOrder(id: string) {
   return realApi.patch(`/orders/${id}/cancel`);
 }
-export function realRateOrder(id: string, rating: number) {
-  return realApi.patch(`/orders/${id}/rate`, { rating });
+export function realRateOrder(id: string, rating: number, comment?: string) {
+  return realApi.patch(`/orders/${id}/rate`, { rating, comment: comment || undefined });
+}
+export function realRateDriver(id: string, rating: number, comment?: string) {
+  return realApi.patch(`/orders/${id}/rate-driver`, { rating, comment: comment || undefined });
+}
+export function realExtraTip(id: string, amount: number) {
+  return realApi.patch(`/orders/${id}/extra-tip`, { amount });
 }
 export function realGatePing(id: string) {
   return realApi.patch(`/orders/${id}/gate-ping`);
@@ -558,10 +638,14 @@ export function toStoreOrder(o: any) {
     statusAt: o.updatedAt,
     driverId: o.driverId ?? null,
     driver,
+    rating: o.rating ?? undefined,
+    driverRating: o.driverRating ?? undefined,
+    kitchenComment: o.kitchenComment ?? "",
+    driverComment: o.driverComment ?? "",
+    postDeliveryTip: o.postDeliveryTip ?? 0,
     dropOff: (o.dropOffPreference ?? "MEET_DOOR") as any,
     dropNote: o.dropOffNote ?? "",
     chat: (o.messages ?? []).map((m: any) => ({ id: m.id, from: m.sender === "CUSTOMER" ? "me" : "rider", text: m.text, at: m.createdAt })),
-    rating: o.rating ?? undefined,
     proofAt: null,
     noCutlery: o.includeCutlery === false,
     passUsed: false,

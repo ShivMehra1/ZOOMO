@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { COUPONS, OFFERS, restaurantById } from "@/lib/zoomo-data";
+import { COUPONS, IMG, OFFERS, restaurantById } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export function OffersSection() {
@@ -22,16 +22,12 @@ export function OffersSection() {
       return;
     }
     const result = toggleOffer(code);
-    if (result === "full") {
-      setToast("Two offers at a time — turn one off first");
-      return;
-    }
     if (result === "on") {
       setFlash(code);
-      setToast(`${code} is on — it’ll apply at checkout`);
+      setToast(`${code} will apply at checkout`);
       setTimeout(() => setFlash(null), 500);
     } else {
-      setToast(`${code} turned off`);
+      setToast(`${code} removed`);
     }
   }
 
@@ -58,7 +54,7 @@ export function OffersSection() {
               }`}
             >
               <div className="relative h-36">
-                <img src={o.image} alt="" className="size-full object-cover" />
+                <img src={o.image || IMG.offerZoomo50} alt="" className="size-full object-cover" />
                 <div className={`absolute inset-0 ${on ? "bg-primary/45" : "bg-gradient-to-t from-ink/70 to-transparent"}`} />
                 {on && (
                   <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold tracking-wide text-primary uppercase">
@@ -82,10 +78,10 @@ export function OffersSection() {
                 >
                   {on ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <Check className="size-4" /> Activated
+                      <Check className="size-4" /> Applied
                     </span>
                   ) : (
-                    "Activate"
+                    "Apply"
                   )}
                 </button>
               </div>
@@ -93,7 +89,7 @@ export function OffersSection() {
           );
         })}
       </div>
-      <p className="mt-3 text-xs text-muted">Two offers at a time. They apply at checkout.</p>
+      <p className="mt-3 text-xs text-muted">One offer at a time. It applies at checkout.</p>
       {toast && (
         // Sits above the sticky "View bag" cart bar (fixed at bottom-24 on
         // mobile, bottom-5 on desktop) — they were both anchored to the same

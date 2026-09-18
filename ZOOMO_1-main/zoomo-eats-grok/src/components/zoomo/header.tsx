@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, LogIn, MapPin, ShoppingBag, User, UserPlus } from "lucide-react";
+import { LogIn, MapPin, ShoppingBag, User, UserPlus } from "lucide-react";
 import { ZoomoMark } from "./mark";
-import { useGoBack } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export function Header({ onLocationClick }: { onLocationClick: () => void }) {
@@ -13,7 +12,6 @@ export function Header({ onLocationClick }: { onLocationClick: () => void }) {
   const count = cart.reduce((s, i) => s + i.quantity, 0);
   const isHome = pathname === "/";
   const atTopHome = isHome && !scrolled;
-  const goBack = useGoBack("/");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -28,16 +26,6 @@ export function Header({ onLocationClick }: { onLocationClick: () => void }) {
     }`}>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-2.5">
         <div className="flex min-w-0 shrink-0 items-center gap-1.5">
-          {!isHome && (
-            <button
-              type="button"
-              onClick={goBack}
-              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
-              aria-label="Back"
-            >
-              <ArrowLeft className="size-4" />
-            </button>
-          )}
           <button className="shrink-0" onClick={() => nav({ to: "/" })} aria-label="Zoomo Eats home">
             <span className="flex items-center gap-2.5">
               <ZoomoMark size={34} />
@@ -55,7 +43,7 @@ export function Header({ onLocationClick }: { onLocationClick: () => void }) {
               <MapPin className="size-3.5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[9px] font-bold tracking-[0.12em] text-muted uppercase">Jourian</span>
+              <span className="block text-[9px] font-bold tracking-[0.12em] text-muted uppercase">Delivering to</span>
               <span className={`block truncate text-xs ${location ? "font-bold text-ink" : "text-sub"}`}>
                 {location || "Jourian"}
               </span>

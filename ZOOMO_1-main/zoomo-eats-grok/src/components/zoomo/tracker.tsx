@@ -2,16 +2,14 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import {
   ORDER_STATUS,
+  etaMinOf,
   etaMinutes,
   liveProgress,
   liveStatus,
   restaurantById,
-  rideProgress,
   stepsFor,
 } from "@/lib/zoomo-data";
 import type { Order } from "@/lib/zoomo-store";
-import { useZoomo } from "@/lib/zoomo-store";
-import { LiveRideMap } from "./live-ride-map";
 
 export function useTick(ms = 1000) {
   const [, setN] = useState(0);
@@ -31,46 +29,27 @@ export function StatusPill({ status }: { status: string }) {
 }
 
 export function OrderTracker({ order }: { order: Order }) {
-  useTick(400);
+  useTick(5000);
   const status = liveStatus(order);
   const progress = liveProgress(order);
-  const ride = rideProgress(order);
   const steps = stepsFor(order.orderType);
-  const eta = etaMinutes(order);
-  const idx = Math.max(0, steps.findIndex((s) => s.key === status));
   const kitchen = restaurantById(order.restaurantId);
-  const location = useZoomo((s) => s.location);
-  const dest = location || order.address?.city || "Jourian";
-  const moving = status === "OUTFORDELIVERY";
+  const mins = etaMinOf(kitchen) || etaMinutes(order) || 22;
+  const dest = order.address?.street || order.address?.city || "your place";
+  const idx = Math.max(0, steps.findIndex((s) => s.key === status));
 
   return (
     <div className="overflow-hidden rounded-[28px] bg-surface shadow-card">
-      {order.orderType === "DELIVERY" && (
-        <div className="relative h-[min(58vh,480px)] min-h-[280px]">
-          <LiveRideMap
-            from={kitchen?.area || "Jourian"}
-            to={dest}
-            ride={status === "CANCELLED" ? 0 : ride}
-            showRider={status !== "CANCELLED"}
-          />
-          <div className="absolute top-3 left-3 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-bold text-ink shadow-sm">
-            {moving ? "Rider moving" : status === "DELIVERED" ? "Arrived" : "Waiting at restaurant"}
-          </div>
-        </div>
-      )}
-
       <div className="px-5 pt-4 pb-2">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Tracking</p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-ink">
-              {ORDER_STATUS[status]?.label ?? status}
+              {kitchen?.name ? `${kitchen.name} has your order` : ORDER_STATUS[status]?.label ?? status}
             </h2>
-            <p className="mt-1 text-sm text-sub">{steps[idx]?.hint}</p>
-          </div>
-          <div className="rounded-2xl bg-sage px-3 py-2 text-right">
-            <div className="text-lg font-bold text-primary tabular">{eta === 0 ? "Now" : `${eta} min`}</div>
-            <div className="text-[10px] font-bold tracking-wide text-muted uppercase">ETA</div>
+            <p className="mt-1 text-sm text-sub">
+              {status === "DELIVERED" ? "Enjoy your food" : `Your food is about ${mins} minutes away`}
+            </p>
           </div>
         </div>
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-page">
@@ -78,7 +57,7 @@ export function OrderTracker({ order }: { order: Order }) {
         </div>
         {order.orderType === "DELIVERY" && (
           <p className="mt-2 text-[12px] text-muted">
-            {kitchen?.name} · Jourian → {dest}
+            {kitchen?.name || order.restaurantName} · Jourian → {dest}
           </p>
         )}
       </div>
@@ -115,9 +94,9 @@ export function ActiveOrderBanner({ order, onOpen }: { order: Order; onOpen: () 
   useTick(1000);
   const status = liveStatus(order);
   if (status === "DELIVERED" || status === "CANCELLED") return null;
-  const eta = etaMinutes(order);
+  const kitchen = restaurantById(order.restaurantId);
+  const mins = etaMinOf(kitchen) || etaMinutes(order) || 22;
   const progress = liveProgress(order);
-  const ride = rideProgress(order);
   return (
     <button
       onClick={onOpen}
@@ -125,10 +104,10 @@ export function ActiveOrderBanner({ order, onOpen }: { order: Order; onOpen: () 
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3.5">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold tracking-[0.14em] text-white/50 uppercase">Live tracking</p>
-          <p className="truncate text-sm font-bold">{order.restaurantName}</p>
+          <p className="text-[10px] font-bold tracking-[0.14em] text-white/50 uppercase">Live order</p>
+          <p className="truncate text-sm font-bold">{order.restaurantName} has your order</p>
           <p className="text-xs text-white/65">
-            {ORDER_STATUS[status]?.label} · {eta === 0 ? "now" : `${eta} min`} · rider {Math.round(ride * 100)}%
+            Your food is about {mins} minutes away
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-primary">Map</span>

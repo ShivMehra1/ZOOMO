@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma.service";
 import { OrderStatus } from "@prisma/client";
+import { canTransition } from "../../common/order-status-flow.util";
 import { RealtimeGateway } from "../../realtime/realtime.gateway";
 import { haversineKm } from "../../common/geo.util";
 import { resolveJourianCoords } from "../../common/jourian-areas.util";
@@ -71,17 +72,50 @@ export class AdminOrdersService {
   /* ===========================
      GET ALL ORDERS (ADMIN)
   ============================ */
-  async getAllOrders(restaurantId?: string) {
+  async getAllOrders(filters: {
+    restaurantId?: string;
+    status?: string;
+    orderType?: string;
+    from?: string;
+    to?: string;
+    search?: string;
+  } = {}) {
+    const where: any = {};
+    if (filters.restaurantId) where.restaurantId = filters.restaurantId;
+    if (filters.status) where.status = filters.status;
+    if (filters.orderType) {
+      where.orderType = filters.orderType === "TAKEAWAY" ? "PICKUP" : filters.orderType;
+    }
+    const from = filters.from ? new Date(filters.from) : null;
+    const to = filters.to ? new Date(filters.to) : null;
+    if ((from && !Number.isNaN(+from)) || (to && !Number.isNaN(+to))) {
+      where.createdAt = {};
+      if (from && !Number.isNaN(+from)) where.createdAt.gte = from;
+      if (to && !Number.isNaN(+to)) where.createdAt.lte = to;
+    }
+    const q = filters.search?.trim();
+    if (q) {
+      const ors: any[] = [
+        { user: { name: { contains: q, mode: "insensitive" } } },
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { phone: { contains: q, mode: "insensitive" } } },
+        { restaurant: { name: { contains: q, mode: "insensitive" } } },
+      ];
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q)) {
+        ors.unshift({ id: q });
+      }
+      where.OR = ors;
+    }
+
     return this.prisma.order.findMany({
-      where: restaurantId ? { restaurantId } : undefined,
+      where,
       orderBy: { createdAt: "desc" },
+      take: 1000,
       include: {
-        restaurant: true,
-        user: true,       // ✅ included so admin table shows customer name
-        address: true,    // ✅ included so admin table shows address
-        driver: {
-          include: { user: true },
-        },
+        restaurant: { select: { id: true, name: true } },
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        address: true,
+        driver: { include: { user: { select: { name: true } } } },
       },
     });
   }
@@ -174,15 +208,24 @@ export class AdminOrdersService {
 
     if (!order) throw new NotFoundException("Order not found");
 
-    // Only allow transitioning FROM scheduled
     const allowedStatuses = Object.values(OrderStatus);
     if (!allowedStatuses.includes(status as OrderStatus)) {
       throw new BadRequestException(`Invalid status: ${status}`);
     }
 
+    const next = status as OrderStatus;
+    // Same ticket already there (e.g. restaurant already accepted) — no error.
+    if (order.status === next) return order;
+
+    if (!canTransition(order, next)) {
+      throw new BadRequestException(
+        `Invalid status transition from ${order.status} to ${next}`,
+      );
+    }
+
     const updated = await this.prisma.order.update({
       where: { id: orderId },
-      data: { status: status as OrderStatus },
+      data: { status: next },
     });
     this.emitOrderUpdate(updated);
     return updated;
@@ -197,6 +240,7 @@ export class AdminOrdersService {
         OR: [
           { status: OrderStatus.CANCELLED },
           { rating: { lte: 2 } },
+          { refundRequested: true, refundedAt: null },
         ],
       },
       orderBy: { createdAt: "desc" },
@@ -223,8 +267,18 @@ export class AdminOrdersService {
       data: {
         refundAmount,
         refundedAt: new Date(),
+        refundRequested: false,
         cancelReason: reason || order.cancelReason,
       },
+    });
+  }
+
+  async rejectRefund(orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { refundRejectedAt: new Date(), refundRequested: false },
     });
   }
 

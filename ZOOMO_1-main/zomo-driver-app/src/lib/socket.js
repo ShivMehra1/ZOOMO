@@ -1,6 +1,8 @@
 import { io } from "socket.io-client";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = import.meta.env.DEV
+  ? "http://127.0.0.1:3000"
+  : (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "");
 
 // Singleton — one live connection for the whole app, rooms are joined
 // per-screen via `join`/`leave` as the driver navigates around.

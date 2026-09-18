@@ -4,6 +4,8 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
 import { geocodeAddress } from "../common/geocode.util";
+import { resolveJourianCoords } from "../common/jourian-areas.util";
+import { haversineKm } from "../common/geo.util";
 
 @Injectable()
 export class AddressService {
@@ -38,11 +40,20 @@ export class AddressService {
       );
     }
 
-    // 🔥 BUILD FULL ADDRESS STRING
-    const fullAddress = `${street}, ${city}, ${state}, ${zipCode}, ${country}`;
-
-    // 🌍 GEOCODE
-    const location = await geocodeAddress(fullAddress);
+    const lat = typeof data.lat === "number" ? data.lat : null;
+    const lng = typeof data.lng === "number" ? data.lng : null;
+    let geo = lat != null && lng != null ? { lat, lng } : null;
+    const town = resolveJourianCoords(`${street} ${city}`);
+    if (geo && haversineKm(geo.lat, geo.lng, town.lat, town.lng) > 20) {
+      geo = /jourian|jammu/i.test(`${city} ${state}`) ? town : geo;
+    }
+    if (!geo) {
+      const fullAddress = `${street}, ${city}, ${state}, ${zipCode}, ${country}`;
+      geo = await geocodeAddress(fullAddress);
+      if (!geo || (/jourian|jammu/i.test(`${city} ${state}`) && haversineKm(geo.lat, geo.lng, town.lat, town.lng) > 20)) {
+        geo = town;
+      }
+    }
 
     return this.prisma.address.create({
       data: {
@@ -52,8 +63,8 @@ export class AddressService {
         zipCode,
         country,
         isDefault: isDefault ?? false,
-        lat: location?.lat ?? null,
-        lng: location?.lng ?? null,
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
         userId,
       },
     });

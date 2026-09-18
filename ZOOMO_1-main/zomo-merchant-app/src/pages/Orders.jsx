@@ -5,6 +5,7 @@ import { ORDER_FILTERS } from "../utils/orderFilters";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { socket, joinRoom, leaveRoom } from "../lib/socket";
+import { startOfDay } from "../lib/when";
 
 function normalizeOrder(order) {
   return {
@@ -26,6 +27,7 @@ export default function Orders() {
 
   const [restaurantId, setRestaurantId] = useState(null);
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [whenFilter, setWhenFilter] = useState("today");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -70,7 +72,19 @@ export default function Orders() {
     };
   }, [restaurantId, fetchOrders]);
 
-  const filteredOrders = orders.filter(ORDER_FILTERS[activeFilter].match);
+  const filteredOrders = orders.filter((o) => {
+    if (!ORDER_FILTERS[activeFilter].match(o)) return false;
+    if (whenFilter === "all") return true;
+    const t = new Date(o.createdAt);
+    const start = startOfDay();
+    if (whenFilter === "today") return t >= start;
+    if (whenFilter === "7d") {
+      const from = startOfDay();
+      from.setDate(from.getDate() - 6);
+      return t >= from;
+    }
+    return true;
+  });
 
   if (loading) return <p className="text-z-sub text-sm py-12 text-center">Loading orders...</p>;
   if (error) return <p className="text-z-danger text-sm">{error}</p>;
@@ -78,8 +92,25 @@ export default function Orders() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="kicker mb-1">Kitchen</p>
+        <p className="kicker mb-1">Restaurant</p>
         <h1 className="display text-2xl text-z-ink">Orders</h1>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {[
+          { key: "today", label: "Today" },
+          { key: "7d", label: "Last 7 days" },
+          { key: "all", label: "All time" },
+        ].map((p) => (
+          <button
+            key={p.key}
+            type="button"
+            onClick={() => setWhenFilter(p.key)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold ${whenFilter === p.key ? "bg-z-sage text-z-primary" : "bg-z-page text-z-sub"}`}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       <OrderFilters active={activeFilter} onChange={setActiveFilter} />

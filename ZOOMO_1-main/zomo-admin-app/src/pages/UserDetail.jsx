@@ -9,6 +9,7 @@ import {
   getOrders,
 } from "../services/adminApi";
 import { usersFromOrders, realOrders } from "../lib/real";
+import { formatWhen } from "../lib/when";
 import {
   FiArrowLeft,
   FiRefreshCw,
@@ -177,7 +178,7 @@ export default function UserDetail() {
         <StatCard label="Total spent" value={`₹${user.totalSpent.toFixed(0)}`} />
         <StatCard label="Orders" value={user.orders.length} />
         <StatCard label="Addresses" value={user.addresses.length} />
-        <StatCard label="Joined" value={new Date(user.createdAt).toLocaleDateString()} />
+        <StatCard label="Joined" value={formatWhen(user.createdAt)} />
       </div>
 
       {/* Details / edit */}
@@ -316,7 +317,7 @@ export default function UserDetail() {
                         </span>
                       </td>
                       <td className="px-6 py-3 text-z-muted text-xs">
-                        {new Date(o.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                        {formatWhen(o.createdAt)}
                       </td>
                     </tr>
                     {open && (

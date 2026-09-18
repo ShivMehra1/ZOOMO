@@ -10,7 +10,6 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { ZoomoMark } from "./mark";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export function AccountSheet() {
@@ -36,16 +35,22 @@ export function AccountSheet() {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-start justify-end bg-ink/40 p-3 backdrop-blur-md sm:p-6"
+      className="fixed inset-0 z-[80] flex items-start justify-end bg-ink/20 p-3 pt-[max(4.5rem,calc(env(safe-area-inset-top)+3.75rem))] sm:p-6 sm:pt-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) setAccountOpen(false);
       }}
     >
-      <div className="mt-12 max-h-[min(640px,calc(100vh-5rem))] w-[min(100%,24rem)] overflow-y-auto rounded-[28px] bg-surface shadow-lift sm:mt-0">
+      <div className="max-h-[min(640px,calc(100vh-6rem))] w-[min(100%,24rem)] overflow-y-auto rounded-[28px] bg-surface shadow-lift">
         <div className="bg-primary px-5 pt-5 pb-4">
           <div className="mb-4 flex items-start justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <ZoomoMark size={48} onGreen />
+              <div className="flex size-12 items-center justify-center overflow-hidden rounded-full bg-white/15 text-lg font-bold text-white">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                ) : (
+                  (user.name || "?")[0]?.toUpperCase()
+                )}
+              </div>
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-bold tracking-tight text-white">{user.name}</p>
                 <p className="mt-0.5 truncate text-xs text-white/60">{user.email}</p>
@@ -55,11 +60,25 @@ export function AccountSheet() {
               <X className="size-4" />
             </button>
           </div>
+          <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-white/10 py-2">
+              <p className="text-sm font-bold text-white tabular">{orders.length}</p>
+              <p className="text-[9px] font-bold tracking-wide text-white/50 uppercase">Orders</p>
+            </div>
+            <div className="rounded-xl bg-white/10 py-2">
+              <p className="text-sm font-bold text-white tabular">{favorites.length}</p>
+              <p className="text-[9px] font-bold tracking-wide text-white/50 uppercase">Saved</p>
+            </div>
+            <div className="rounded-xl bg-white/10 py-2">
+              <p className="text-sm font-bold text-white tabular">{addresses.length}</p>
+              <p className="text-[9px] font-bold tracking-wide text-white/50 uppercase">Addresses</p>
+            </div>
+          </div>
           <button
             onClick={() => go(() => nav({ to: "/profile" }))}
             className="rounded-full bg-white px-3.5 py-1.5 text-[12px] font-bold text-primary"
           >
-            Edit profile
+            Open profile
           </button>
         </div>
         <nav className="p-2">

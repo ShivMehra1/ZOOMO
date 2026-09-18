@@ -7,6 +7,11 @@ import { AdminJwtGuard } from "../guards/admin-jwt/admin-jwt.guard";
 export class AdminAnalyticsController {
   constructor(private readonly adminAnalyticsService: AdminAnalyticsService) {}
 
+  @Get("inbox")
+  getInbox() {
+    return this.adminAnalyticsService.getInbox();
+  }
+
   @Get("summary")
   getSummary() {
     return this.adminAnalyticsService.getSummary();

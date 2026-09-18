@@ -3,7 +3,7 @@ import { Header } from "./header";
 import { Footer } from "./footer";
 import { ZoomoChat } from "./chat";
 import { MobileDock } from "./dock";
-import { LocationModal } from "./modals";
+import { ConflictModal, LocationModal } from "./modals";
 import { AccountSheet } from "./account-sheet";
 import { useZoomo } from "@/lib/zoomo-store";
 import { AREAS, DEFAULT_LOCATION } from "@/lib/zoomo-data";
@@ -21,16 +21,14 @@ export function AppShell({
   dock?: boolean;
   chat?: boolean;
 }) {
-  const { setLocation, markLocationPrompted } = useZoomo();
+  const { setLocation, markLocationPrompted, conflict, confirmReplaceCart, cancelReplaceCart, user, captureLiveLocation } = useZoomo();
   const [locOpen, setLocOpen] = useState(false);
 
   useEffect(() => {
     const maybe = () => {
       useZoomo.setState({ hydrated: true });
       const s = useZoomo.getState();
-      if (!s.location || !AREAS.some((a) => s.location!.toLowerCase().includes(a.toLowerCase()))) {
-        s.setLocation(DEFAULT_LOCATION);
-      }
+      if (!s.location) s.setLocation(DEFAULT_LOCATION);
     };
     if (useZoomo.persist.hasHydrated()) maybe();
     const unsub = useZoomo.persist.onFinishHydration(maybe);
@@ -40,6 +38,14 @@ export function AppShell({
       clearTimeout(t);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("zoomo:geo")) return;
+    captureLiveLocation().then((a) => {
+      if (a && typeof sessionStorage !== "undefined") sessionStorage.setItem("zoomo:geo", "1");
+    });
+  }, [user, captureLiveLocation]);
 
   return (
     <div className={`min-h-screen bg-page ${dock ? "pb-20 md:pb-0" : ""}`}>
@@ -55,6 +61,7 @@ export function AppShell({
           }}
         />
       )}
+      {conflict && <ConflictModal onCancel={cancelReplaceCart} onConfirm={confirmReplaceCart} />}
       {header && <Header onLocationClick={() => setLocOpen(true)} />}
       {children}
       {footer && <Footer />}

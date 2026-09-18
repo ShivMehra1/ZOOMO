@@ -4,6 +4,7 @@ import BottomNav from "../components/BottomNav";
 import Header from "../components/Header";
 import { fetchDriverDashboard } from "../services/driverApi";
 import { FiTrendingUp, FiPackage, FiChevronRight } from "react-icons/fi";
+import { formatWhen } from "../lib/when";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -72,7 +73,7 @@ export default function Dashboard() {
                 Last delivery completed at
               </p>
               <p className="mt-1 font-bold text-z-ink">
-                {new Date(stats.lastDeliveryAt).toLocaleTimeString()}
+                {formatWhen(stats.lastDeliveryAt)}
               </p>
             </div>
           )}

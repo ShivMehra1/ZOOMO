@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, Heart, MapPin, Minus, Phone, Plus, ShoppingBag, Star, UtensilsCrossed } from "lucide-react";
 import { FoodImg } from "@/components/zoomo/food-img";
 import { MobileDock } from "@/components/zoomo/dock";
-import { dishesFor, etaMinOf, gateBy, IMG, inr, LIVE_REVIEWS, restaurantById, type Dish } from "@/lib/zoomo-data";
-import { useGoBack } from "@/lib/zoomo-nav";
+import { dishesFor, IMG, inr, LIVE_REVIEWS, restaurantById, type Dish } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export const Route = createFileRoute("/restaurant/$id")({ component: RestaurantPage });
@@ -12,9 +11,10 @@ export const Route = createFileRoute("/restaurant/$id")({ component: RestaurantP
 function RestaurantPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
-  const back = useGoBack("/restaurants");
+  const goHome = () => nav({ to: "/" });
   const r = restaurantById(id);
-  const { cart, addToCart, setQty, user, favorites, toggleFavorite, dishOff = [], reviews, addReview } = useZoomo();
+
+  const { cart, addToCart, setQty, user, favorites, toggleFavorite, dishOff = [], reviews } = useZoomo();
   const dishes = dishesFor(id).filter((d) => !user?.vegOnly || d.isVegetarian);
   const loved = favorites.includes(id);
   const mine = cart.filter((i) => i.restaurantId === id);
@@ -22,16 +22,22 @@ function RestaurantPage() {
   const cartTotal = mine.reduce((s, i) => s + i.price * i.quantity, 0);
   const [cat, setCat] = useState("All");
   const [bagOpen, setBagOpen] = useState(true);
-  const [revStars, setRevStars] = useState(5);
-  const [revText, setRevText] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 160);
+    const onScroll = () => setScrolled(window.scrollY > 120);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  function pickCat(c: string) {
+    setCat(c);
+    requestAnimationFrame(() => {
+      menuRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -44,7 +50,12 @@ function RestaurantPage() {
       }
       map.get(key)!.push(d);
     }
-    return order.map((key) => ({ cat: key, items: map.get(key)! }));
+    const priceOf = (d: Dish) =>
+      d.sizes?.length ? Math.min(...d.sizes.map((s) => s.price)) : d.price;
+    return order.map((key) => ({
+      cat: key,
+      items: [...map.get(key)!].sort((a, b) => priceOf(a) - priceOf(b)),
+    }));
   }, [dishes]);
 
   const shown = cat === "All" ? groups : groups.filter((g) => g.cat === cat);
@@ -54,7 +65,7 @@ function RestaurantPage() {
       <div className="flex min-h-screen items-center justify-center bg-page">
         <div className="text-center">
           <p className="mb-3 text-lg font-bold text-ink">Restaurant not found</p>
-          <button onClick={back} className="text-sm font-semibold text-primary">
+          <button type="button" onClick={goHome} className="text-sm font-semibold text-primary">
             Go back
           </button>
         </div>
@@ -75,106 +86,84 @@ function RestaurantPage() {
 
   return (
     <div className={`min-h-screen bg-page md:pb-28 ${count > 0 ? "pb-52" : "pb-36"}`}>
-      {scrolled && (
-        <div className="fixed inset-x-0 top-0 z-30 border-b border-line bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-          <div className="mx-auto flex h-12 max-w-[920px] items-center gap-2 px-3">
-            <button
-              type="button"
-              onClick={back}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
-              aria-label="Back"
-            >
-              <ArrowLeft className="size-4" />
-            </button>
-            <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{r.name}</p>
-            {user && (
-              <button
-                type="button"
-                onClick={() => toggleFavorite(id)}
-                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
-                aria-label="Favourite"
-              >
-                <Heart className={`size-4 ${loved ? "fill-primary text-primary" : ""}`} />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-      <div className="relative h-60 overflow-hidden">
-        <FoodImg src={r.imageUrl || IMG.restaurantFallback} alt={r.name} className="size-full object-cover" />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(11,15,14,0.85) 0%, rgba(11,15,14,0.2) 60%, rgba(11,15,14,0.35) 100%)",
-          }}
-        />
-        <button
-          type="button"
-          onClick={back}
-          className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm"
-          aria-label="Back"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        {user && (
+      <div className="sticky top-0 z-40 border-b border-line bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+        <div className="mx-auto flex h-12 max-w-6xl items-center gap-2 px-4 sm:px-5">
           <button
-            onClick={() => toggleFavorite(id)}
-            className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 flex size-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm"
-            aria-label="Favourite"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goHome();
+            }}
+            className="relative z-50 flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
+            aria-label="Back"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          {scrolled && (
+            <FoodImg
+              src={r.imageUrl || IMG.restaurantFallback}
+              alt=""
+              className="size-8 shrink-0 rounded-full object-cover"
+            />
+          )}
+          <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{r.name}</p>
+          <button
+            type="button"
+            onClick={() => (user ? toggleFavorite(id) : nav({ to: "/login" }))}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink"
+            aria-label="Add to favourites"
           >
             <Heart className={`size-4 ${loved ? "fill-primary text-primary" : ""}`} />
           </button>
-        )}
-        <div className="absolute right-5 bottom-5 left-5">
-          <h1 className="display text-[28px] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.3)]">{r.name}</h1>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-white/85">
-            <span className="flex items-center gap-1">
-              <Star className="size-3.5 fill-accent text-accent" /> {r.rating.toFixed(1)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="size-3.5" /> {r.eta} · by {gateBy(etaMinOf(r))}
-            </span>
-            <span>{r.cuisineType || "Various"}</span>
-            <span className="flex items-center gap-1">
-              <MapPin className="size-3.5" /> {r.area}
-            </span>
-          </div>
         </div>
       </div>
 
-      {r.phone && (
-        <div className="mx-auto max-w-[920px] px-5 pt-4">
-          <a href={`tel:${r.phone}`} className="btn-ghost flex h-12 w-full items-center justify-center gap-2 text-sm">
-            <Phone className="size-4" /> Call shop
-          </a>
-        </div>
-      )}
-
-      <div className="mx-auto max-w-[920px] px-5 pt-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          <span className="shrink-0 rounded-full bg-sage px-3 py-2 text-[12px] font-bold text-primary">
-            {r.eta} · by {gateBy(etaMinOf(r))}
-          </span>
-          {r.costForTwo ? (
-            <span className="shrink-0 rounded-full bg-surface px-3 py-2 text-[12px] font-bold text-ink shadow-card">
-              ₹{r.costForTwo} for two
-            </span>
-          ) : null}
-          <span className="shrink-0 rounded-full bg-surface px-3 py-2 text-[12px] font-bold text-ink shadow-card">
-            {dishes.filter((d) => d.isVegetarian).length} veg
-          </span>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-5 sm:pt-6">
+        <div className="overflow-hidden rounded-[22px] bg-surface shadow-card md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
+          <div className="relative aspect-[16/10] bg-sage md:aspect-auto md:min-h-[320px] lg:min-h-[400px]">
+            <FoodImg
+              src={r.imageUrl || IMG.restaurantFallback}
+              alt={r.name}
+              className="absolute inset-0 size-full object-cover"
+            />
+          </div>
+          <div className="flex flex-col justify-center gap-3 px-4 py-5 sm:gap-4 sm:px-6 md:px-7">
+            {r.cuisineType && <p className="kicker">{r.cuisineType}</p>}
+            <h1 className="display text-[clamp(1.7rem,3vw,2.35rem)] text-ink">{r.name}</h1>
+            <div className="space-y-3">
+              {(r.address || r.area) && (
+                <p className="flex items-start gap-3 text-[14px] leading-6 text-sub">
+                  <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span className="text-ink">{r.address || r.area}</span>
+                </p>
+              )}
+              <a
+                href={r.phone ? `tel:${r.phone}` : undefined}
+                className={`flex items-center gap-3 text-[14px] font-semibold ${r.phone ? "text-primary" : "pointer-events-none text-muted"}`}
+              >
+                <Phone className="size-4 shrink-0" />
+                {r.phone || "Phone not listed yet"}
+              </a>
+              {r.openingHours ? (
+                <p className="flex items-start gap-3 text-[14px] leading-6 text-sub">
+                  <Clock className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>{r.openingHours}</span>
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 
       {groups.length > 1 && (
-        <div className={`sticky z-20 border-b border-line bg-surface/95 backdrop-blur-md ${scrolled ? "top-[calc(3rem+env(safe-area-inset-top))]" : "top-0"}`}>
-          <div className="no-scrollbar mx-auto flex max-w-[920px] gap-2 overflow-x-auto px-5 py-3">
+        <div className="sticky top-[calc(3rem+env(safe-area-inset-top))] z-20 mt-5 border-y border-line bg-surface/95 backdrop-blur-md">
+          <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-3 sm:px-5">
             {["All", ...groups.map((g) => g.cat)].map((c) => (
               <button
                 key={c}
                 type="button"
-                onClick={() => setCat(c)}
+                onClick={() => pickCat(c)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-bold ${
                   cat === c ? "bg-primary text-white" : "bg-page text-sub"
                 }`}
@@ -186,7 +175,7 @@ function RestaurantPage() {
         </div>
       )}
 
-      <div className="mx-auto max-w-[920px] px-5 py-7">
+      <div ref={menuRef} className="mx-auto max-w-6xl scroll-mt-[7.5rem] px-4 py-7 sm:px-5">
         {dishes.length === 0 ? (
           <div className="flex flex-col items-center px-5 py-14 text-center">
             <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-sage text-primary">
@@ -196,86 +185,46 @@ function RestaurantPage() {
           </div>
         ) : (
           shown.map((g) => (
-            <section key={g.cat} className="mb-8">
+            <section key={g.cat} className="mb-10">
               <h2 className="display mb-4 text-[20px] text-ink">{g.cat}</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {g.items.map((w) => {
                   const q = cart.find((i) => i.dishId === lineOf(w))?.quantity ?? 0;
                   const sized = Boolean(w.sizes?.length);
                   const off = dishOff.includes(w.id);
+                  const sizes = sized ? [...w.sizes!].sort((a, b) => a.price - b.price) : [];
                   return (
-                    <div key={w.id} className={`flex items-start gap-3.5 rounded-[22px] bg-surface p-4 shadow-card ${off ? "opacity-55" : ""}`}>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className="mb-1.5 flex size-3.5 items-center justify-center rounded-[3px] border-2"
-                          style={{ borderColor: w.isVegetarian ? "#16A34A" : "#DC2626" }}
-                        >
-                          <div className="size-1.5 rounded-full" style={{ background: w.isVegetarian ? "#16A34A" : "#DC2626" }} />
+                    <div key={w.id} className={`flex gap-3 rounded-[18px] bg-surface p-3 shadow-card sm:gap-3.5 sm:rounded-[22px] sm:p-3.5 ${off ? "opacity-55" : ""}`}>
+                      <FoodImg src={w.imageUrl} alt={w.name} className="size-20 shrink-0 rounded-[14px] object-cover sm:size-[108px]" />
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="text-[15px] font-bold tracking-[-0.02em] text-ink">{w.name}</h3>
+                            {off && <p className="text-[11px] font-bold text-danger">Sold out</p>}
+                            {w.description && (
+                              <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-muted">{w.description}</p>
+                            )}
+                          </div>
                         </div>
-                        <h3 className="text-sm font-bold tracking-[-0.02em] text-ink">{w.name}</h3>
-                        {off && <p className="text-[11px] font-bold text-danger">Sold out</p>}
-                        {!sized && <p className="mt-0.5 text-sm font-bold text-primary tabular">{inr(w.price)}</p>}
-                        {w.description && (
-                          <p className="mt-1 line-clamp-2 text-xs leading-4 text-muted">{w.description}</p>
-                        )}
                         {sized ? (
-                          <div className="mt-3 space-y-1.5">
-                            {w.sizes!.map((s) => {
+                          <div className="mt-auto space-y-1.5 pt-2">
+                            {sizes.map((s) => {
                               const line = lineOf(w, s.id);
                               const n = cart.find((i) => i.dishId === line)?.quantity ?? 0;
                               return (
                                 <div key={s.id} className="flex items-center justify-between gap-2">
-                                  <span className="text-[12px] font-bold text-ink">
-                                    {s.label} <span className="text-primary tabular">{inr(s.price)}</span>
+                                  <span className="text-[12px] font-semibold text-ink">
+                                    {s.label} <span className="font-bold text-primary tabular">{inr(s.price)}</span>
                                   </span>
-                                  {n === 0 ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => add(w, s.id)}
-                                      className="flex h-11 min-w-[72px] items-center justify-center gap-1 rounded-full border border-primary px-3 text-[13px] font-bold text-primary"
-                                    >
-                                      <Plus className="size-3" /> Add
-                                    </button>
-                                  ) : (
-                                    <div className="flex items-center gap-1 rounded-full bg-primary px-1 py-1 text-white">
-                                      <button type="button" onClick={() => setQty(line, -1)} className="flex size-10 items-center justify-center" aria-label="Less">
-                                        <Minus className="size-4" />
-                                      </button>
-                                      <span className="min-w-5 text-center text-[13px] font-bold tabular">{n}</span>
-                                      <button type="button" onClick={() => setQty(line, 1)} className="flex size-10 items-center justify-center" aria-label="More">
-                                        <Plus className="size-4" />
-                                      </button>
-                                    </div>
-                                  )}
+                                  <QtyCtrl n={n} onAdd={() => add(w, s.id)} onLess={() => setQty(line, -1)} onMore={() => setQty(line, 1)} />
                                 </div>
                               );
                             })}
                           </div>
-                        ) : null}
-                      </div>
-                      <div className="relative shrink-0">
-                        <FoodImg src={w.imageUrl} alt={w.name} className="size-[88px] rounded-[14px] object-cover" />
-                        {!sized && (
-                          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
-                            {q === 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => add(w)}
-                                className="h-11 rounded-[10px] border-[1.5px] border-primary bg-surface px-5 text-[13px] font-bold text-primary shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
-                              >
-                                ADD
-                              </button>
-                            ) : (
-                              <div className="flex items-center gap-1 rounded-[10px] bg-primary px-1 py-1 text-white shadow-md">
-                                <button type="button" onClick={() => setQty(lineOf(w), -1)} className="flex size-10 items-center justify-center" aria-label="Less">
-                                  <Minus className="size-4" />
-                                </button>
-                                <span className="min-w-5 text-center text-[13px] font-bold tabular">{q}</span>
-                                <button type="button" onClick={() => setQty(lineOf(w), 1)} className="flex size-10 items-center justify-center" aria-label="More">
-                                  <Plus className="size-4" />
-                                </button>
-                              </div>
-                            )}
+                        ) : (
+                          <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+                            <p className="text-[15px] font-bold text-primary tabular">{inr(w.price)}</p>
+                            <QtyCtrl n={q} onAdd={() => add(w)} onLess={() => setQty(lineOf(w), -1)} onMore={() => setQty(lineOf(w), 1)} />
                           </div>
                         )}
                       </div>
@@ -288,30 +237,16 @@ function RestaurantPage() {
         )}
 
         <ReviewsBlock
-          restaurantId={id}
-          canned={LIVE_REVIEWS.filter((rv) => rv.restaurantId === id)}
-          live={reviews.filter((rv) => rv.restaurantId === id)}
-          user={user}
-          stars={revStars}
-          text={revText}
-          setStars={setRevStars}
-          setText={setRevText}
-          onSubmit={() => {
-            if (!user) {
-              nav({ to: "/login" });
-              return;
-            }
-            if (!revText.trim()) return;
-            addReview(id, revStars, revText);
-            setRevText("");
-            setRevStars(5);
-          }}
+          live={[
+            ...reviews.filter((rv) => rv.restaurantId === id),
+            ...LIVE_REVIEWS.filter((rv) => rv.restaurantId === id),
+          ]}
         />
       </div>
 
       {count > 0 && user && (
         <div className="fixed inset-x-0 bottom-[72px] z-40 px-4 md:bottom-5">
-          <div className="mx-auto max-w-[920px] overflow-hidden rounded-[22px] bg-surface shadow-lift">
+          <div className="mx-auto max-w-6xl overflow-hidden rounded-[22px] bg-surface shadow-lift">
             <button
               type="button"
               onClick={() => setBagOpen((o) => !o)}
@@ -366,82 +301,67 @@ function RestaurantPage() {
   );
 }
 
-function ReviewsBlock({
-  restaurantId,
-  canned,
-  live,
-  user,
-  stars,
-  text,
-  setStars,
-  setText,
-  onSubmit,
+function QtyCtrl({
+  n,
+  onAdd,
+  onLess,
+  onMore,
 }: {
-  restaurantId: string;
-  canned: { name: string; rating: number; text: string }[];
-  live: { id: string; name: string; rating: number; text: string }[];
-  user: { name: string } | null;
-  stars: number;
-  text: string;
-  setStars: (n: number) => void;
-  setText: (t: string) => void;
-  onSubmit: () => void;
+  n: number;
+  onAdd: () => void;
+  onLess: () => void;
+  onMore: () => void;
 }) {
-  const all = [
-    ...live.map((r) => ({ key: r.id, name: r.name, rating: r.rating, text: r.text })),
-    ...canned.map((r, i) => ({ key: `${restaurantId}-c${i}`, name: r.name, rating: r.rating, text: r.text })),
-  ];
+  if (n === 0) {
+    return (
+      <button
+        type="button"
+        onClick={onAdd}
+        className="h-9 shrink-0 rounded-full border-[1.5px] border-primary bg-surface px-4 text-[12px] font-bold text-primary"
+      >
+        Add
+      </button>
+    );
+  }
+  return (
+    <div className="flex h-9 shrink-0 items-center rounded-full bg-primary px-1 text-white">
+      <button type="button" onClick={onLess} className="flex size-8 items-center justify-center" aria-label="Less">
+        <Minus className="size-3.5" />
+      </button>
+      <span className="min-w-4 text-center text-[12px] font-bold tabular">{n}</span>
+      <button type="button" onClick={onMore} className="flex size-8 items-center justify-center" aria-label="More">
+        <Plus className="size-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function ReviewsBlock({
+  live,
+}: {
+  live: { id: string; name: string; rating: number; text: string }[];
+}) {
+  const rows = live.filter((r, i, arr) => arr.findIndex((x) => x.id === r.id) === i);
   return (
     <section className="mb-8 rounded-[22px] bg-surface p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="display text-[20px] text-ink">Reviews</h2>
-        <span className="text-[12px] font-bold text-muted">{all.length}</span>
+        <span className="text-[12px] font-bold text-muted">{rows.length}</span>
       </div>
-      <div className="mb-4 space-y-3">
-        {all.slice(0, 6).map((r) => (
-          <div key={r.key} className="border-b border-line-soft pb-3 last:border-0 last:pb-0">
+      <div className="space-y-3">
+        {rows.slice(0, 8).map((r) => (
+          <div key={r.id} className="border-b border-line-soft pb-3 last:border-0 last:pb-0">
             <div className="mb-1 flex items-center justify-between">
               <p className="text-[13px] font-bold text-ink">{r.name}</p>
               <span className="flex items-center gap-1 text-[12px] font-bold text-ink">
                 <Star className="size-3 fill-primary text-primary" /> {r.rating.toFixed(1)}
               </span>
             </div>
-            <p className="text-[12px] leading-5 text-sub">{r.text}</p>
+            {r.text ? <p className="text-[12px] leading-5 text-sub">{r.text}</p> : null}
           </div>
         ))}
-        {all.length === 0 && <p className="text-sm text-sub">Be the first to review this kitchen.</p>}
+        {rows.length === 0 && <p className="text-sm text-sub">No reviews yet</p>}
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
-      >
-        <p className="mb-2 text-[12px] font-bold text-ink">{user ? "Your review" : "Sign in to review"}</p>
-        <div className="mb-2 flex gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setStars(n)}
-              className="p-0.5"
-              aria-label={`${n} stars`}
-            >
-              <Star className={`size-5 ${n <= stars ? "fill-primary text-primary" : "text-line"}`} />
-            </button>
-          ))}
-        </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="How was the bag?"
-          rows={2}
-          className="mb-2 w-full rounded-xl border-[1.5px] border-line bg-page px-3 py-2 text-sm"
-        />
-        <button type="submit" className="btn-primary px-4 py-2 text-[12px]">
-          Post review
-        </button>
-      </form>
     </section>
   );
 }

@@ -9,8 +9,22 @@ export class AdminOrdersController {
   constructor(private readonly adminOrdersService: AdminOrdersService) { }
 
   @Get()
-  getAllOrders(@Query("restaurantId") restaurantId?: string) {
-    return this.adminOrdersService.getAllOrders(restaurantId);
+  getAllOrders(
+    @Query("restaurantId") restaurantId?: string,
+    @Query("status") status?: string,
+    @Query("orderType") orderType?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.adminOrdersService.getAllOrders({
+      restaurantId,
+      status,
+      orderType,
+      from,
+      to,
+      search,
+    });
   }
 
   @Delete(":orderId")
@@ -53,6 +67,11 @@ export class AdminOrdersController {
     @Body("reason") reason: string
   ) {
     return this.adminOrdersService.refundOrder(orderId, amount, reason);
+  }
+
+  @Patch(":orderId/refund-reject")
+  rejectRefund(@Param("orderId") orderId: string) {
+    return this.adminOrdersService.rejectRefund(orderId);
   }
 
   @Get(":orderId/messages")

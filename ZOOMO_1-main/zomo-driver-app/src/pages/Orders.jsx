@@ -5,6 +5,8 @@ import Header from "../components/Header";
 import { fetchAssignedOrders } from "../services/driverApi";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { useDriverSocket } from "../hooks/useDriverSocket";
+import { formatWhen } from "../lib/when";
+import { statusLabel } from "../lib/order-labels";
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -47,7 +49,7 @@ export default function Orders() {
   if (!isOnline) {
     return (
       <div className="min-h-screen bg-z-page pb-28">
-        <Header title="Rider" />
+        <Header title="Driver" />
         <div className="mx-auto max-w-xl px-4 pt-16 pb-28 flex flex-col items-center text-center">
           <p className="kicker mb-2">Offline</p>
           <h1 className="display text-2xl text-z-ink mb-2">
@@ -70,7 +72,7 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-z-page pb-28">
-      <Header title="Rider" />
+      <Header title="Driver" />
       <div className="mx-auto max-w-xl px-4 py-6">
         <p className="kicker mb-1">Deliveries</p>
         <h1 className="display text-2xl text-z-ink mb-6">
@@ -102,10 +104,11 @@ export default function Orders() {
                       </p>
                     </div>
                     <span className={`badge ${isPickup ? "tone-wait" : "tone-go"}`}>
-                      {isPickup ? "Pickup" : "On the way"}
+                      {statusLabel(order.status)}
                     </span>
                   </div>
 
+                  <p className="text-xs text-z-muted mb-2">Assigned {formatWhen(order.createdAt)}</p>
                   <div className="space-y-1 text-sm text-z-sub mb-4">
                     <p>
                       <span className="font-semibold text-z-ink">Pickup: </span>

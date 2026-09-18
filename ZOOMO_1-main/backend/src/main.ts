@@ -14,30 +14,23 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (curl, Postman, mobile)
       if (!origin) return callback(null, true);
-
-      // Allow all localhost ports
-      if (origin.startsWith("http://localhost:")) {
-        return callback(null, true);
-      }
-
-      // Production domain + every subdomain (www, kitchen, ride, hq, api)
       try {
         const host = new URL(origin).hostname;
-        if (host === "zoomoeats.com" || host.endsWith(".zoomoeats.com")) {
-          return callback(null, true);
-        }
+        const local =
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host.startsWith("192.168.") ||
+          host.startsWith("10.") ||
+          /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+        const prod = host === "zoomoeats.com" || host.endsWith(".zoomoeats.com");
+        const vercel = host.endsWith(".vercel.app");
+        // Never pass an Error into this callback — Express turns that into a 500
+        // and the admin UI looks like "nothing loaded".
+        return callback(null, local || prod || vercel);
       } catch {
-        // fall through
+        return callback(null, false);
       }
-
-      // Allow ALL vercel.app subdomains (preview deploys)
-      if (origin.endsWith(".vercel.app")) {
-        return callback(null, true);
-      }
-
-      return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
     },
     credentials: true,
   });

@@ -1,8 +1,12 @@
 import axios from "axios";
 
+function apiRoot() {
+  if (import.meta.env.DEV) return "/backend";
+  return (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  // backend URL
+  baseURL: apiRoot(),
 });
 
 // Attach JWT

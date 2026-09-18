@@ -76,6 +76,14 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+.hours-marquee {
+  animation: hours-scroll 28s linear infinite;
+}
+@keyframes hours-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

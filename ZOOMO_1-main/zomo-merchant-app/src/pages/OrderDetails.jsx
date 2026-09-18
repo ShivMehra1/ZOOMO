@@ -4,6 +4,7 @@ import StatusBadge from "../components/StatusBadge";
 import OrderStatusActions from "../components/OrderStatusActions";
 import CancelOrderButton from "../components/CancelOrderButton";
 import api from "../services/api";
+import { formatWhen } from "../lib/when";
 
 export default function OrderDetails() {
   const { restaurantId, orderId } = useParams();
@@ -35,6 +36,7 @@ export default function OrderDetails() {
           orderType: o.orderType || "DELIVERY",
           scheduledFor: o.scheduledFor || null,
           guestCount: o.guestCount || null,
+          createdAt: o.createdAt,
         });
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load order");
@@ -72,7 +74,7 @@ export default function OrderDetails() {
   if (loading) return <p className="text-z-sub text-sm py-12 text-center">Loading order details...</p>;
   if (error) return <p className="text-z-danger text-sm">{error}</p>;
 
-  const isInStore = order.orderType === "DINE_IN" || order.orderType === "TAKEAWAY";
+  const isInStore = order.orderType === "DINE_IN" || order.orderType === "TAKEAWAY" || order.orderType === "PICKUP";
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4">
@@ -89,6 +91,7 @@ export default function OrderDetails() {
           </div>
           <h1 className="text-lg font-bold text-z-ink mt-0.5">#{order.id.slice(0, 6)}</h1>
           <p className="text-sm text-z-sub mt-1">Customer: {order.customerName}</p>
+          <p className="text-xs text-z-muted mt-1">Placed {formatWhen(order.createdAt)}</p>
         </div>
         <StatusBadge status={order.status} />
       </div>
@@ -106,10 +109,7 @@ export default function OrderDetails() {
                   {order.orderType === "DINE_IN" ? "Dine-in time" : "Pickup time"}
                 </span>
                 <span className="text-sm font-bold text-z-ink">
-                  {new Date(order.scheduledFor).toLocaleString("en-IN", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                  {formatWhen(order.scheduledFor)}
                 </span>
               </div>
             )}

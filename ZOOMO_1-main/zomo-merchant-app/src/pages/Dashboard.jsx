@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { socket, joinRoom, leaveRoom } from "../lib/socket";
+import { formatWhen } from "../lib/when";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ export default function Dashboard() {
           customer: o.user?.name || "Customer",
           total: o.total,
           status: o.status,
+          createdAt: o.createdAt,
         }))
       );
       setLoadError(false);
@@ -161,7 +163,10 @@ export default function Dashboard() {
           <div className="space-y-2">
             {recentOrders.map((o) => (
               <div key={o.id} className="flex justify-between items-center text-sm bg-z-page rounded-xl px-4 py-3">
-                <span className="text-z-ink font-medium">{o.customer}</span>
+                <span className="min-w-0">
+                  <span className="block text-z-ink font-medium truncate">{o.customer}</span>
+                  <span className="block text-[11px] text-z-muted">{formatWhen(o.createdAt)}</span>
+                </span>
                 <span className="flex items-center gap-3">
                   <span className="rounded-full bg-z-sage px-2.5 py-1 text-[11px] font-bold text-z-primary">
                     {o.status.replaceAll("_", " ")}

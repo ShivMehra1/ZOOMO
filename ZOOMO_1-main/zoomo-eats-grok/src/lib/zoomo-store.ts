@@ -4,7 +4,6 @@ import {
   AREAS,
   COUPONS,
   DEFAULT_LOCATION,
-  DELIVERY_FEE,
   TAX_RATE,
   liveStatus,
   restaurantById,
@@ -22,14 +21,18 @@ import {
   realAddToCart,
   realCancelOrder,
   realClearCart,
+  realClearRestaurantCart,
   realGatePing,
   realGetAddresses,
   realGetCart,
   realGetFavorites,
+  realGetOrder,
   realGetOrders,
   realGrantLateCredit,
   realPlaceOrder,
+  realRateDriver,
   realRateOrder,
+  realExtraTip,
   realRemoveAddress,
   realRemoveCartItem,
   realRemoveFavorite,
@@ -45,6 +48,13 @@ import {
   toStoreOrder,
   type RealCartItem,
 } from "./real-api";
+
+let cartChain: Promise<void> = Promise.resolve();
+
+function enqueueCart(work: () => Promise<void>) {
+  cartChain = cartChain.then(work, work);
+  return cartChain;
+}
 
 function toStoreCartItem(i: RealCartItem): CartItem {
   const size = i.dishSizeId ? i.dish.sizes?.find((s) => s.id === i.dishSizeId) : undefined;
@@ -85,6 +95,8 @@ export type Address = {
   city: string;
   state: string;
   zipCode: string;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type OrderType = "DELIVERY" | "DINE_IN" | "TAKEAWAY";
@@ -133,6 +145,10 @@ export type Order = {
   dropNote?: string;
   chat?: RideMsg[];
   rating?: number;
+  driverRating?: number;
+  kitchenComment?: string;
+  driverComment?: string;
+  postDeliveryTip?: number;
   proofAt?: string | null;
   noCutlery?: boolean;
   passUsed?: boolean;
@@ -165,9 +181,12 @@ type State = {
   loyalty: number;
   activatedOffers: string[];
   accountOpen: boolean;
-  conflict: { dish: Dish } | null;
+  conflict: { dish: Dish; size?: string; note?: string } | null;
   dishOff: string[];
   reviews: Review[];
+  lastError: string | null;
+  toast: string | null;
+  showToast: (msg: string) => void;
   login: (name: string, email: string, phone?: string, id?: string) => void;
   logout: () => void;
   updateUser: (patch: Partial<User>) => void;
@@ -188,7 +207,8 @@ type State = {
   refreshCart: () => Promise<void>;
   /** Surfaces a real backend failure to the user; self-heals a stale local session on 401. */
   handleApiError: (err: unknown, userMessage: string) => void;
-  saveAddress: (a: Omit<Address, "id">) => Address;
+  saveAddress: (a: Omit<Address, "id">) => Promise<Address>;
+  captureLiveLocation: () => Promise<Address | null>;
   updateAddress: (id: string, patch: Partial<Omit<Address, "id">>) => void;
   removeAddress: (id: string) => void;
   refreshAddresses: () => Promise<void>;
@@ -201,7 +221,9 @@ type State = {
   grantLateCredit: (id: string) => number;
   setDropOff: (id: string, dropOff: DropOff, dropNote?: string) => void;
   sendRideChat: (id: string, text: string) => void;
-  rateOrder: (id: string, rating: number) => void;
+  rateOrder: (id: string, rating: number, comment?: string) => Promise<void>;
+  rateDriver: (id: string, rating: number, comment?: string) => Promise<void>;
+  extraTip: (id: string, amount: number) => Promise<void>;
   setProof: (id: string) => void;
   addReview: (restaurantId: string, rating: number, text: string) => void;
   reorder: (orderId: string) => "ok" | "empty";
@@ -226,11 +248,14 @@ export function cartTotals(
   tip = 0,
   orderType: OrderType = "DELIVERY",
   pass = false,
+  km = 2,
 ) {
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  let delivery = orderType === "DELIVERY" ? DELIVERY_FEE : 0;
-  if (pass && orderType === "DELIVERY") delivery = 0;
   const tax = +(subtotal * TAX_RATE).toFixed(2);
+  let delivery = 0;
+  if (orderType === "DELIVERY" && !pass) {
+    delivery = Math.min(50, Math.max(15, Math.round(subtotal * 0.06 + km * 6)));
+  }
   let discount = 0;
   if (promo && COUPONS[promo]) {
     const c = COUPONS[promo];
@@ -261,6 +286,14 @@ export const useZoomo = create<State>()(
       conflict: null,
       dishOff: [],
       reviews: [],
+      lastError: null,
+      toast: null,
+      showToast: (msg) => {
+        set({ toast: msg });
+        setTimeout(() => {
+          if (get().toast === msg) set({ toast: null });
+        }, 2400);
+      },
       login: (name, email, phone = "", id) => {
         const prev = get().user;
         const same = prev?.email.toLowerCase() === email.toLowerCase();
@@ -280,7 +313,7 @@ export const useZoomo = create<State>()(
         // root-loader run (which may be cached across a client-side nav).
         if (id) {
           get().refreshCart();
-          get().refreshAddresses();
+          get().refreshAddresses().then(() => get().captureLiveLocation());
           get().refreshOrders();
           get().refreshFavorites();
           get().refreshProfile();
@@ -328,6 +361,8 @@ export const useZoomo = create<State>()(
         const fav = get().favorites ?? [];
         const nowFavorited = !fav.includes(id);
         set({ favorites: nowFavorited ? [...fav, id] : fav.filter((x) => x !== id) });
+        const name = restaurantById(id)?.name || "Restaurant";
+        get().showToast(nowFavorited ? `${name} added to favourites` : `${name} removed from favourites`);
         if (!getRealToken()) return;
         const req = nowFavorited ? realAddFavorite(id) : realRemoveFavorite(id);
         req.catch((err) => get().handleApiError(err, "Could not update your favorites."));
@@ -344,22 +379,27 @@ export const useZoomo = create<State>()(
       toggleOffer: (code) => {
         const on = get().activatedOffers ?? [];
         if (on.includes(code)) {
-          set({ activatedOffers: on.filter((x) => x !== code) });
+          set({ activatedOffers: [] });
           return "off";
         }
-        if (on.length >= 2) return "full";
-        set({ activatedOffers: [...on, code] });
+        set({ activatedOffers: [code] });
         return "on";
       },
       setAccountOpen: (open) => set({ accountOpen: open }),
       addToCart: (dish, size, note) => {
         if (!get().user || !getRealToken()) return "login";
-        // Real cart is single-restaurant (backend clears on a restaurant switch) —
-        // mirror that here instead of the reference's local multi-bag simulation.
-        realAddToCart(dish.id, 1, size, note)
-          .then(() => get().refreshCart())
-          .catch((err) => get().handleApiError(err, "Could not add that to your bag."));
-        set({ activeBag: dish.restaurantId });
+        enqueueCart(async () => {
+          try {
+            const items = await realAddToCart(dish.id, 1, size, note);
+            set({
+              cart: items.map(toStoreCartItem),
+              activeBag: dish.restaurantId,
+              conflict: null,
+            });
+          } catch (err) {
+            get().handleApiError(err, "Could not add that to your bag.");
+          }
+        });
         return "ok";
       },
       setItemNote: (dishId, note) => {
@@ -367,10 +407,15 @@ export const useZoomo = create<State>()(
         if (!item?.cartItemId) return;
         set({ cart: get().cart.map((i) => (i.dishId === dishId ? { ...i, note: note || undefined } : i)) });
         realSetCartItemQty(item.cartItemId, item.quantity, note)
-          .then(() => get().refreshCart())
+          .then((items) => set({ cart: items.map(toStoreCartItem) }))
           .catch((err) => get().handleApiError(err, "Could not update that note."));
       },
-      confirmReplaceCart: () => set({ conflict: null }),
+      confirmReplaceCart: () => {
+        const pending = get().conflict;
+        if (!pending) return;
+        set({ conflict: null });
+        get().addToCart(pending.dish, pending.size, pending.note);
+      },
       cancelReplaceCart: () => set({ conflict: null }),
       setQty: (dishId, delta) => {
         const item = get().cart.find((i) => i.dishId === dishId);
@@ -382,25 +427,32 @@ export const useZoomo = create<State>()(
             : get().cart.map((i) => (i.dishId === dishId ? { ...i, quantity: nextQty } : i)),
         });
         const req = nextQty <= 0 ? realRemoveCartItem(item.cartItemId) : realSetCartItemQty(item.cartItemId, nextQty);
-        req.then(() => get().refreshCart()).catch((err) => get().handleApiError(err, "Could not update that item."));
+        req.then((items) => set({ cart: items.map(toStoreCartItem) })).catch((err) => get().handleApiError(err, "Could not update that item."));
       },
       removeItem: (dishId) => {
         const item = get().cart.find((i) => i.dishId === dishId);
         set({ cart: get().cart.filter((i) => i.dishId !== dishId) });
         if (item?.cartItemId) {
-          realRemoveCartItem(item.cartItemId).then(() => get().refreshCart()).catch((err) => get().handleApiError(err, "Could not remove that item."));
+          realRemoveCartItem(item.cartItemId).then((items) => set({ cart: items.map(toStoreCartItem) })).catch((err) => get().handleApiError(err, "Could not remove that item."));
         }
       },
       clearCart: () => {
         set({ cart: [], activeBag: null });
-        realClearCart().catch((err) => get().handleApiError(err, "Could not clear your bag."));
+        realClearCart()
+          .then((items) => set({ cart: items.map(toStoreCartItem), activeBag: null }))
+          .catch((err) => get().handleApiError(err, "Could not clear your bag."));
       },
       clearBag: (restaurantId) => {
         set({
           cart: get().cart.filter((i) => i.restaurantId !== restaurantId),
           activeBag: get().activeBag === restaurantId ? null : get().activeBag,
         });
-        realClearCart().catch((err) => get().handleApiError(err, "Could not clear your bag."));
+        realClearRestaurantCart(restaurantId)
+          .then((items) => set({
+            cart: items.map(toStoreCartItem),
+            activeBag: get().activeBag === restaurantId ? null : get().activeBag,
+          }))
+          .catch((err) => get().handleApiError(err, "Could not clear that bag."));
       },
       setActiveBag: (id) => set({ activeBag: id }),
       refreshCart: async () => {
@@ -415,28 +467,68 @@ export const useZoomo = create<State>()(
       handleApiError: (err, userMessage) => {
         console.error("[api]", err);
         if (err instanceof ApiError && err.status === 401) {
-          // Stale local session (e.g. a leftover login from before this app was
-          // wired to the real backend) — clear it so the next attempt re-auths.
           setRealToken(null);
           set({ user: null, cart: [], addresses: [], orders: [] });
-          if (typeof window !== "undefined") {
-            alert("Your session expired — please sign in again.");
-            window.location.href = "/login";
-          }
           return;
         }
-        if (typeof window !== "undefined") {
-          alert(err instanceof Error ? `${userMessage}\n\n${err.message}` : userMessage);
+        set({ lastError: err instanceof Error ? `${userMessage}: ${err.message}` : userMessage });
+      },
+      saveAddress: async (a) => {
+        try {
+          const real = await realSaveAddress(a);
+          const addr: Address = {
+            id: real.id,
+            street: real.street || a.street,
+            city: real.city || a.city,
+            state: real.state || a.state,
+            zipCode: real.zipCode || a.zipCode,
+            lat: real.lat ?? a.lat ?? null,
+            lng: real.lng ?? a.lng ?? null,
+          };
+          const rest = get().addresses.filter((x) => x.id !== addr.id);
+          set({ addresses: [addr, ...rest] });
+          return addr;
+        } catch (err) {
+          get().handleApiError(err, "Could not save that address.");
+          throw err;
         }
       },
-      saveAddress: (a) => {
-        const tempId = crypto.randomUUID();
-        const addr: Address = { ...a, id: tempId };
-        set({ addresses: [...get().addresses, addr] });
-        realSaveAddress(a)
-          .then((real) => set({ addresses: get().addresses.map((x) => (x.id === tempId ? { ...a, id: real.id } : x)) }))
-          .catch((err) => get().handleApiError(err, "Could not save that address."));
-        return addr;
+      captureLiveLocation: async () => {
+        if (typeof window === "undefined") return null;
+        if ((globalThis as any).__zoomoGeoLock) return null;
+        (globalThis as any).__zoomoGeoLock = true;
+        try {
+          const { captureLivePlace } = await import("./live-location");
+          const place = await captureLivePlace();
+          if (!place) return null;
+          set({ location: place.label || place.city, locationPrompted: true });
+          const existing = get().addresses.find(
+            (a) => a.street === place.street || (a.lat && Math.abs((a.lat || 0) - place.lat) < 0.0008),
+          );
+          if (existing) {
+            get().updateAddress(existing.id, {
+              street: place.street,
+              city: place.city,
+              state: place.state,
+              zipCode: place.zipCode,
+              lat: place.lat,
+              lng: place.lng,
+            });
+            return { ...existing, ...place, id: existing.id };
+          }
+          return await get().saveAddress({
+            street: place.street,
+            city: place.city,
+            state: place.state,
+            zipCode: place.zipCode,
+            lat: place.lat,
+            lng: place.lng,
+          });
+        } catch {
+          return null;
+        } finally {
+          (globalThis as any).__zoomoGeoLock = false;
+        }
       },
       updateAddress: (id, patch) => {
         set({ addresses: get().addresses.map((a) => (a.id === id ? { ...a, ...patch } : a)) });
@@ -498,9 +590,59 @@ export const useZoomo = create<State>()(
         // No real rider-reply channel yet — the message itself is persisted.
         realSendMessage(id, t).catch((err) => get().handleApiError(err, "Message could not be sent."));
       },
-      rateOrder: (id, rating) => {
-        set({ orders: get().orders.map((x) => (x.id === id ? { ...x, rating } : x)) });
-        realRateOrder(id, rating).catch((err) => get().handleApiError(err, "Could not save your rating."));
+      rateOrder: async (id, rating, comment) => {
+        set({ orders: get().orders.map((x) => (x.id === id ? { ...x, rating, kitchenComment: comment ?? x.kitchenComment } : x)) });
+        try {
+          const raw = await realRateOrder(id, rating, comment);
+          if (raw?.id) {
+            const mapped = toStoreOrder(raw) as Order;
+            const user = get().user;
+            set({
+              orders: get().orders.map((x) => (x.id === id ? mapped : x)),
+              reviews: user
+                ? [
+                    {
+                      id: `rv-${id}`,
+                      restaurantId: mapped.restaurantId,
+                      name: user.name,
+                      rating,
+                      text: comment?.trim() || "",
+                      at: new Date().toISOString(),
+                    },
+                    ...get().reviews.filter((r) => r.id !== `rv-${id}`),
+                  ]
+                : get().reviews,
+            });
+          }
+        } catch (err) {
+          get().handleApiError(err, "Could not save your kitchen review.");
+          throw err;
+        }
+      },
+      rateDriver: async (id, rating, comment) => {
+        set({ orders: get().orders.map((x) => (x.id === id ? { ...x, driverRating: rating, driverComment: comment ?? x.driverComment } : x)) });
+        try {
+          const raw = await realRateDriver(id, rating, comment);
+          if (raw?.id) {
+            const mapped = toStoreOrder(raw) as Order;
+            set({ orders: get().orders.map((x) => (x.id === id ? mapped : x)) });
+          }
+        } catch (err) {
+          get().handleApiError(err, "Could not save your driver rating.");
+          throw err;
+        }
+      },
+      extraTip: async (id, amount) => {
+        try {
+          const raw = await realExtraTip(id, amount);
+          if (raw?.id) {
+            const mapped = toStoreOrder(raw) as Order;
+            set({ orders: get().orders.map((x) => (x.id === id ? mapped : x)) });
+          }
+        } catch (err) {
+          get().handleApiError(err, "Could not add that tip.");
+          throw err;
+        }
       },
       setProof: (id) => {
         set({
@@ -541,16 +683,40 @@ export const useZoomo = create<State>()(
         return "ok";
       },
       placeOrder: async (payload) => {
-        await realPlaceOrder(payload);
+        await cartChain;
+        const rid = payload.restaurantId;
+        const forKitchen = (items: RealCartItem[]) =>
+          rid ? items.filter((i) => i.dish?.restaurantId === rid) : items;
+        let serverItems = await realGetCart().catch(() => [] as RealCartItem[]);
+        if (!forKitchen(serverItems).length) {
+          const local = get().cart.filter((i) => !rid || i.restaurantId === rid);
+          for (const line of local) {
+            const [dishId, sizePart] = line.dishId.split("__");
+            const sizeId = sizePart && !sizePart.startsWith("n:") ? sizePart : undefined;
+            await realAddToCart(dishId, line.quantity, sizeId);
+          }
+          serverItems = await realGetCart();
+        }
+        if (!forKitchen(serverItems).length) throw new Error("Your bag is empty.");
+        const created = await realPlaceOrder({ ...payload, promoCode: payload.promoCode || null });
+        if (!created?.id) throw new Error("Order did not return an id.");
+        let mapped: Order;
+        try {
+          const full = await realGetOrder(created.id);
+          mapped = toStoreOrder(full?.id ? full : created) as Order;
+        } catch {
+          mapped = toStoreOrder(created) as Order;
+        }
         await get().refreshCart();
-        const orders = await realGetOrders();
-        const mapped = orders.map(toStoreOrder) as Order[];
-        set({ orders: mapped, activeBag: null });
-        const restaurantId = payload.restaurantId || get().activeBag || "";
+        const restaurantId = payload.restaurantId || mapped.restaurantId || "";
         const visits = { ...(get().visits ?? {}) };
         visits[restaurantId] = (visits[restaurantId] || 0) + 1;
-        set({ visits });
-        return mapped[0];
+        set({
+          orders: [mapped, ...get().orders.filter((o) => o.id !== mapped.id)],
+          activeBag: null,
+          visits,
+        });
+        return mapped;
       },
       refreshOrders: async () => {
         if (!getRealToken()) return;
@@ -568,25 +734,26 @@ export const useZoomo = create<State>()(
         user: state.user,
         location: state.location,
         locationPrompted: state.locationPrompted,
-        cart: state.cart,
-        addresses: state.addresses,
-        orders: state.orders,
         favorites: state.favorites,
         visits: state.visits,
         activatedOffers: state.activatedOffers,
-        dishOff: state.dishOff,
-        reviews: state.reviews,
+        activeBag: state.activeBag,
       }),
       onRehydrateStorage: () => (state) => {
         const loc = (state?.location ?? "").split(",")[0].trim();
         const known = AREAS.some((a) => a.toLowerCase() === loc.toLowerCase());
         useZoomo.setState({
           hydrated: true,
+          // Bag/addresses/orders always come from the API — never from a
+          // leftover local snapshot (old slug dish ids made Add look broken).
+          cart: [],
+          addresses: [],
+          orders: [],
           favorites: state?.favorites ?? [],
           visits: state?.visits ?? {},
           activatedOffers: (state?.activatedOffers ?? []).slice(0, 2),
-          dishOff: state?.dishOff ?? [],
-          reviews: state?.reviews ?? [],
+          dishOff: [],
+          reviews: [],
           location: known ? loc : DEFAULT_LOCATION,
         });
       },

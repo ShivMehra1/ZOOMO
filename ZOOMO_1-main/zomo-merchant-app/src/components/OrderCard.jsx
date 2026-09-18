@@ -1,11 +1,14 @@
 import StatusBadge from "./StatusBadge";
+import { formatWhen } from "../lib/when";
+import { isPickupType } from "../lib/order-labels";
 
 // ✅ Order type badge for dine-in and takeaway
 function OrderTypeBadge({ type }) {
   if (!type || type === "DELIVERY") return null;
   const cfg = {
-    DINE_IN: { label: "🍽️ Dine In", cls: "bg-z-sage text-z-primary" },
-    TAKEAWAY: { label: "🥡 Takeaway", cls: "bg-z-sage text-z-primary" },
+    DINE_IN: { label: "Dine in", cls: "bg-z-sage text-z-primary" },
+    TAKEAWAY: { label: "Pickup", cls: "bg-z-sage text-z-primary" },
+    PICKUP: { label: "Pickup", cls: "bg-z-sage text-z-primary" },
   };
   const c = cfg[type];
   if (!c) return null;
@@ -13,7 +16,7 @@ function OrderTypeBadge({ type }) {
 }
 
 export default function OrderCard({ order, onClick }) {
-  const isInStore = order.orderType === "DINE_IN" || order.orderType === "TAKEAWAY";
+  const isInStore = order.orderType === "DINE_IN" || isPickupType(order.orderType);
 
   return (
     <div onClick={onClick} className="card p-4 cursor-pointer transition hover:shadow-lift">
@@ -33,10 +36,7 @@ export default function OrderCard({ order, onClick }) {
           {order.scheduledFor && (
             <span>
               📅{" "}
-              {new Date(order.scheduledFor).toLocaleString("en-IN", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
+              {formatWhen(order.scheduledFor)}
             </span>
           )}
           {order.orderType === "DINE_IN" && order.guestCount && (
@@ -45,6 +45,8 @@ export default function OrderCard({ order, onClick }) {
           {!order.scheduledFor && <span className="text-z-muted">No time specified</span>}
         </div>
       )}
+
+      <p className="mt-2 text-xs text-z-muted">Placed {formatWhen(order.createdAt)}</p>
 
       <div className="my-3 h-px bg-z-line-soft" />
 

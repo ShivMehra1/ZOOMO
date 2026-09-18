@@ -2,8 +2,17 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+
+export type AddItemInput = {
+  dishId: string;
+  quantity?: number;
+  dishSizeId?: string | null;
+  specialInstructions?: string;
+  replace?: boolean;
+};
 
 @Injectable()
 export class CartService {
@@ -11,7 +20,7 @@ export class CartService {
 
   /* ================= GET CART ================= */
   async getCart(userId: string) {
-    if (!userId) throw new BadRequestException("❌ userId missing");
+    if (!userId) throw new BadRequestException("userId missing");
 
     let cart = await this.prisma.cart.findUnique({
       where: { userId },
@@ -31,37 +40,39 @@ export class CartService {
       });
     }
 
-    return { items: cart.items }; // 👈 RETURN ONLY ITEMS ARRAY!
+    return { items: cart.items };
   }
 
   /* ================= ADD ITEM ================= */
-  async addItem(userId: string, dishId: string, quantity: number = 1, dishSizeId?: string, specialInstructions?: string) {
-    if (!userId) throw new BadRequestException("❌ userId missing");
-    if (!dishId) throw new BadRequestException("❌ dishId missing");
+  async addItem(userId: string, input: AddItemInput) {
+    if (!userId) throw new BadRequestException("userId missing");
+    const dishId = input.dishId?.trim();
+    if (!dishId) throw new BadRequestException("dishId missing");
 
-    const dish = await this.prisma.dish.findUnique({ where: { id: dishId } });
-    if (!dish) throw new NotFoundException("❌ Dish not found");
+    const quantity = Math.max(1, Number(input.quantity) || 1);
+    const dishSizeId = input.dishSizeId?.trim() || null;
+    const note = input.specialInstructions?.trim() || null;
 
-    let cart = await this.ensureCart(userId);
-    const note = specialInstructions?.trim() || null;
-
-    /* ============ RESTAURANT CONFLICT ============ */
-    if (cart.items.length > 0) {
-      const firstItem = cart.items[0];
-      const firstDish = firstItem
-        ? await this.prisma.dish.findUnique({ where: { id: firstItem.dishId } })
-        : null;
-
-      if (firstDish && firstDish.restaurantId !== dish.restaurantId) {
-        await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-      }
+    const dish = await this.prisma.dish.findUnique({
+      where: { id: dishId },
+      include: { restaurant: true, sizes: true },
+    });
+    if (!dish) throw new NotFoundException("Dish not found");
+    if (!dish.isAvailable) throw new BadRequestException("This dish is sold out");
+    if (!dish.restaurant?.isApproved) {
+      throw new BadRequestException("This restaurant is no longer available");
+    }
+    if (!dish.restaurant?.isActive) {
+      throw new BadRequestException("This restaurant is currently closed");
+    }
+    if (dishSizeId && !dish.sizes.some((s) => s.id === dishSizeId)) {
+      throw new BadRequestException("That size is not available for this dish");
     }
 
-    /* ============ ADD OR UPDATE ITEM ============
-       Same dish+size+note merges quantity; a different note is a separate
-       line (e.g. "no onions" vs "extra spicy" shouldn't collapse together). */
+    const cart = await this.ensureCart(userId);
+
     const existing = await this.prisma.cartItem.findFirst({
-      where: { cartId: cart.id, dishId, dishSizeId: dishSizeId || null, specialInstructions: note },
+      where: { cartId: cart.id, dishId, dishSizeId, specialInstructions: note },
     });
 
     if (existing) {
@@ -71,75 +82,77 @@ export class CartService {
       });
     } else {
       await this.prisma.cartItem.create({
-        data: { cartId: cart.id, dishId, quantity, dishSizeId: dishSizeId || null, specialInstructions: note },
+        data: { cartId: cart.id, dishId, quantity, dishSizeId, specialInstructions: note },
       });
     }
 
-    return this.getCart(userId); // 👈 CONSISTENT RETURN
+    return this.getCart(userId);
   }
 
- /* ================= UPDATE QUANTITY / NOTE ================= */
-async updateItem(id: string, quantity: number, specialInstructions?: string) {
-  if (!id) throw new BadRequestException("❌ item id missing");
+  /* ================= UPDATE QUANTITY / NOTE ================= */
+  async updateItem(userId: string, id: string, quantity: number, specialInstructions?: string) {
+    if (!id) throw new BadRequestException("item id missing");
 
-  const item = await this.prisma.cartItem.findUnique({ where: { id } });
-  if (!item) throw new NotFoundException("Item not found");
-
-  if (quantity <= 0) {
-    await this.prisma.cartItem.delete({ where: { id } });
-  } else {
-    await this.prisma.cartItem.update({
+    const item = await this.prisma.cartItem.findUnique({
       where: { id },
-      data: {
-        quantity,
-        ...(specialInstructions !== undefined ? { specialInstructions: specialInstructions.trim() || null } : {}),
-      },
+      include: { cart: true },
     });
-  }
+    if (!item) throw new NotFoundException("Item not found");
+    if (item.cart.userId !== userId) throw new ForbiddenException("Not your bag");
 
-  // 🛠 load cart to get userId
-  const cart = await this.prisma.cart.findUnique({
-    where: { id: item.cartId },
-    include: { user: true },
-  });
-
-  if (!cart) {
-    throw new NotFoundException("⚠️ Cart not found — data inconsistency");
-  }
-
-  return this.getCart(cart.userId);
-}
-
-  /* ================= REMOVE ================= */
-  async removeItem(itemId: string) {
-    if (!itemId) throw new BadRequestException("❌ item id missing");
-
-    const item = await this.prisma.cartItem.findUnique({ where: { id: itemId } });
-
-    if (!item) return { items: [] };
-
-    await this.prisma.cartItem.delete({ where: { id: itemId } });
-
-    const userCart = await this.prisma.cart.findUnique({
-      where: { id: item.cartId },
-    });
-
-    if (!userCart || !userCart.userId) {
-      return { items: [] };
+    if (quantity <= 0) {
+      await this.prisma.cartItem.delete({ where: { id } });
+    } else {
+      await this.prisma.cartItem.update({
+        where: { id },
+        data: {
+          quantity,
+          ...(specialInstructions !== undefined ? { specialInstructions: specialInstructions.trim() || null } : {}),
+        },
+      });
     }
 
-    return this.getCart(userCart.userId);
+    return this.getCart(userId);
+  }
+
+  /* ================= REMOVE ================= */
+  async removeItem(userId: string, itemId: string) {
+    if (!itemId) throw new BadRequestException("item id missing");
+
+    const item = await this.prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: { cart: true },
+    });
+
+    if (!item) return this.getCart(userId);
+    if (item.cart.userId !== userId) throw new ForbiddenException("Not your bag");
+
+    await this.prisma.cartItem.delete({ where: { id: itemId } });
+    return this.getCart(userId);
   }
 
   /* ================= CLEAR CART ================= */
   async clearCart(userId: string) {
-    if (!userId) throw new BadRequestException("❌ userId missing");
+    if (!userId) throw new BadRequestException("userId missing");
 
     const cart = await this.prisma.cart.findUnique({ where: { userId } });
     if (!cart) return { items: [] };
 
     await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
+    return this.getCart(userId);
+  }
+
+  async clearRestaurant(userId: string, restaurantId: string) {
+    const cart = await this.prisma.cart.findUnique({
+      where: { userId },
+      include: { items: { include: { dish: true } } },
+    });
+    if (!cart) return { items: [] };
+    const ids = cart.items.filter((i) => i.dish.restaurantId === restaurantId).map((i) => i.id);
+    if (ids.length) {
+      await this.prisma.cartItem.deleteMany({ where: { id: { in: ids } } });
+    }
     return this.getCart(userId);
   }
 

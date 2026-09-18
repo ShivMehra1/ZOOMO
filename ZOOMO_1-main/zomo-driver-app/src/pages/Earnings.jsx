@@ -10,6 +10,8 @@ import {
   requestPayout,
 } from "../services/driverApi";
 import { useDriverSocket } from "../hooks/useDriverSocket";
+import { formatWhen } from "../lib/when";
+import { statusLabel } from "../lib/order-labels";
 
 const METHODS = [
   { id: "UPI", label: "UPI", placeholder: "your-id@upi" },
@@ -17,7 +19,14 @@ const METHODS = [
   { id: "CASH", label: "Cash", placeholder: null },
 ];
 
-const PAYOUT_TONE = { PENDING: "tone-wait", COMPLETED: "tone-go", REJECTED: "tone-stop" };
+const PAYOUT_TONE = { PENDING: "tone-wait", APPROVED: "tone-go", COMPLETED: "tone-go", REJECTED: "tone-stop" };
+
+function proofSrc(url) {
+  if (!url) return "";
+  if (/^https?:\/\//.test(url)) return url;
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  return url.startsWith("/") ? `${base}${url}` : url;
+}
 
 function CashOutCard() {
   const socket = useDriverSocket();
@@ -126,12 +135,24 @@ function CashOutCard() {
         <div className="mt-5 pt-4 border-t border-z-line-soft space-y-2">
           <p className="text-[11px] font-bold tracking-wide text-z-muted uppercase mb-2">Payout history</p>
           {payouts.map((p) => (
-            <div key={p.id} className="flex items-center justify-between text-sm">
+            <div key={p.id} className="flex items-start justify-between text-sm gap-3">
               <div>
                 <span className="font-bold text-z-ink">₹{p.amount.toFixed(0)}</span>{" "}
                 <span className="text-z-sub text-xs">· {p.method.replace("_", " ")}</span>
+                <p className="text-[11px] text-z-muted mt-0.5">Requested {formatWhen(p.createdAt)}</p>
+                {p.status === "COMPLETED" && p.updatedAt && (
+                  <p className="text-[11px] text-z-muted">Paid {formatWhen(p.updatedAt)}</p>
+                )}
+                {p.status === "APPROVED" && (
+                  <p className="text-[11px] text-z-primary font-semibold mt-0.5">You'll be paid within 24 hours.</p>
+                )}
+                {p.paymentProofUrl && (
+                  <a href={proofSrc(p.paymentProofUrl)} target="_blank" rel="noreferrer">
+                    <img src={proofSrc(p.paymentProofUrl)} alt="Payment proof" className="mt-2 h-16 w-28 rounded-lg object-cover" />
+                  </a>
+                )}
               </div>
-              <span className={`badge ${PAYOUT_TONE[p.status]}`}>{p.status}</span>
+              <span className={`badge ${PAYOUT_TONE[p.status]}`}>{p.status === "APPROVED" ? "Approved" : p.status}</span>
             </div>
           ))}
         </div>
@@ -297,9 +318,9 @@ export default function Earnings() {
                     </p>
                     <p className="text-xs text-z-sub flex items-center gap-1 mt-0.5">
                       <FiClock size={11} />
-                      {new Date(o.createdAt).toLocaleDateString()} ·{" "}
+                      {formatWhen(o.createdAt)} ·{" "}
                       <span className={o.status === "CANCELLED" ? "text-z-danger" : "text-z-primary"}>
-                        {o.status}
+                        {statusLabel(o.status)}
                       </span>
                     </p>
                   </div>

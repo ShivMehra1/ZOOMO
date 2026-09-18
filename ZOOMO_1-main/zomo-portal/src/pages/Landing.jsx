@@ -40,7 +40,7 @@ const PORTALS = [
   },
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.DEV ? "/backend" : (import.meta.env.VITE_API_URL || "http://localhost:3000");
 
 export default function Landing() {
   const [currentTime, setCurrentTime] = useState(new Date());

@@ -8,10 +8,10 @@ export class RestaurantsService {
   // List all restaurants — only ones approved by admin and currently open for listing
   findAll() {
     return this.prisma.restaurant.findMany({
-      where: { isApproved: true },
+      where: { isApproved: true, isActive: true },
       include: {
         reviews: { include: { user: { select: { name: true } } } },
-        dishes: { include: { sizes: true } },
+        dishes: { where: { isAvailable: true }, include: { sizes: true } },
       },
     });
   }
@@ -57,8 +57,16 @@ export class RestaurantsService {
     if (!restaurant) throw new NotFoundException("Restaurant not found");
     if (rating < 1 || rating > 5) throw new BadRequestException("Rating must be 1-5");
 
+    const delivered = await this.prisma.order.findFirst({
+      where: { userId, restaurantId, status: "DELIVERED" },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!delivered) {
+      throw new BadRequestException("You can review a kitchen after an order from there is delivered");
+    }
+
     const review = await this.prisma.review.create({
-      data: { restaurantId, userId, rating, comment: comment || null },
+      data: { restaurantId, userId, rating, comment: comment || null, orderId: delivered.id },
     });
 
     const agg = await this.prisma.review.aggregate({

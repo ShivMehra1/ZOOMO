@@ -42,4 +42,24 @@ export class DriverMeService {
       select: { id: true, vehicleType: true, vehiclePlate: true },
     });
   }
+
+  async getPayoutMethod(userId: string) {
+    return this.prisma.driver.findUnique({
+      where: { userId },
+      select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true },
+    });
+  }
+
+  async setPayoutMethod(userId: string, data: { payoutMethod?: string; upiId?: string; bankName?: string; accountLast4?: string }) {
+    return this.prisma.driver.update({
+      where: { userId },
+      data: {
+        payoutMethod: data.payoutMethod,
+        upiId: data.upiId,
+        bankName: data.bankName,
+        accountLast4: data.accountLast4,
+      },
+      select: { payoutMethod: true, upiId: true, bankName: true, accountLast4: true },
+    });
+  }
 }

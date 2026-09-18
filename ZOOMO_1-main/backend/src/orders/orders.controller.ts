@@ -72,7 +72,23 @@ export class OrdersController {
     if (req.user.role !== "USER") {
       throw new ForbiddenException("Access denied");
     }
-    return this.ordersService.rateOrder(id, req.user.id, Number(body.rating));
+    return this.ordersService.rateOrder(id, req.user.id, Number(body.rating), body.comment);
+  }
+
+  @Patch(":id/rate-driver")
+  rateDriver(@Param("id") id: string, @Body() body, @Req() req) {
+    if (req.user.role !== "USER") {
+      throw new ForbiddenException("Access denied");
+    }
+    return this.ordersService.rateDriver(id, req.user.id, Number(body.rating), body.comment);
+  }
+
+  @Patch(":id/extra-tip")
+  extraTip(@Param("id") id: string, @Body() body, @Req() req) {
+    if (req.user.role !== "USER") {
+      throw new ForbiddenException("Access denied");
+    }
+    return this.ordersService.addExtraTip(id, req.user.id, Number(body.amount));
   }
 
   /* ================= GATE PING ================= */

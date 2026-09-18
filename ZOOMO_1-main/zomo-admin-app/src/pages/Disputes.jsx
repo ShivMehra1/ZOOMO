@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getDisputes, refundOrder } from "../services/adminApi";
+import { getDisputes, refundOrder, rejectRefund } from "../services/adminApi";
+import { formatWhen } from "../lib/when";
 import { FiRefreshCw, FiAlertTriangle, FiMessageSquare, FiDollarSign } from "react-icons/fi";
 
 function RefundModal({ order, onClose, onRefunded }) {
@@ -125,18 +126,32 @@ export default function Disputes() {
                 </div>
                 <p className="text-z-sub text-sm">{o.restaurant?.name} · {o.user?.name} ({o.user?.email})</p>
                 <p className="text-z-muted text-xs mt-0.5">
-                  ₹{o.total.toFixed(0)} · {new Date(o.createdAt).toLocaleString()}
+                  ₹{o.total.toFixed(0)} · Placed {formatWhen(o.createdAt)}
                 </p>
                 {o.cancelReason && <p className="text-z-sub text-xs mt-1">Reason: {o.cancelReason}</p>}
               </div>
 
               {!o.refundedAt && (
-                <button
-                  onClick={() => setRefundTarget(o)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-z-primary hover:bg-z-hover text-white text-xs font-semibold transition"
-                >
-                  <FiDollarSign size={14} /> Issue Refund
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRefundTarget(o)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-z-primary hover:bg-z-hover text-white text-xs font-semibold transition"
+                  >
+                    <FiDollarSign size={14} /> Issue Refund
+                  </button>
+                  {o.refundRequested && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await rejectRefund(o.id);
+                        fetchDisputes();
+                      }}
+                      className="px-4 py-2 rounded-xl border border-z-line text-xs font-semibold text-z-sub"
+                    >
+                      Reject request
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 

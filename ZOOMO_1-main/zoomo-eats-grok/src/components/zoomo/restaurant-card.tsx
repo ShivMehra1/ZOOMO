@@ -1,9 +1,11 @@
+import { useNavigate } from "@tanstack/react-router";
 import { Clock, Heart, Star, Tag } from "lucide-react";
 import { FoodImg } from "./food-img";
 import { etaMinOf, gateBy, type Restaurant } from "@/lib/zoomo-data";
 import { isRegular, useZoomo } from "@/lib/zoomo-store";
 
-export function RestaurantCard({ r, onOpen }: { r: Restaurant; onOpen: () => void }) {
+export function RestaurantCard({ r, onOpen }: { r: Restaurant; onOpen: () => void; urgency?: string | null; reason?: string | null }) {
+  const nav = useNavigate();
   const { favorites, toggleFavorite, user, visits } = useZoomo();
   const loved = favorites.includes(r.id);
   const regular = isRegular(visits, r.id);
@@ -23,17 +25,12 @@ export function RestaurantCard({ r, onOpen }: { r: Restaurant; onOpen: () => voi
               <Tag className="size-3" /> {r.coupon}
             </div>
           )}
-          {r.busy && (
-            <div className="absolute top-3 left-3 rounded-full bg-white px-2 py-1 text-[10px] font-bold tracking-wide text-danger uppercase">
-              Busy
-            </div>
-          )}
           {etaMinOf(r) <= 20 && (
             <div className={`absolute top-3 rounded-full bg-accent px-2 py-1 text-[10px] font-bold tracking-wide text-white uppercase ${r.busy ? "left-16" : "left-3"}`}>
               Zoom 15
             </div>
           )}
-          <div className={`absolute top-3 flex items-center gap-1 rounded-full bg-surface/95 px-2 py-1 text-[11px] font-bold text-ink tabular ${r.busy || etaMinOf(r) <= 20 ? "right-12" : "left-3"}`}>
+          <div className={`absolute top-3 flex items-center gap-1 rounded-full bg-surface/95 px-2 py-1 text-[11px] font-bold text-ink tabular ${etaMinOf(r) <= 20 ? "right-12" : "left-3"}`}>
             <Star className="size-3 fill-primary text-primary" /> {r.rating.toFixed(1)}
           </div>
           {regular && (
@@ -63,7 +60,10 @@ export function RestaurantCard({ r, onOpen }: { r: Restaurant; onOpen: () => voi
           aria-label={loved ? "Remove favourite" : "Save restaurant"}
           onClick={(e) => {
             e.stopPropagation();
-            if (!user) return;
+            if (!user) {
+              nav({ to: "/login" });
+              return;
+            }
             toggleFavorite(r.id);
           }}
           className={`mt-1 flex size-9 shrink-0 items-center justify-center rounded-full ${

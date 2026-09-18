@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const SOCKET_URL = import.meta.env.DEV ? "http://127.0.0.1:3000" : (import.meta.env.VITE_API_URL || "http://localhost:3000");
 
 // One socket connection for the whole app. Components join whichever rooms
 // they care about (`restaurant:<id>`) and clean up on unmount.

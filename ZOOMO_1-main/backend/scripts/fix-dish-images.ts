@@ -72,6 +72,10 @@ const CATEGORY_POOL: Record<string, string> = {
   "Combo Special": "MISC_SAVORY",
   Dessert: "MISC_SWEET",
   Soup: "SOUP",
+  "Hot beverages": "COFFEE",
+  "Cold beverages": "COFFEE",
+  "Mocktails & shakes": "MILKSHAKE",
+  Sides: "FRIES",
 };
 
 // All distinct photo ids, deduped, for the global fallback layer.

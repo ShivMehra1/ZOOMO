@@ -5,19 +5,14 @@ export function HomeHero({ onSearch }: { onSearch: () => void }) {
   return (
     <section className="relative isolate overflow-hidden">
       <video
-        className="absolute inset-0 hidden size-full object-cover sm:block"
+        className="absolute inset-0 size-full object-cover"
         src={IMG.heroVideo}
-        poster={IMG.burger}
+        poster={IMG.heroPoster}
         autoPlay
         muted
         loop
         playsInline
-        preload="none"
-      />
-      <img
-        src={IMG.burger}
-        alt=""
-        className="absolute inset-0 size-full object-cover sm:hidden"
+        preload="metadata"
       />
       <div className="absolute inset-0 bg-primary/38" />
       <div className="absolute inset-0 bg-gradient-to-r from-primary/72 via-primary/28 to-transparent" />

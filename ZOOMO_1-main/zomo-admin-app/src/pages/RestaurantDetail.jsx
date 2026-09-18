@@ -8,11 +8,15 @@ import {
   rejectRestaurant,
   updateDish,
   deleteDish,
+  deleteRestaurant,
+  createDish,
   getOrders,
   deleteOrder,
 } from "../services/adminApi";
-import catalog from "../data/jourian-catalog.json";
-import { displayKitchenName, realOrders } from "../lib/real";
+import { mediaUrl } from "../lib/media";
+import PhotoPicker from "../components/PhotoPicker";
+import { useConfirm } from "../context/ConfirmContext";
+import { formatWhen } from "../lib/when";
 import {
   FiArrowLeft,
   FiEdit2,
@@ -58,6 +62,7 @@ function StatCard({ label, value, sub }) {
 export default function RestaurantDetail() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { confirm } = useConfirm();
   const [restaurant, setRestaurant] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,22 +76,14 @@ export default function RestaurantDetail() {
   async function load() {
     try {
       setLoading(true);
-      let restaurant = null;
-      try {
-        restaurant = (await getRestaurantById(id)).data;
-      } catch {
-        const k = catalog.restaurants.find((r) => r.id === id);
-        if (!k) throw new Error("missing");
-        restaurant = { ...k, dishes: catalog.dishes.filter((d) => d.restaurantId === id), isApproved: true, isActive: true };
-      }
-      restaurant = { ...restaurant, name: displayKitchenName(restaurant.name) };
+      const restaurant = (await getRestaurantById(id)).data;
+      if (!restaurant?.id) throw new Error("Restaurant not found");
       let orders = [];
       try {
-        orders = realOrders((await getOrders()).data).filter(
-          (o) => o.restaurantId === id || displayKitchenName(o.restaurant?.name) === restaurant.name,
-        );
+        const list = (await getOrders()).data;
+        orders = (Array.isArray(list) ? list : []).filter((o) => o.restaurantId === id);
       } catch {}
-      setRestaurant(restaurant);
+      setRestaurant({ ...restaurant, dishes: Array.isArray(restaurant.dishes) ? restaurant.dishes : [] });
       setOrders(orders);
     } catch {
       alert("Failed to load restaurant");
@@ -155,7 +152,8 @@ export default function RestaurantDetail() {
   }
 
   async function handleReject() {
-    if (!confirm("Reject this restaurant? It will be hidden from customers.")) return;
+    const ok = await confirm({ title: "Reject this restaurant?", body: "It will be hidden from customers.", confirmLabel: "Reject" });
+    if (!ok) return;
     try {
       setBusy("approve");
       await rejectRestaurant(id);
@@ -186,7 +184,8 @@ export default function RestaurantDetail() {
   }
 
   async function removeDish(dishId) {
-    if (!confirm("Delete this dish? This can't be undone.")) return;
+    const ok = await confirm({ title: "Delete this dish?", body: "This cannot be undone. Dishes with order history should be marked unavailable instead.", confirmLabel: "Delete dish" });
+    if (!ok) return;
     try {
       setBusy(`dish-${dishId}`);
       await deleteDish(id, dishId);
@@ -199,7 +198,8 @@ export default function RestaurantDetail() {
   }
 
   async function removeOrder(orderId) {
-    if (!confirm("Permanently delete this order? This can't be undone.")) return;
+    const ok = await confirm({ title: "Delete this order?", body: "Permanently delete this order. Delivered orders cannot be deleted.", confirmLabel: "Delete order" });
+    if (!ok) return;
     try {
       setBusy(`order-${orderId}`);
       await deleteOrder(orderId);
@@ -214,7 +214,16 @@ export default function RestaurantDetail() {
   if (loading && !restaurant) {
     return <div className="px-6 py-16 text-center text-z-muted">Loading restaurant...</div>;
   }
-  if (!restaurant) return null;
+  if (!restaurant) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <p className="text-z-ink font-semibold">Restaurant not found</p>
+        <button type="button" onClick={() => nav("/admin/restaurants")} className="mt-3 text-sm font-semibold text-z-primary">
+          Back to restaurants
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -227,9 +236,15 @@ export default function RestaurantDetail() {
           <FiArrowLeft size={16} />
         </button>
         <div className="flex-1 flex items-center gap-3">
-          {restaurant.imageUrl && (
-            <img src={restaurant.imageUrl} alt="" className="size-12 rounded-xl object-cover border border-z-line" />
-          )}
+          <PhotoPicker
+            url={restaurant.imageUrl}
+            folder="restaurants"
+            label="Cover"
+            onUploaded={async (url) => {
+              await updateRestaurant(id, { imageUrl: url });
+              await load();
+            }}
+          />
           <div>
             <h2 className="text-2xl font-bold text-z-ink">{restaurant.name}</h2>
             <p className="text-z-muted text-sm">{restaurant.owner?.name} · {restaurant.owner?.email}</p>
@@ -263,13 +278,29 @@ export default function RestaurantDetail() {
             Approve restaurant
           </button>
         )}
+        <button
+          type="button"
+          onClick={async () => {
+            const ok = await confirm({
+              title: "Delete this restaurant?",
+              body: "Deleting this restaurant deletes the whole menu and its orders.",
+              confirmLabel: "Delete restaurant",
+            });
+            if (!ok) return;
+            await deleteRestaurant(id);
+            nav("/admin/restaurants");
+          }}
+          className="px-3 py-1.5 rounded-full bg-red-50 text-z-danger border border-red-200 text-xs font-semibold"
+        >
+          Delete restaurant
+        </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total revenue" value={`₹${restaurant.totalRevenue.toFixed(0)}`} sub={`${restaurant.totalOrders} orders`} />
-        <StatCard label="Restaurant earning" value={`₹${restaurant.totalRestaurantEarning.toFixed(0)}`} sub="70% of items" />
-        <StatCard label="Platform fee" value={`₹${restaurant.totalPlatformFee.toFixed(0)}`} sub="25% of items" />
-        <StatCard label="Driver commission" value={`₹${restaurant.totalDriverCommission.toFixed(0)}`} sub="5% of items" />
+        <StatCard label="Total revenue" value={`₹${Number(restaurant.totalRevenue || 0).toFixed(0)}`} sub={`${restaurant.totalOrders || 0} orders`} />
+        <StatCard label="Restaurant earning" value={`₹${Number(restaurant.totalRestaurantEarning || 0).toFixed(0)}`} sub="70% of items" />
+        <StatCard label="Platform fee" value={`₹${Number(restaurant.totalPlatformFee || 0).toFixed(0)}`} sub="25% of items" />
+        <StatCard label="Driver commission" value={`₹${Number(restaurant.totalDriverCommission || 0).toFixed(0)}`} sub="5% of items" />
       </div>
 
       {/* Info card */}
@@ -330,11 +361,25 @@ export default function RestaurantDetail() {
       <div className="rounded-card border border-z-line bg-z-surface shadow-card overflow-hidden">
         <div className="px-5 py-4 border-b border-z-line flex items-center justify-between">
           <h3 className="text-z-ink font-semibold">Menu ({restaurant.dishes.length} dishes)</h3>
+          <button
+            type="button"
+            className="text-xs font-semibold text-z-primary"
+            onClick={async () => {
+              const name = window.prompt("Dish name");
+              if (!name) return;
+              const price = Number(window.prompt("Price (₹)") || "0");
+              await createDish(id, { name, price });
+              await load();
+            }}
+          >
+            Add dish
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-z-line bg-z-page">
+                <th className="px-6 py-3 text-z-muted font-medium">Photo</th>
                 <th className="px-6 py-3 text-z-muted font-medium">Dish</th>
                 <th className="px-6 py-3 text-z-muted font-medium">Price</th>
                 <th className="px-6 py-3 text-z-muted font-medium">Available</th>
@@ -343,13 +388,24 @@ export default function RestaurantDetail() {
             </thead>
             <tbody>
               {restaurant.dishes.length === 0 && (
-                <tr><td colSpan={4} className="px-6 py-10 text-center text-z-muted">No dishes yet</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-z-muted">No dishes yet</td></tr>
               )}
               {restaurant.dishes.map((d) => {
                 const isEditing = editingDishId === d.id;
                 const rowBusy = busy === `dish-${d.id}`;
                 return (
                   <tr key={d.id} className="border-t border-z-line-soft">
+                    <td className="px-6 py-3">
+                      <PhotoPicker
+                        url={d.imageUrl}
+                        folder="dishes"
+                        label="Dish"
+                        onUploaded={async (url) => {
+                          await updateDish(id, d.id, { imageUrl: url });
+                          await load();
+                        }}
+                      />
+                    </td>
                     <td className="px-6 py-3">
                       {isEditing ? (
                         <input
@@ -448,7 +504,7 @@ export default function RestaurantDetail() {
                     </span>
                   </td>
                   <td className="px-6 py-3 text-z-muted text-xs">
-                    {new Date(o.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                    {formatWhen(o.createdAt)}
                   </td>
                   <td className="px-6 py-3">
                     <button

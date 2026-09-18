@@ -5,6 +5,7 @@ import { AppShell } from "@/components/zoomo/shell";
 import { BackBar } from "@/components/zoomo/back-bar";
 import { StatusPill, useTick } from "@/components/zoomo/tracker";
 import { IMG, etaMinutes, inr, liveStatus, restaurantById, riderAssigned, riderById, riderFor } from "@/lib/zoomo-data";
+import { formatWhen } from "@/lib/when";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export const Route = createFileRoute("/orders")({ component: OrdersPage });
@@ -77,7 +78,7 @@ function OrdersPage() {
               {tab === "active" ? "Place a bag and you’ll watch it leave the kitchen." : "Your delivered and cancelled bags land here."}
             </p>
             <button onClick={() => nav({ to: "/restaurants" })} className="btn-primary px-5 py-2.5 text-sm">
-              Browse kitchens
+              Browse restaurants
             </button>
           </div>
         ) : (
@@ -99,7 +100,7 @@ function OrdersPage() {
                   >
                   <div className="flex gap-3 p-3">
                     <img
-                      src={r?.imageUrl || IMG.hero}
+                      src={r?.imageUrl || IMG.restaurantFallback}
                       alt=""
                       className="size-[88px] shrink-0 rounded-2xl object-cover"
                     />
@@ -112,6 +113,7 @@ function OrdersPage() {
                         {o.items.map((i) => `${i.quantity}× ${i.name}`).join(" · ")}
                       </p>
                       <p className="mt-2 text-sm font-bold text-primary tabular">{inr(o.total)}</p>
+                      <p className="mt-1 text-[11px] text-muted">Placed {formatWhen(o.createdAt)}</p>
                       {tab === "active" && (
                         <p className="mt-1 text-xs font-medium text-sub">
                           {st === "OUTFORDELIVERY"

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MapPin, RefreshCw, Search, ShoppingBag, X } from "lucide-react";
 import { AREAS, COST_FOR_TWO, ETA, TOWN, type Restaurant } from "@/lib/zoomo-data";
+import { useZoomo } from "@/lib/zoomo-store";
 
 export function LocationModal({
   onSet,
@@ -11,6 +12,8 @@ export function LocationModal({
 }) {
   const [area, setArea] = useState(AREAS[0]);
   const [n, setN] = useState("");
+  const [busy, setBusy] = useState(false);
+  const captureLiveLocation = useZoomo((s) => s.captureLiveLocation);
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-md">
       <div className="w-full max-w-md rounded-[32px] bg-surface p-8 shadow-lift">
@@ -44,6 +47,19 @@ export function LocationModal({
             className="field"
           />
         </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const a = await captureLiveLocation();
+            setBusy(false);
+            if (a) onSet(`${a.street}, ${a.city}`);
+          }}
+          className="btn-ghost mb-2 w-full py-3 text-sm"
+        >
+          {busy ? "Finding you…" : "Use current location"}
+        </button>
         <button
           onClick={() => onSet(n.trim() ? `${n.trim()}, ${area}` : area)}
           className="btn-primary mb-2.5 w-full py-3.5 text-[15px]"

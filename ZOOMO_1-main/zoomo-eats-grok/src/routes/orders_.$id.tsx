@@ -1,38 +1,80 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useGoBack } from "@/lib/zoomo-nav";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/zoomo/shell";
 import { OrderTracker, StatusPill, useTick } from "@/components/zoomo/tracker";
 import { UberTrack } from "@/components/zoomo/uber-track";
 import { inr, liveStatus, restaurantById } from "@/lib/zoomo-data";
-import { useZoomo } from "@/lib/zoomo-store";
+import { formatWhen } from "@/lib/when";
+import { useZoomo, type Order } from "@/lib/zoomo-store";
+import { realGetOrder, toStoreOrder } from "@/lib/real-api";
+import { PostDeliveryCard } from "@/components/zoomo/post-delivery";
 
 export const Route = createFileRoute("/orders_/$id")({ component: OrderDetailPage });
 
 function OrderDetailPage() {
   const { id } = Route.useParams();
   const nav = useNavigate();
-  const back = useGoBack("/orders");
-  const order = useZoomo((s) => s.orders.find((o) => o.id === id));
+  const storeOrder = useZoomo((s) => s.orders.find((o) => o.id === id));
   const cancelOrder = useZoomo((s) => s.cancelOrder);
   const reorder = useZoomo((s) => s.reorder);
+  const [fetched, setFetched] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(!storeOrder);
   const [confirmCancel, setConfirmCancel] = useState(false);
   useTick(1000);
 
+  useEffect(() => {
+    if (storeOrder) {
+      setFetched(storeOrder);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    realGetOrder(id)
+      .then((raw) => {
+        if (cancelled || !raw?.id) return;
+        const mapped = toStoreOrder(raw) as Order;
+        useZoomo.setState((s) => ({
+          orders: [mapped, ...s.orders.filter((o) => o.id !== mapped.id)],
+        }));
+        setFetched(mapped);
+      })
+      .catch(() => {
+        if (!cancelled) setFetched(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, storeOrder]);
+
+  const order = storeOrder || fetched;
   const status = order ? liveStatus(order) : "PENDING";
   const active = Boolean(order) && status !== "DELIVERED" && status !== "CANCELLED";
   const kitchen = order ? restaurantById(order.restaurantId) : undefined;
 
-  useEffect(() => {
-    /* hydrate-safe no-op: keeps hook order if order is missing */
-  }, [order]);
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="size-8 animate-spin rounded-full border-2 border-line border-t-primary" />
+        </div>
+      </AppShell>
+    );
+  }
 
   if (!order) {
     return (
       <AppShell>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <p className="text-sub">Order not found.</p>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-lg font-bold text-ink">Order not found</p>
+          <p className="text-sm text-sub">It may still be landing. Check Orders in a moment.</p>
+          <button type="button" onClick={() => nav({ to: "/orders", replace: true })} className="btn-primary px-5 py-2.5 text-sm">
+            My orders
+          </button>
         </div>
       </AppShell>
     );
@@ -47,7 +89,7 @@ function OrderDetailPage() {
       <div className="mx-auto max-w-[640px] px-5 py-6">
         <div className="mb-6 flex items-center gap-3">
           <button
-            onClick={back}
+            onClick={() => nav({ to: "/orders", replace: true })}
             className="flex size-10 items-center justify-center rounded-full border border-line bg-surface"
             aria-label="Back"
           >
@@ -55,7 +97,7 @@ function OrderDetailPage() {
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-bold text-ink">{order.restaurantName}</h1>
-            <p className="text-xs text-muted">#{order.id}</p>
+            <p className="text-xs text-muted">#{order.id.slice(0, 8)} · Placed {formatWhen(order.createdAt)}</p>
           </div>
           <StatusPill status={status} />
         </div>
@@ -74,21 +116,38 @@ function OrderDetailPage() {
               <span className="font-semibold text-ink">{inr(i.price * i.quantity)}</span>
             </div>
           ))}
-          <div className="mt-2 flex justify-between border-t border-line-soft pt-2.5 text-[15px] font-bold text-ink">
+          <div className="mt-3 space-y-1.5 border-t border-line-soft pt-3 text-[13px] text-sub">
+            <div className="flex justify-between"><span>Items</span><span className="tabular">{inr(order.subtotal)}</span></div>
+            <div className="flex justify-between"><span>Delivery</span><span className="tabular">{order.deliveryFee > 0 ? inr(order.deliveryFee) : "FREE"}</span></div>
+            <div className="flex justify-between"><span>GST (5%)</span><span className="tabular">{inr(order.tax)}</span></div>
+            {order.discount > 0 && (
+              <div className="flex justify-between text-veg"><span>Promo</span><span className="tabular">−{inr(order.discount)}</span></div>
+            )}
+            {order.tip > 0 && (
+              <div className="flex justify-between text-primary"><span>Tip</span><span className="tabular">{inr(order.tip)}</span></div>
+            )}
+          </div>
+          <div className="mt-3 flex justify-between border-t border-line-soft pt-2.5 text-[15px] font-bold text-ink">
             <span>Total</span>
-            <span>{inr(order.total)}</span>
+            <span className="tabular text-primary">{inr(order.total)}</span>
           </div>
         </div>
 
-        {kitchen && !active && status === "DELIVERED" && (
-          <button
-            onClick={() => {
-              if (reorder(order.id) === "ok") nav({ to: "/cart" });
-            }}
-            className="btn-primary mb-4 w-full py-3 text-sm"
-          >
-            Order again
-          </button>
+        {status === "DELIVERED" && (
+          <div className="mb-4 space-y-3">
+            <PostDeliveryCard order={order} />
+            {kitchen && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (reorder(order.id) === "ok") nav({ to: "/cart" });
+                }}
+                className="btn-primary w-full py-3 text-sm"
+              >
+                Order again
+              </button>
+            )}
+          </div>
         )}
 
         {active && (

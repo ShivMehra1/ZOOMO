@@ -1,9 +1,30 @@
 import { MAP_NODES, TOWN } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
 
-function mapSrc(area: string | null) {
+function mapSrc(area: string | null | undefined) {
   const q = encodeURIComponent(`${area && area !== TOWN ? `${area}, ` : ""}Jourian, Jammu and Kashmir, India`);
-  return `https://www.google.com/maps?q=${q}&z=13&hl=en&output=embed`;
+  return `https://www.google.com/maps?q=${q}&z=14&hl=en&output=embed`;
+}
+
+export function JourianMap({
+  area,
+  className,
+  title = "Jourian map",
+}: {
+  area?: string | null;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <iframe
+      title={title}
+      src={mapSrc(area)}
+      className={className ?? "absolute inset-0 size-full border-0"}
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+      allowFullScreen
+    />
+  );
 }
 
 export function ZoneMap({ onPick }: { onPick: (area: string) => void }) {
@@ -20,14 +41,7 @@ export function ZoneMap({ onPick }: { onPick: (area: string) => void }) {
       </div>
       <div className="grid gap-4 px-4 pb-5 sm:px-5 md:grid-cols-[1.4fr_0.8fr]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-[20px] bg-sage">
-          <iframe
-            title="Jourian delivery map"
-            src={mapSrc(location)}
-            className="absolute inset-0 size-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-          />
+          <JourianMap area={location} title="Jourian delivery map" />
         </div>
         <ol className="grid grid-cols-2 content-start gap-2 sm:grid-cols-3 md:grid-cols-1">
           {MAP_NODES.map((n, i) => {

@@ -15,9 +15,9 @@ export function FoodRow({
         {CATEGORIES.map((c) => {
           const on = chip === c.id;
           return (
-            <button key={c.id} onClick={() => onChip(c.id)} className="w-[76px] shrink-0 text-center">
+            <button key={c.id} onClick={() => onChip(on ? "All" : c.id)} className="w-[70px] shrink-0 text-center">
               <span
-                className={`mx-auto flex size-[72px] items-center justify-center overflow-hidden rounded-full bg-surface shadow-card ${
+                className={`mx-auto flex size-[64px] items-center justify-center overflow-hidden rounded-full bg-surface shadow-card ${
                   on ? "ring-2 ring-primary ring-offset-2 ring-offset-page" : ""
                 }`}
               >

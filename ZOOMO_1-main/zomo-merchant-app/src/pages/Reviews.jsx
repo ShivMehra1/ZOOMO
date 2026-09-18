@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { formatWhen } from "../lib/when";
 
 function Stars({ value }) {
   return (
@@ -74,7 +75,7 @@ export default function Reviews() {
                   <Stars value={r.rating} />
                   <span className="text-sm font-bold text-z-ink">{r.user?.name || "Customer"}</span>
                 </div>
-                <span className="text-xs text-z-muted">{new Date(r.createdAt).toLocaleDateString()}</span>
+                <span className="text-xs text-z-muted">{formatWhen(r.createdAt)}</span>
               </div>
               {r.comment && <p className="text-sm text-z-sub">{r.comment}</p>}
             </div>

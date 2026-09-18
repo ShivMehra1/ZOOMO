@@ -7,6 +7,7 @@ import {
   resetUserPassword,
 } from "../services/adminApi";
 import { FiArrowLeft, FiRefreshCw, FiKey, FiSlash, FiCheckCircle, FiCopy, FiTruck } from "react-icons/fi";
+import { formatWhen } from "../lib/when";
 
 const STATUS_COLORS = {
   PENDING: "bg-amber-50 text-amber-700 border-amber-200",
@@ -153,7 +154,7 @@ export default function DriverDetail() {
         <StatCard label="Deliveries" value={driver.totalDeliveries} />
         <StatCard label="Total earned" value={`₹${driver.totalEarned.toFixed(0)}`} sub="Delivery fee + 5% commission" />
         <StatCard label="Available balance" value={`₹${driver.balance.toFixed(0)}`} sub="Not yet paid out" />
-        <StatCard label="Joined" value={new Date(driver.user.createdAt).toLocaleDateString()} />
+        <StatCard label="Joined" value={formatWhen(driver.user.createdAt)} />
       </div>
 
       {tempPassword && (
@@ -235,7 +236,7 @@ export default function DriverDetail() {
                     </span>
                   </td>
                   <td className="px-6 py-3 text-z-muted text-xs">
-                    {new Date(o.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                    {formatWhen(o.createdAt)}
                   </td>
                 </tr>
               ))}

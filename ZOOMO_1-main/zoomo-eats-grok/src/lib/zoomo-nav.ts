@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 export type BackFallback = "/" | "/restaurants" | "/cart" | "/orders" | "/profile" | "/search";
 
@@ -64,20 +64,8 @@ export function useLocationMemory() {
 
 export function useGoBack(fallback: BackFallback = "/") {
   const nav = useNavigate();
-  const router = useRouter();
   return () => {
-    const prev = read(PREV_KEY) || "";
-    // history.back() onto a restaurant menu is the trap: Eat tab → list → Back
-    // returns to the menu, or kitchen A → kitchen B → Back stays in menus.
-    if (isRestaurantMenu(prev)) {
-      nav({ to: asFallback(read(HUB_KEY), fallback) });
-      return;
-    }
-    const hist = router.history as { canGoBack?: () => boolean; back: () => void };
-    if (typeof hist.canGoBack === "function" ? hist.canGoBack() : false) {
-      hist.back();
-      return;
-    }
-    nav({ to: fallback });
+    const hub = asFallback(read(HUB_KEY), fallback);
+    nav({ to: hub });
   };
 }

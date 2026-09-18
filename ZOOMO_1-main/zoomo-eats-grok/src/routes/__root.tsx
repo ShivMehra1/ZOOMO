@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { ConflictModal } from "@/components/zoomo/modals";
 import { applyCatalog, getRealToken, loadRealCatalog, type CatalogPayload } from "@/lib/real-api";
 import { useLocationMemory } from "@/lib/zoomo-nav";
 import { useZoomo } from "@/lib/zoomo-store";
@@ -49,6 +50,22 @@ function LocationMemory() {
   return null;
 }
 
+function BagConflictHost() {
+  const { conflict, confirmReplaceCart, cancelReplaceCart } = useZoomo();
+  if (!conflict) return null;
+  return <ConflictModal onCancel={cancelReplaceCart} onConfirm={confirmReplaceCart} />;
+}
+
+function ToastHost() {
+  const toast = useZoomo((s) => s.toast);
+  if (!toast) return null;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-28 z-[100] flex justify-center px-4 md:bottom-10">
+      <p className="rounded-full bg-primary px-4 py-2.5 text-[13px] font-bold text-white shadow-lift">{toast}</p>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { catalog } = Route.useLoaderData();
   applyCatalog(catalog);
@@ -62,6 +79,8 @@ function RootComponent() {
         <PreviewHostBridge />
         <AuthProvider>
           <LocationMemory />
+          <BagConflictHost />
+          <ToastHost />
           <Outlet />
         </AuthProvider>
         <Scripts />

@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import adminApi from "../services/adminApi";
-import { isFakeUser } from "../lib/real";
+import { createDriver, deleteDriver, getDrivers } from "../services/adminApi";
+import { useConfirm } from "../context/ConfirmContext";
+import CreateSheet from "../components/CreateSheet";
 import { FiTruck, FiRefreshCw, FiChevronRight } from "react-icons/fi";
 
 export default function Drivers() {
   const nav = useNavigate();
+  const { confirm } = useConfirm();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
 
   async function fetchDrivers() {
     try {
       setLoading(true);
-      const res = await adminApi.get("drivers");
-      setDrivers((res.data || []).filter((d) => !isFakeUser(d.user)));
+      const res = await getDrivers();
+      setDrivers(res.data || []);
     } catch {
       alert("Failed to load drivers");
     } finally {
@@ -25,20 +28,29 @@ export default function Drivers() {
 
   return (
     <div className="space-y-6">
-
-      {/* HEADER */}
+      {creating && (
+        <CreateSheet
+          kind="driver"
+          title="Create driver"
+          onClose={() => setCreating(false)}
+          onSubmit={async (data) => { await createDriver(data); fetchDrivers(); }}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-z-ink">Drivers</h2>
           <p className="text-z-muted text-sm mt-1">{drivers.length} registered drivers</p>
         </div>
-        <button
-          onClick={fetchDrivers}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-z-surface border border-z-line text-z-sub hover:text-z-primary hover:border-z-primary transition text-sm"
-        >
-          <FiRefreshCw size={14} />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setCreating(true)} className="btn-primary">Create</button>
+          <button
+            onClick={fetchDrivers}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-z-surface border border-z-line text-z-sub hover:text-z-primary hover:border-z-primary transition text-sm"
+          >
+            <FiRefreshCw size={14} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* STATS */}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { socket, joinRoom, leaveRoom } from "../lib/socket";
+import { formatWhen } from "../lib/when";
 
 const METHODS = [
   { id: "UPI", label: "UPI" },
@@ -16,9 +17,17 @@ const DETAIL_LABEL = {
 
 const STATUS_TONE = {
   PENDING: "tone-wait",
+  APPROVED: "tone-go",
   COMPLETED: "tone-done",
   REJECTED: "tone-stop",
 };
+
+function proofSrc(url) {
+  if (!url) return "";
+  if (/^https?:\/\//.test(url)) return url;
+  const base = import.meta.env.VITE_API_URL || "/backend";
+  return url.startsWith("/") ? `${base}${url}` : url;
+}
 
 export default function Payouts() {
   const [balance, setBalance] = useState(null);
@@ -125,13 +134,24 @@ export default function Payouts() {
         ) : (
           <div className="space-y-2">
             {history.map((p) => (
-              <div key={p.id} className="card p-4 flex items-center justify-between gap-3">
+              <div key={p.id} className="card p-4 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-bold text-z-ink">₹{p.amount.toFixed(2)} · {METHODS.find((m) => m.id === p.method)?.label || p.method}</p>
-                  <p className="text-xs text-z-muted mt-0.5">{new Date(p.createdAt).toLocaleString()}</p>
+                  <p className="text-xs text-z-muted mt-0.5">Requested {formatWhen(p.createdAt)}</p>
+                  {p.status === "COMPLETED" && p.updatedAt && (
+                    <p className="text-xs text-z-muted">Paid {formatWhen(p.updatedAt)}</p>
+                  )}
+                  {p.status === "APPROVED" && (
+                    <p className="text-xs text-z-primary mt-1 font-semibold">You'll be paid within 24 hours.</p>
+                  )}
+                  {p.paymentProofUrl && (
+                    <a href={proofSrc(p.paymentProofUrl)} target="_blank" rel="noreferrer">
+                      <img src={proofSrc(p.paymentProofUrl)} alt="Payment proof" className="mt-2 h-20 w-32 rounded-lg object-cover border border-z-line" />
+                    </a>
+                  )}
                 </div>
                 <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${STATUS_TONE[p.status] || "tone-wait"}`}>
-                  {p.status}
+                  {p.status === "APPROVED" ? "Approved" : p.status}
                 </span>
               </div>
             ))}

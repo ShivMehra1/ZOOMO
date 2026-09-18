@@ -6,7 +6,7 @@
 // TAKEAWAY flow:   PENDING → PREPARING → READY_FOR_PICKUP → DELIVERED
 
 export default function OrderStatusActions({ status, orderType = "DELIVERY", onUpdate }) {
-  const isInStore = orderType === "DINE_IN" || orderType === "TAKEAWAY";
+  const isInStore = orderType === "DINE_IN" || orderType === "TAKEAWAY" || orderType === "PICKUP";
 
   // For delivery orders that are out for delivery, driver handles the final step
   if (!isInStore && status === "OUT_FOR_DELIVERY") {

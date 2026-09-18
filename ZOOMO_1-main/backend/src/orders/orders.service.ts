@@ -86,7 +86,7 @@ export class OrdersService {
   }
 
   private async quoteFromCart(userId: string, data: any) {
-    const { addressId, tip, promoCode, orderType } = data;
+    const { addressId, tip, promoCode, orderType, restaurantId } = data;
 
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
@@ -97,15 +97,24 @@ export class OrdersService {
       throw new BadRequestException("Cart is empty");
     }
 
+    const items = restaurantId
+      ? cart.items.filter((i) => i.dish.restaurantId === restaurantId)
+      : cart.items;
+    if (!items.length) throw new BadRequestException("That restaurant bag is empty");
+    const mixed = new Set(items.map((i) => i.dish.restaurantId));
+    if (mixed.size > 1) {
+      throw new BadRequestException("Checkout one restaurant at a time");
+    }
+
     /* ── Resolve per-item price (dish size overrides base price) ── */
-    const itemPrice = (item: (typeof cart.items)[number]): number => {
+    const itemPrice = (item: (typeof items)[number]): number => {
       if (!item.dishSizeId) return item.dish.price;
       const size = item.dish.sizes.find((s) => s.id === item.dishSizeId);
       return size ? size.price : item.dish.price;
     };
 
     /* ── Totals ── */
-    const subtotal = cart.items.reduce(
+    const subtotal = items.reduce(
       (sum, item) => sum + item.quantity * itemPrice(item),
       0
     );
@@ -127,7 +136,7 @@ export class OrdersService {
 
     /* ── Restaurant ── */
     const restaurantDish = await this.prisma.dish.findUnique({
-      where: { id: cart.items[0].dishId },
+      where: { id: items[0].dishId },
       include: { restaurant: true },
     });
 
@@ -150,11 +159,19 @@ export class OrdersService {
           restaurantDish.restaurant.lat != null && restaurantDish.restaurant.lng != null
             ? { lat: restaurantDish.restaurant.lat, lng: restaurantDish.restaurant.lng }
             : resolveJourianCoords(restaurantDish.restaurant.address);
-        const dest =
+        let dest =
           address.lat != null && address.lng != null
             ? { lat: address.lat, lng: address.lng }
             : resolveJourianCoords(`${address.street} ${address.city}`);
-        distanceKm = parseFloat(haversineKm(origin.lat, origin.lng, dest.lat, dest.lng).toFixed(2));
+        let km = haversineKm(origin.lat, origin.lng, dest.lat, dest.lng);
+        const localTown = /jourian|jammu|troti|ghadi|maira|mandiwala|dadora|manchak|indri|bakore/i.test(
+          `${address.street} ${address.city} ${address.state}`,
+        );
+        if (km > MAX_DELIVERY_KM && localTown) {
+          dest = resolveJourianCoords(`${address.street} ${address.city}`);
+          km = haversineKm(origin.lat, origin.lng, dest.lat, dest.lng);
+        }
+        distanceKm = parseFloat(km.toFixed(2));
       }
     }
 
@@ -177,18 +194,24 @@ export class OrdersService {
     let deliveryFee = isDelivery ? computeDeliveryFee(subtotal, distanceKm as number) : 0;
     let validatedPromoCode: string | null = null;
 
-    if (promoCode) {
-      const promo = await this.resolvePromo(promoCode, restaurantDish.restaurant.id, subtotal);
-      validatedPromoCode = promo.code;
-      if (promo.discountType === "PERCENT") {
-        discount = Math.min(
-          parseFloat(((subtotal * promo.value) / 100).toFixed(2)),
-          promo.maxDiscount ?? Infinity,
-        );
-      } else if (promo.discountType === "FLAT") {
-        discount = Math.min(promo.value, subtotal);
-      } else if (promo.discountType === "FREE_DELIVERY") {
-        deliveryFee = 0;
+    const code = typeof promoCode === "string" ? promoCode.trim() : "";
+    if (code) {
+      try {
+        const promo = await this.resolvePromo(code, restaurantDish.restaurant.id, subtotal);
+        validatedPromoCode = promo.code;
+        if (promo.discountType === "PERCENT") {
+          discount = Math.min(
+            parseFloat(((subtotal * promo.value) / 100).toFixed(2)),
+            promo.maxDiscount ?? Infinity,
+          );
+        } else if (promo.discountType === "FLAT") {
+          discount = Math.min(promo.value, subtotal);
+        } else if (promo.discountType === "FREE_DELIVERY") {
+          deliveryFee = 0;
+        }
+      } catch {
+        validatedPromoCode = null;
+        discount = 0;
       }
     }
 
@@ -199,7 +222,7 @@ export class OrdersService {
     const { restaurantEarning, platformFee, driverCommission } = computeRevenueSplit(subtotal, resolvedOrderType);
 
     return {
-      cart, restaurantDish, itemPrice,
+      cart, items, restaurantDish, itemPrice,
       subtotal, tipAmount, tax, deliveryFee, discount, total, validatedPromoCode,
       resolvedOrderType, distanceKm, kmSlab,
       restaurantEarning, platformFee, driverCommission,
@@ -232,10 +255,11 @@ export class OrdersService {
      CREATE ORDER + PAYMENT
   ============================ */
   async createOrder(userId: string, data: any) {
-    const { specialInstructions, paymentMethod, scheduledFor, addressId, dropOffPreference, dropOffNote, includeCutlery } = data;
+    const { specialInstructions, paymentMethod, scheduledFor, addressId, dropOffPreference, dropOffNote, includeCutlery } = data || {};
+    if (data) data.promoCode = typeof data.promoCode === "string" && data.promoCode.trim() ? data.promoCode.trim() : null;
 
     const {
-      cart, restaurantDish, itemPrice,
+      cart, items, restaurantDish, itemPrice,
       subtotal, tipAmount, tax, deliveryFee, discount, total, validatedPromoCode,
       resolvedOrderType, distanceKm, kmSlab,
       restaurantEarning, platformFee, driverCommission,
@@ -280,7 +304,7 @@ export class OrdersService {
           distanceKm,
           kmSlab,
           items: {
-            create: cart.items.map((item: (typeof cart.items)[number]) => ({
+            create: items.map((item: (typeof items)[number]) => ({
               dishId: item.dishId,
               dishSizeId: item.dishSizeId,
               quantity: item.quantity,
@@ -298,16 +322,16 @@ export class OrdersService {
           currency: "INR",
           method: paymentMethod || "COD",
           status: "PENDING",
-          provider: paymentMethod === "COD" ? "COD" : "ONLINE",
+          provider: !paymentMethod || paymentMethod === "COD" || paymentMethod === "CASH" ? "COD" : "ONLINE",
         },
       });
 
       return createdOrder;
     });
 
-    /* ── Clear cart ── */
+    /* ── Clear only this restaurant's bag ── */
     await this.prisma.cartItem.deleteMany({
-      where: { cartId: cart.id },
+      where: { id: { in: items.map((i) => i.id) } },
     });
 
     this.realtime.emitToRooms(
@@ -316,7 +340,7 @@ export class OrdersService {
       order,
     );
 
-    return order;
+    return this.getOrderById(order.id, userId);
   }
 
   /* ===========================
@@ -349,13 +373,104 @@ export class OrdersService {
     this.realtime.emitToRooms(rooms, "order:updated", order);
   }
 
-  async rateOrder(orderId: string, userId: string, rating: number) {
-    await this.ownedOrder(orderId, userId);
+  async rateOrder(orderId: string, userId: string, rating: number, comment?: string) {
+    const order = await this.ownedOrder(orderId, userId);
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException("You can review the kitchen after this order is delivered");
+    }
     if (rating < 1 || rating > 5) throw new BadRequestException("Rating must be 1-5");
-    return this.prisma.order.update({
+    const note = comment?.trim() || null;
+
+    await this.prisma.order.update({
       where: { id: orderId },
-      data: { rating },
+      data: { rating, kitchenComment: note ?? undefined },
     });
+
+    const existing = await this.prisma.review.findFirst({
+      where: { OR: [{ orderId }, { userId, restaurantId: order.restaurantId }] },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      await this.prisma.review.update({
+        where: { id: existing.id },
+        data: { rating, comment: note, orderId },
+      });
+    } else {
+      await this.prisma.review.create({
+        data: {
+          userId,
+          restaurantId: order.restaurantId,
+          orderId,
+          rating,
+          comment: note,
+        },
+      });
+    }
+
+    const agg = await this.prisma.review.aggregate({
+      where: { restaurantId: order.restaurantId },
+      _avg: { rating: true },
+    });
+    await this.prisma.restaurant.update({
+      where: { id: order.restaurantId },
+      data: { rating: agg._avg.rating ?? rating },
+    });
+
+    return this.getOrderById(orderId, userId);
+  }
+
+  async rateDriver(orderId: string, userId: string, rating: number, comment?: string) {
+    const order = await this.ownedOrder(orderId, userId);
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException("You can rate the driver after this order is delivered");
+    }
+    if (!order.driverId) throw new BadRequestException("No driver was assigned to this order");
+    if (rating < 1 || rating > 5) throw new BadRequestException("Rating must be 1-5");
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { driverRating: rating, driverComment: comment?.trim() || null },
+    });
+
+    const agg = await this.prisma.order.aggregate({
+      where: { driverId: order.driverId, driverRating: { not: null } },
+      _avg: { driverRating: true },
+    });
+    await this.prisma.driver.update({
+      where: { id: order.driverId },
+      data: { rating: Number((agg._avg.driverRating ?? rating).toFixed(2)) },
+    });
+
+    return this.getOrderById(orderId, userId);
+  }
+
+  async addExtraTip(orderId: string, userId: string, amount: number) {
+    const order = await this.ownedOrder(orderId, userId);
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException("You can tip the driver after this order is delivered");
+    }
+    if (order.orderType !== OrderType.DELIVERY) {
+      throw new BadRequestException("Tips are for delivery orders");
+    }
+    if (!order.driverId) throw new BadRequestException("No driver was assigned to this order");
+    const extra = Math.round(Number(amount) || 0);
+    if (extra < 10 || extra > 500) {
+      throw new BadRequestException("Tip must be between ₹10 and ₹500");
+    }
+    if ((order.postDeliveryTip || 0) > 0) {
+      throw new BadRequestException("You already added a thank-you tip on this order");
+    }
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        postDeliveryTip: extra,
+        tip: (order.tip || 0) + extra,
+        total: order.total + extra,
+      },
+    });
+
+    return this.getOrderById(orderId, userId);
   }
 
   async gatePing(orderId: string, userId: string) {

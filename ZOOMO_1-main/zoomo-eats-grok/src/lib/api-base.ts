@@ -8,14 +8,17 @@ export function getApiBase(): string {
     typeof import.meta !== "undefined"
       ? ((import.meta as any).env?.VITE_API_URL as string | undefined)
       : undefined;
+  const isDev = Boolean((import.meta as any).env?.DEV);
 
   if (typeof window === "undefined") {
     if (env && /^https?:\/\//.test(env)) return env.replace(/\/$/, "");
+    // SSR in Vite dev must hit the local Nest API, not production.
+    if (isDev) return "http://127.0.0.1:3000";
     return LIVE_API;
   }
 
   // Vite dev / live preview: always the local proxy.
-  if ((import.meta as any).env?.DEV) return BACKEND_PROXY;
+  if (isDev) return BACKEND_PROXY;
   return (env && /^https?:\/\//.test(env) ? env : LIVE_API).replace(/\/$/, "");
 }
 

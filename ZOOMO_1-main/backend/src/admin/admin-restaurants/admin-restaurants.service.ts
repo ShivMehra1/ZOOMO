@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma.service";
 import { Prisma } from "@prisma/client";
 
@@ -71,8 +71,83 @@ export class AdminRestaurantsService {
     };
   }
 
+  async createRestaurant(data: {
+    name: string;
+    address: string;
+    ownerEmail?: string;
+    ownerName?: string;
+    ownerId?: string;
+    cuisineType?: string;
+    phone?: string;
+    description?: string;
+    imageUrl?: string;
+  }) {
+    if (!data?.name || !data?.address) throw new BadRequestException("name and address are required");
+    let ownerId = data.ownerId;
+    if (!ownerId) {
+      if (!data.ownerEmail) throw new BadRequestException("ownerEmail or ownerId is required");
+      const existing = await this.prisma.user.findUnique({ where: { email: data.ownerEmail } });
+      if (existing) {
+        ownerId = existing.id;
+      } else {
+        const created = await this.prisma.user.create({
+          data: {
+            email: data.ownerEmail,
+            name: data.ownerName || `${data.name} owner`,
+            phone: data.phone || "",
+            password: "unset",
+            role: "MERCHANT",
+            mustResetPassword: true,
+          },
+        });
+        ownerId = created.id;
+      }
+    }
+    return this.prisma.restaurant.create({
+      data: {
+        name: data.name,
+        address: data.address,
+        ownerId,
+        cuisineType: data.cuisineType || "Various",
+        phone: data.phone,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        isApproved: true,
+        isActive: true,
+      },
+    });
+  }
+
+  async createDish(restaurantId: string, data: {
+    name: string; price: number; description?: string; imageUrl?: string;
+    isVegetarian?: boolean; category?: string;
+  }) {
+    await this.mustExist(restaurantId);
+    if (!data?.name || data.price == null) throw new BadRequestException("name and price are required");
+    return this.prisma.dish.create({
+      data: {
+        restaurantId,
+        name: data.name,
+        price: Number(data.price),
+        description: data.description,
+        imageUrl: data.imageUrl,
+        isVegetarian: Boolean(data.isVegetarian),
+        category: data.category,
+      },
+    });
+  }
+
+  async deleteRestaurant(id: string) {
+    await this.mustExist(id);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.order.deleteMany({ where: { restaurantId: id } });
+      await tx.restaurant.delete({ where: { id } });
+    });
+    return { ok: true, id };
+  }
+
   async updateDish(restaurantId: string, dishId: string, data: {
-    name?: string; description?: string; price?: number; isAvailable?: boolean;
+    name?: string; description?: string; price?: number; isAvailable?: boolean; imageUrl?: string;
   }) {
     const dish = await this.prisma.dish.findUnique({ where: { id: dishId } });
     if (!dish || dish.restaurantId !== restaurantId) throw new NotFoundException("Dish not found");
@@ -125,7 +200,8 @@ export class AdminRestaurantsService {
   async update(id: string, data: {
     name?: string; description?: string; cuisineType?: string;
     priceRange?: string; costForTwo?: number; etaMin?: number;
-    address?: string; phone?: string;
+    address?: string; phone?: string; imageUrl?: string;
+    payoutMethod?: string; upiId?: string; bankName?: string; accountLast4?: string;
   }) {
     await this.mustExist(id);
     return this.prisma.restaurant.update({ where: { id }, data });

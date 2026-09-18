@@ -15,3 +15,21 @@ body {
   background-color: #F4F7F5;
   color: #0C1612;
 }
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-z-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-z-hover disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-z-sub hover:bg-z-page hover:text-z-ink;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-z-danger px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90;
+  }
+  .card {
+    @apply rounded-card border border-z-line bg-z-surface p-5 shadow-card;
+  }
+  .field {
+    @apply w-full rounded-xl border border-z-line bg-z-page px-3 py-2.5 text-sm text-z-ink outline-none focus:ring-2 focus:ring-z-accent/40;
+  }
+}

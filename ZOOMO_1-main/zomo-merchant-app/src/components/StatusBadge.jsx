@@ -1,5 +1,8 @@
+import { statusLabel } from "../lib/order-labels";
+
 export default function StatusBadge({ status }) {
   const tone = {
+    SCHEDULED: "tone-wait",
     PENDING: "tone-wait",
     PREPARING: "tone-wait",
     READY_FOR_PICKUP: "tone-go",
@@ -14,7 +17,7 @@ export default function StatusBadge({ status }) {
         tone[status] || "tone-wait"
       }`}
     >
-      {status.replaceAll("_", " ")}
+      {statusLabel(status)}
     </span>
   );
 }

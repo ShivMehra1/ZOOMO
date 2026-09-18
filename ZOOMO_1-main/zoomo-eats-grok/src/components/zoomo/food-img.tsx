@@ -10,10 +10,12 @@ export function FoodImg({
   alt: string;
   className?: string;
 }) {
-  const [url, setUrl] = useState(src || IMG.dishFallback);
+  const fallback = IMG.dishFallback;
+  const [url, setUrl] = useState((src && src.trim()) || fallback);
   useEffect(() => {
-    setUrl(src || IMG.dishFallback);
-  }, [src]);
+    setUrl((src && src.trim()) || fallback);
+  }, [src, fallback]);
+  if (!url) return <div className={className} aria-hidden />;
   return (
     <img
       src={url}

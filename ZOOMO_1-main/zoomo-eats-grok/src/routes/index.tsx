@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { MapPinned, ShieldCheck, UtensilsCrossed, Zap } from "lucide-react";
+import { ArrowLeft, MapPinned, ShieldCheck, UtensilsCrossed, Zap } from "lucide-react";
 import { AppShell } from "@/components/zoomo/shell";
 import { EmptyState } from "@/components/zoomo/modals";
 import { RestaurantCard } from "@/components/zoomo/restaurant-card";
 import { ActiveOrderBanner } from "@/components/zoomo/tracker";
 import { OffersSection } from "@/components/zoomo/offers";
+import { DishCard } from "@/components/zoomo/dish-card";
 import { FoodImg } from "@/components/zoomo/food-img";
 import { HomeHero } from "@/components/zoomo/hero";
+
 import { FoodRow } from "@/components/zoomo/food-row";
 import { UsualsRow } from "@/components/zoomo/usuals";
 import { ZoneMap } from "@/components/zoomo/zone-map";
@@ -20,11 +22,14 @@ import {
   WHY,
   inr,
   liveStatus,
+  dishesMatchingCraving,
   matchesCuisine,
   popularDishes,
   restaurantById,
+  type Dish,
 } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
+import { dishesForYou, rankKitchens } from "@/lib/taste";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -32,22 +37,49 @@ const WHY_ICONS = [Zap, MapPinned, ShieldCheck];
 
 function Home() {
   const nav = useNavigate();
-  const { user, orders, setLocation, cart, favorites } = useZoomo();
+  const { user, orders, setLocation, cart, favorites, visits } = useZoomo();
   const [chip, setChip] = useState<(typeof CATEGORIES)[number]["id"] | "All">("All");
+  const [craveRest, setCraveRest] = useState<string | null>(null);
+  const [viewMore, setViewMore] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const activeOrder = orders.find((o) => {
     const s = liveStatus(o);
     return s !== "DELIVERED" && s !== "CANCELLED";
   });
 
+  const taste = useMemo(
+    () => ({ orders, favorites, vegOnly: Boolean(user?.vegOnly), visits }),
+    [orders, favorites, user?.vegOnly, visits],
+  );
+  const ranked = useMemo(() => rankKitchens(RESTAURANTS, taste), [taste]);
   const kitchens = useMemo(() => {
-    const vegOnly = Boolean(user?.vegOnly);
-    return RESTAURANTS.filter((r) => {
+    return ranked.filter((row) => {
+      const r = row.restaurant;
       if (chip !== "All" && !matchesCuisine(r, chip)) return false;
-      if (vegOnly && !DISHES.some((d) => d.restaurantId === r.id && d.isVegetarian)) return false;
+      if (taste.vegOnly && !DISHES.some((d) => d.restaurantId === r.id && d.isVegetarian)) return false;
       return true;
     });
-  }, [chip, user?.vegOnly]);
+  }, [ranked, chip, taste.vegOnly]);
+  const forYou = useMemo(() => dishesForYou(taste), [taste]);
+  const cravingDishes = useMemo(() => dishesMatchingCraving(chip), [chip]);
+  const cravingByRestaurant = useMemo(() => {
+    const map = new Map<string, Dish[]>();
+    for (const d of cravingDishes) {
+      const list = map.get(d.restaurantId) || [];
+      list.push(d);
+      map.set(d.restaurantId, list);
+    }
+    return [...map.entries()].map(([id, dishes]) => ({
+      restaurant: restaurantById(id),
+      dishes,
+    })).filter((x) => x.restaurant);
+  }, [cravingDishes]);
+  const shownDishes = useMemo(() => {
+    if (craveRest) return cravingDishes.filter((d) => d.restaurantId === craveRest);
+    return cravingDishes;
+  }, [cravingDishes, craveRest]);
+  const preview = shownDishes.slice(0, 6);
+  const dishList = viewMore || craveRest ? shownDishes : preview;
 
   const saved = useMemo(
     () => RESTAURANTS.filter((r) => favorites.includes(r.id)),
@@ -89,32 +121,125 @@ function Home() {
           chip={chip}
           onChip={(id) => {
             setChip((c) => (c === id ? "All" : (id as typeof c)));
+            setCraveRest(null);
+            setViewMore(false);
             gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         />
 
-        <div ref={gridRef} className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <p className="kicker mb-1">{chip === "All" ? "Open now" : chip}</p>
-            <h2 className="display text-[22px] text-ink">{kitchens.length} restaurants nearby</h2>
-          </div>
+        <div ref={gridRef} className="mb-4">
+          {chip !== "All" && craveRest ? (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCraveRest(null);
+                  setViewMore(false);
+                }}
+                className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+                aria-label="Back to all restaurants"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+              <div className="min-w-0">
+                <p className="kicker mb-0.5">{chip}</p>
+                <h2 className="display truncate text-[20px] text-ink">{restaurantById(craveRest)?.name}</h2>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="kicker mb-1">{chip === "All" ? "Open now" : chip}</p>
+              <h2 className="display text-[22px] text-ink">
+                {chip === "All"
+                  ? user
+                    ? "Picked for you"
+                    : `${kitchens.length} restaurants nearby`
+                  : `${chip} in Jourian`}
+              </h2>
+            </div>
+          )}
         </div>
 
-        {kitchens.length === 0 ? (
+        {chip !== "All" ? (
+          cravingDishes.length === 0 ? (
+            <EmptyState
+              icon={<UtensilsCrossed className="size-7" />}
+              title={`No ${chip.toLowerCase()} on the menus`}
+              sub="Try another craving"
+              cta="Show all"
+              onCta={() => setChip("All")}
+            />
+          ) : (
+            <div className="mb-12">
+              <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCraveRest(null);
+                    setViewMore(false);
+                  }}
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-[13px] font-bold ${
+                    !craveRest ? "bg-primary text-white" : "bg-surface text-ink shadow-card"
+                  }`}
+                >
+                  All
+                </button>
+                {cravingByRestaurant.map(({ restaurant, dishes }) => (
+                  <button
+                    key={restaurant!.id}
+                    type="button"
+                    onClick={() => {
+                      setCraveRest(restaurant!.id);
+                      setViewMore(true);
+                    }}
+                    className={`shrink-0 rounded-full px-3.5 py-2 text-[13px] font-bold ${
+                      craveRest === restaurant!.id ? "bg-primary text-white" : "bg-surface text-ink shadow-card"
+                    }`}
+                  >
+                    {restaurant!.name}
+                    <span className={`ml-1.5 text-[11px] ${craveRest === restaurant!.id ? "text-white/70" : "text-muted"}`}>
+                      {dishes.length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {dishList.map((d) => (
+                  <DishCard
+                    key={d.id}
+                    dish={d}
+                    hideRestaurant={Boolean(craveRest)}
+                    onOpen={() => nav({ to: "/restaurant/$id", params: { id: d.restaurantId } })}
+                    onNeedLogin={() => nav({ to: "/login" })}
+                  />
+                ))}
+              </div>
+              {!viewMore && !craveRest && shownDishes.length > 6 && (
+                <button
+                  type="button"
+                  onClick={() => setViewMore(true)}
+                  className="mt-5 h-12 w-full rounded-2xl border border-line bg-surface text-sm font-bold text-ink"
+                >
+                  View more {chip.toLowerCase()}
+                </button>
+              )}
+            </div>
+          )
+        ) : kitchens.length === 0 ? (
           <EmptyState
             icon={<UtensilsCrossed className="size-7" />}
-            title="No kitchens yet"
+            title="No restaurants yet"
             sub="Menus load from the live Zoomo backend"
             cta="Reset"
             onCta={() => setChip("All")}
           />
         ) : (
           <div className="mb-12 grid grid-cols-1 gap-5 md:grid-cols-2">
-            {kitchens.map((r) => (
+            {kitchens.map((row) => (
               <RestaurantCard
-                key={r.id}
-                r={r}
-                onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
+                key={row.restaurant.id}
+                r={row.restaurant}
+                onOpen={() => nav({ to: "/restaurant/$id", params: { id: row.restaurant.id } })}
               />
             ))}
           </div>
@@ -122,10 +247,15 @@ function Home() {
 
         <UsualsRow />
 
+        {user && forYou.length > 0 && (
+          <DishRail title="Because you order this" kicker="For you" dishes={forYou} />
+        )}
+
+
         {saved.length > 0 && (
           <div className="mb-12">
             <p className="kicker mb-1">Yours</p>
-            <h2 className="display mb-4 text-[22px] text-ink">Saved kitchens</h2>
+            <h2 className="display mb-4 text-[22px] text-ink">Saved restaurants</h2>
             <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
               {saved.map((r) => (
                 <button
@@ -203,7 +333,7 @@ function Home() {
             </button>
           </div>
           <div className="relative min-h-[220px]">
-            <img src={IMG.biryani} alt="" className="absolute inset-0 size-full object-cover opacity-55" />
+            <img src={IMG.trackPanel} alt="" className="absolute inset-0 size-full object-cover opacity-55" />
           </div>
         </div>
 
@@ -247,5 +377,43 @@ function Home() {
       )}
       </div>
     </AppShell>
+  );
+}
+
+function DishRail({ title, kicker, dishes }: { title: string; kicker: string; dishes: Dish[] }) {
+  const nav = useNavigate();
+  const { addToCart, user } = useZoomo();
+  return (
+    <div className="mb-12">
+      <p className="kicker mb-1">{kicker}</p>
+      <h2 className="display mb-4 text-[22px] text-ink">{title}</h2>
+      <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+        {dishes.map((d) => {
+          const r = restaurantById(d.restaurantId);
+          return (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  nav({ to: "/login" });
+                  return;
+                }
+                addToCart(d, d.sizes?.[0]?.id);
+                nav({ to: "/restaurant/$id", params: { id: d.restaurantId } });
+              }}
+              className="w-[200px] shrink-0 overflow-hidden rounded-[22px] bg-surface text-left shadow-card"
+            >
+              <FoodImg src={d.imageUrl} alt={d.name} className="h-28 w-full object-cover" />
+              <div className="p-3">
+                <p className="truncate text-sm font-bold text-ink">{d.name}</p>
+                <p className="truncate text-[11px] text-muted">{r?.name}</p>
+                <p className="mt-2 text-xs font-bold text-primary tabular">{inr(d.price)}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

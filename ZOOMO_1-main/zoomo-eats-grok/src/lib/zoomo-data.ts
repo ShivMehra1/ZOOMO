@@ -36,35 +36,31 @@ export type Restaurant = {
   busy?: boolean;
 };
 
-const pic = (id: string) => `https://images.unsplash.com/photo-${id}?w=800&h=600&fit=crop`;
+const pic = (id: string, w = 800, h = 600) =>
+  `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop`;
 
+/** Site chrome only — these URLs must not be used on any dish or restaurant cover. */
 export const IMG = {
-  restaurantFallback: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&h=400&fit=crop",
-  dishFallback: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop",
-  pizza: pic("1513104890138-7c749659a591"),
-  pizza2: pic("1604382354936-07c5d9983bd3"),
-  tandoori: pic("1565299624946-b28f40a0ae38"),
-  burger: pic("1550547660-d9450f859349"),
-  cheeseburger: pic("1550547660-d9450f859349"),
-  veggie: pic("1520072959219-c595dc870360"),
-  fries: pic("1573080496219-bb080dd4f877"),
-  wings: pic("1608039755401-742074f0548d"),
-  smoothie: pic("1610970881699-44a5587cabec"),
-  salad: pic("1512621776951-a57141f2eefd"),
-  chowmein: pic("1585032226651-759b368d7246"),
-  dumpling: pic("1563245372-f21724e3856d"),
-  friedrice: pic("1603133872878-684f208fb84b"),
-  biryani: pic("1563379091339-03b21ab4a4f8"),
-  curry: pic("1585937421612-70a008356fbe"),
-  naan: pic("1601050690597-df0568f70950"),
-  paneer: pic("1567188040759-fb8a883dc6d8"),
-  brownie: pic("1606313564200-e75d5e30476c"),
-  tiramisu: pic("1571877227200-a0d98ea607e9"),
-  icecream: pic("1497034825429-c343d7c6a68f"),
-  cake: pic("1578985545062-69928b1d9587"),
-  momos: pic("1534422298391-e4f8c172dddb"),
-  shake: pic("1572490122747-3968b75cc699"),
-  hero: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&h=900&fit=crop",
+  restaurantFallback: pic("1517248135467-4c7edcad34c4", 1200, 800),
+  dishFallback: pic("1512621776951-a57141f2eefd", 800, 800),
+  hero: pic("1414235077428-338989a2e8c0", 1600, 900),
+  heroPoster: pic("1568901346375-23c9450c58cd", 1600, 900),
+  loginBg: pic("1554118811-1e0d58224f24", 1600, 900),
+  signupBg: pic("1495474472287-4c7e555e841d", 1600, 900),
+  trackPanel: pic("1559339352-11d035aa5170", 1200, 800),
+  offerZoomo50: pic("1546069901-ba9599a7e63c", 1200, 800),
+  offerBogo: pic("1574071318508-1cdbab80d002", 1200, 800),
+  offerFreeship: pic("1504674900247-0877df9cc836", 1200, 800),
+  catPizza: pic("1565299624946-b28f40a0ae38"),
+  catBurgers: pic("1520072959219-c595dc870360"),
+  catPasta: pic("1621996346565-e3dbc646d9a9"),
+  catMomos: pic("1534422298391-e4f8c172dddb"),
+  catCoffee: pic("1511920170033-f8396924c348"),
+  catShakes: pic("1572490122747-3968b75cc699"),
+  catWraps: pic("1626700051175-6818013e1d4f"),
+  catSandwiches: pic("1528735602780-2552fd46c7af"),
+  catChinese: pic("1585032226651-759b368d7246"),
+  catDesserts: pic("1578985545062-69928b1d9587"),
   heroVideo: "https://videos.pexels.com/video-files/5986794/5986794-hd_1920_1080_30fps.mp4",
 };
 
@@ -74,12 +70,16 @@ export const AREAS = ["Jourian", "Manchak", "Troti", "Ghadi", "Dadora", "Bakore"
 export const DEFAULT_LOCATION = "Jourian";
 export const CUISINES = ["All", "Pizza", "Burgers", "Indian", "Chinese", "Healthy", "Desserts"] as const;
 export const CATEGORIES = [
-  { id: "Pizza", label: "Pizza", image: IMG.pizza },
-  { id: "Burgers", label: "Burgers", image: IMG.burger },
-  { id: "Indian", label: "Indian", image: IMG.biryani },
-  { id: "Chinese", label: "Chinese", image: IMG.chowmein },
-  { id: "Healthy", label: "Healthy", image: IMG.salad },
-  { id: "Desserts", label: "Desserts", image: IMG.cake },
+  { id: "Pizza", label: "Pizza", image: IMG.catPizza },
+  { id: "Burgers", label: "Burgers", image: IMG.catBurgers },
+  { id: "Pasta", label: "Pasta", image: IMG.catPasta },
+  { id: "Momos", label: "Momos", image: IMG.catMomos },
+  { id: "Coffee", label: "Coffee", image: IMG.catCoffee },
+  { id: "Shakes", label: "Shakes", image: IMG.catShakes },
+  { id: "Wraps", label: "Wraps", image: IMG.catWraps },
+  { id: "Sandwiches", label: "Sandwiches", image: IMG.catSandwiches },
+  { id: "Chinese", label: "Chinese", image: IMG.catChinese },
+  { id: "Desserts", label: "Desserts", image: IMG.catDesserts },
 ];
 
 export let RESTAURANTS: Restaurant[] = [];
@@ -94,9 +94,9 @@ export let COUPONS: Record<string, { type: string; value: number; label: string;
 };
 
 export let OFFERS = [
-  { code: "ZOOMO50", title: "50% off first bag", subtitle: "Cap ₹120. Jourian only.", expires: "This week", image: IMG.hero, restaurantId: null as string | null },
-  { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "Jourian pizza.", expires: "Wednesdays", image: IMG.pizza, restaurantId: null },
-  { code: "FREESHIP", title: "Ride on us", subtitle: "Delivery fee gone.", expires: "Always on for Pass", image: IMG.burger, restaurantId: null },
+  { code: "ZOOMO50", title: "50% off first bag", subtitle: "Cap ₹120. Jourian only.", expires: "This week", image: IMG.offerZoomo50, restaurantId: null as string | null },
+  { code: "BOGO", title: "Wed: ₹80 off pizza", subtitle: "Jourian pizza.", expires: "Wednesdays", image: IMG.offerBogo, restaurantId: null },
+  { code: "FREESHIP", title: "Ride on us", subtitle: "Delivery fee gone.", expires: "Always on for Pass", image: IMG.offerFreeship, restaurantId: null },
 ];
 
 export const MAP_NODES = [
@@ -235,9 +235,9 @@ export function isNearby(order: Parameters<typeof rideProgress>[0]) {
 export function trackHeadline(status: string, riderName?: string | null, nearby?: boolean) {
   if (status === "CANCELLED") return "Order cancelled";
   if (status === "DELIVERED") return "Enjoy your food";
-  if (nearby) return `${riderName || "Your rider"} is nearby`;
-  if (status === "OUTFORDELIVERY") return `${riderName || "Your rider"} is on the way`;
-  if (status === "READYFORPICKUP") return `${riderName || "Your rider"} is heading to the restaurant`;
+  if (nearby) return `${riderName || "Your driver"} is nearby`;
+  if (status === "OUTFORDELIVERY") return `${riderName || "Your driver"} is on the way`;
+  if (status === "READYFORPICKUP") return `${riderName || "Your driver"} is heading to the restaurant`;
   if (status === "PREPARING") return "They’re making it now";
   if (status === "CONFIRMED") return "Restaurant confirmed";
   return "We’ve got your order";
@@ -271,11 +271,40 @@ export function dishesFor(restaurantId: string) {
 export function restaurantById(id: string) {
   return RESTAURANTS.find((r) => r.id === id);
 }
+const CRAVING_KEYS: Record<string, string[]> = {
+  Pizza: ["pizza"],
+  Burgers: ["burger"],
+  Pasta: ["pasta"],
+  Momos: ["momo"],
+  Coffee: ["coffee", "frappe", "espresso"],
+  Shakes: ["shake", "smoothie"],
+  Wraps: ["wrap"],
+  Sandwiches: ["sandwich"],
+  Chinese: ["chinese", "manchurian", "chowmein", "noodle", "spring roll", "hakka"],
+  Desserts: ["dessert", "cake", "brownie", "ice cream", "tiramisu", "pastry", "hot chocolate"],
+};
+
+function cravingKeys(chip: string) {
+  return CRAVING_KEYS[chip] || [chip.toLowerCase().replace(/s$/, "")];
+}
+
+function dishMatchesCraving(d: Dish, chip: string) {
+  const keys = cravingKeys(chip);
+  const hay = `${d.name} ${d.category || ""} ${d.description}`.toLowerCase();
+  return keys.some((k) => hay.includes(k));
+}
+
+export function dishesMatchingCraving(chip: string) {
+  if (chip === "All") return [];
+  return DISHES.filter((d) => d.isAvailable !== false && dishMatchesCraving(d, chip));
+}
+
 export function matchesCuisine(r: Restaurant, chip: string) {
   if (chip === "All") return true;
-  if (r.cuisineType.toLowerCase() === chip.toLowerCase()) return true;
-  const hay = `${r.name} ${r.cuisineType} ${r.description}`.toLowerCase();
-  return hay.includes(chip.toLowerCase().replace(/s$/, ""));
+  const keys = cravingKeys(chip);
+  const restaurantHay = `${r.name} ${r.cuisineType} ${r.description}`.toLowerCase();
+  if (keys.some((k) => restaurantHay.includes(k))) return true;
+  return DISHES.some((d) => d.restaurantId === r.id && dishMatchesCraving(d, chip));
 }
 export const RIDERS = [
   { id: "ravi", name: "Ravi Singh", phone: "9876543110", bike: "TVS Apache", plate: "JK02 AB 4412", rating: 4.9 },

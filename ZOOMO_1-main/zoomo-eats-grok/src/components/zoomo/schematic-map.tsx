@@ -20,6 +20,7 @@ export function SchematicMap({
   to,
   ride = 0,
   showRider = false,
+  tall = false,
 }: {
   selected?: string | null;
   onPick?: (area: string) => void;
@@ -34,7 +35,7 @@ export function SchematicMap({
   const d = from && to ? routePath(from, to) : "";
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px] bg-[#eef3f0]">
+    <div className={`relative w-full overflow-hidden bg-[#eef3f0] ${tall ? "h-full min-h-[220px]" : "aspect-[4/3] rounded-[20px]"}`}>
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
         <rect width="100" height="100" fill="#eef3f0" />
         <circle cx="52" cy="44" r="28" fill="#d7e6de" />

@@ -17,6 +17,18 @@ export class MerchantPayoutsController {
     return this.service.getMerchantBalance(req.user.id);
   }
 
+  @Get("method")
+  getMethod(@Req() req) {
+    this.assertMerchant(req);
+    return this.service.getMerchantMethod(req.user.id);
+  }
+
+  @Patch("method")
+  setMethod(@Req() req, @Body() body: any) {
+    this.assertMerchant(req);
+    return this.service.setMerchantMethod(req.user.id, body);
+  }
+
   @Get()
   list(@Req() req) {
     this.assertMerchant(req);
@@ -42,6 +54,18 @@ export class DriverPayoutsController {
   balance(@Req() req) {
     this.assertDriver(req);
     return this.service.getDriverBalance(req.user.id);
+  }
+
+  @Get("method")
+  getMethod(@Req() req) {
+    this.assertDriver(req);
+    return this.service.getDriverMethod(req.user.id);
+  }
+
+  @Patch("method")
+  setMethod(@Req() req, @Body() body: any) {
+    this.assertDriver(req);
+    return this.service.setDriverMethod(req.user.id, body);
   }
 
   @Get()
@@ -74,11 +98,21 @@ export class AdminPayoutsController {
 
   @Patch(":id/approve")
   approve(@Param("id") id: string) {
-    return this.service.setStatus(id, "COMPLETED");
+    return this.service.setStatus(id, "APPROVED");
   }
 
   @Patch(":id/reject")
   reject(@Param("id") id: string) {
     return this.service.setStatus(id, "REJECTED");
+  }
+
+  @Patch(":id/paid")
+  markPaid(@Param("id") id: string) {
+    return this.service.setStatus(id, "COMPLETED");
+  }
+
+  @Post(":id/proof")
+  attachProof(@Param("id") id: string, @Body("url") url: string) {
+    return this.service.attachProof(id, url);
   }
 }

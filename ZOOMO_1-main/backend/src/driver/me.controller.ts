@@ -37,4 +37,14 @@ export class DriverMeController {
   ) {
     return this.driverMeService.updateVehicle(req.user.userId, body);
   }
+
+  @Get("payout-method")
+  getPayoutMethod(@Req() req: any) {
+    return this.driverMeService.getPayoutMethod(req.user.userId);
+  }
+
+  @Patch("payout-method")
+  setPayoutMethod(@Req() req: any, @Body() body: any) {
+    return this.driverMeService.setPayoutMethod(req.user.userId, body);
+  }
 }

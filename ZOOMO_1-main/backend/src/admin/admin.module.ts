@@ -5,7 +5,10 @@ import { AdminDriversModule } from "./admin-drivers/admin-drivers.module";
 import { AdminUsersModule } from "./admin-users/admin-users.module";
 import { AdminRestaurantsModule } from "./admin-restaurants/admin-restaurants.module";
 import { AdminAnalyticsModule } from "./admin-analytics/admin-analytics.module";
+import { AdminPromotionsModule } from "./admin-promotions/admin-promotions.module";
+import { AdminUploadController } from "./admin-upload/admin-upload.controller";
 import { AdminJwtStrategy } from "./strategies/admin-jwt.strategy/admin-jwt.strategy";
+import { UploadModule } from "../upload/upload.module";
 
 @Module({
   imports: [
@@ -15,7 +18,10 @@ import { AdminJwtStrategy } from "./strategies/admin-jwt.strategy/admin-jwt.stra
     AdminUsersModule,
     AdminRestaurantsModule,
     AdminAnalyticsModule,
+    AdminPromotionsModule,
+    UploadModule,
   ],
+  controllers: [AdminUploadController],
   providers: [AdminJwtStrategy],
 })
 export class AdminModule {}

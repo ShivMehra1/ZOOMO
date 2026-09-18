@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "/backend";
+const SOCKET_URL = import.meta.env.DEV ? "http://127.0.0.1:3000" : (import.meta.env.VITE_API_URL || "/backend");
 
 let socket = null;
 

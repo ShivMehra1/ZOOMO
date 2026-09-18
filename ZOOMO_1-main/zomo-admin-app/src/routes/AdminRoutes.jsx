@@ -10,6 +10,7 @@ import Analytics from "../pages/Analytics";
 import Disputes from "../pages/Disputes";
 import Finance from "../pages/Finance";
 import Payouts from "../pages/Payouts";
+import Offers from "../pages/Offers";
 
 export default function AdminRoutes() {
   return (
@@ -26,6 +27,7 @@ export default function AdminRoutes() {
       <Route path="disputes" element={<Disputes />} />
       <Route path="finance" element={<Finance />} />
       <Route path="payouts" element={<Payouts />} />
+      <Route path="offers" element={<Offers />} />
     </Routes>
   );
 }

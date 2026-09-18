@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { formatWhen } from "../lib/when";
 
 export default function Promotions() {
   const [promotions, setPromotions] = useState([]);
@@ -106,7 +107,7 @@ export default function Promotions() {
               <div className="text-xs text-z-muted space-y-0.5">
                 {promo.minOrderValue != null && <p>Min order ₹{promo.minOrderValue}</p>}
                 {promo.maxDiscount != null && <p>Max discount ₹{promo.maxDiscount}</p>}
-                {promo.expiresAt && <p>Expires {new Date(promo.expiresAt).toLocaleDateString()}</p>}
+                {promo.expiresAt && <p>Expires {formatWhen(promo.expiresAt)}</p>}
               </div>
 
               <div className="flex gap-2 pt-1">

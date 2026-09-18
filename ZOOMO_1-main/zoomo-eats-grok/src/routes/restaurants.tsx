@@ -7,21 +7,27 @@ import { RestaurantCard } from "@/components/zoomo/restaurant-card";
 import { CuisineChips } from "@/components/zoomo/cuisine-chips";
 import { CUISINES, DISHES, FILTERS, RESTAURANTS, etaMinOf, matchesCuisine } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
+import { rankKitchens } from "@/lib/taste";
 
 export const Route = createFileRoute("/restaurants")({ component: RestaurantsPage });
 
 function RestaurantsPage() {
   const nav = useNavigate();
-  const { location, user } = useZoomo();
+  const { location, user, orders, favorites, visits } = useZoomo();
   const [chip, setChip] = useState<(typeof CUISINES)[number]>("All");
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
-  const [sort, setSort] = useState<"rating" | "fast" | "cost">("rating");
+  const [sort, setSort] = useState<"forYou" | "rating" | "fast" | "cost">("forYou");
+  const ranked = useMemo(
+    () => rankKitchens(RESTAURANTS, { orders, favorites, vegOnly: Boolean(user?.vegOnly), visits }),
+    [orders, favorites, user?.vegOnly, visits],
+  );
+  const meta = useMemo(() => new Map(ranked.map((row) => [row.restaurant.id, row])), [ranked]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     const vegOnly = Boolean(user?.vegOnly) || filters.includes("veg");
-    let list = RESTAURANTS.filter((r) => {
+    let list = ranked.map((row) => row.restaurant).filter((r) => {
       if (!matchesCuisine(r, chip)) return false;
       if (vegOnly && !DISHES.some((d) => d.restaurantId === r.id && d.isVegetarian)) return false;
       if (filters.includes("fast") && etaMinOf(r) > 22) return false;
@@ -34,19 +40,21 @@ function RestaurantsPage() {
         r.description.toLowerCase().includes(query)
       );
     });
-    list = [...list].sort((a, b) => {
-      if (sort === "fast") return etaMinOf(a) - etaMinOf(b);
-      if (sort === "cost") return a.costForTwo - b.costForTwo;
-      return b.rating - a.rating;
-    });
+    if (sort !== "forYou") {
+      list = [...list].sort((a, b) => {
+        if (sort === "fast") return etaMinOf(a) - etaMinOf(b);
+        if (sort === "cost") return a.costForTwo - b.costForTwo;
+        return b.rating - a.rating;
+      });
+    }
     return list;
-  }, [chip, q, user?.vegOnly, filters, sort]);
+  }, [chip, q, user?.vegOnly, filters, sort, ranked]);
 
   return (
     <AppShell footer>
       <main className="mx-auto max-w-6xl px-5 py-10">
         <BackBar title="All restaurants" to="/" />
-        <p className="mb-6 text-sm text-sub">{location ? `Riding to ${location}` : "All in Jourian."}</p>
+        <p className="mb-6 text-sm text-sub">{location ? `Delivering in ${location}` : "Jourian, Jammu & Kashmir"}</p>
         <div className="relative mb-5">
           <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted" />
           <input
@@ -86,6 +94,7 @@ function RestaurantsPage() {
             onChange={(e) => setSort(e.target.value as typeof sort)}
             className="rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-bold"
           >
+            <option value="forYou">For you</option>
             <option value="rating">Top rated</option>
             <option value="fast">Fastest</option>
             <option value="cost">Cost for two</option>
@@ -93,7 +102,11 @@ function RestaurantsPage() {
         </div>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((r) => (
-            <RestaurantCard key={r.id} r={r} onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })} />
+            <RestaurantCard
+              key={r.id}
+              r={r}
+              onOpen={() => nav({ to: "/restaurant/$id", params: { id: r.id } })}
+            />
           ))}
         </div>
       </main>

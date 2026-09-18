@@ -7,16 +7,7 @@ import {
 import { PrismaService } from '../../../common/prisma.service';
 import { OrderStatus } from '@prisma/client';
 import { RealtimeGateway } from '../../../realtime/realtime.gateway';
-
-const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
-  SCHEDULED: OrderStatus.PENDING,        // ✅ ADDED
-  PENDING: OrderStatus.PREPARING,
-  PREPARING: OrderStatus.READY_FOR_PICKUP,
-  READY_FOR_PICKUP: OrderStatus.OUT_FOR_DELIVERY,
-  OUT_FOR_DELIVERY: OrderStatus.DELIVERED,
-  DELIVERED: null,
-  CANCELLED: null,
-};
+import { canTransition } from '../../../common/order-status-flow.util';
 
 @Injectable()
 export class MerchantOrdersService {
@@ -119,10 +110,9 @@ export class MerchantOrdersService {
     if (!order)
       throw new NotFoundException('Order not found');
 
-    const allowedNext =
-      STATUS_FLOW[order.status];
+    if (order.status === nextStatus) return order;
 
-    if (allowedNext !== nextStatus) {
+    if (!canTransition(order, nextStatus)) {
       throw new BadRequestException(
         `Invalid status transition from ${order.status} to ${nextStatus}`,
       );

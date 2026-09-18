@@ -56,7 +56,7 @@ function SignupPage() {
   return (
     <div className="grid min-h-screen md:grid-cols-2">
       <div className="relative hidden overflow-hidden bg-primary md:block">
-        <img src={IMG.hero} alt="" className="absolute inset-0 size-full object-cover opacity-30" />
+        <img src={IMG.signupBg} alt="" className="absolute inset-0 size-full object-cover opacity-30" />
         <div className="relative flex h-full flex-col justify-between p-10 text-white">
           <button onClick={() => nav({ to: "/" })} className="flex items-center gap-3">
             <ZoomoMark size={44} onGreen />
