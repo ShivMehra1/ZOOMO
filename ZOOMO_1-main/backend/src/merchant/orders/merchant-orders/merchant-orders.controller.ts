@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Param,
   UseGuards,
   Req,
@@ -71,5 +72,24 @@ export class MerchantOrdersController {
       restaurantId,
       orderId,
     );
+  }
+
+  @Get(':orderId/messages')
+  getMessages(
+    @Req() req,
+    @Param('restaurantId') restaurantId: string,
+    @Param('orderId') orderId: string,
+  ) {
+    return this.service.getMessages(req.user.id, restaurantId, orderId);
+  }
+
+  @Post(':orderId/messages')
+  sendMessage(
+    @Req() req,
+    @Param('restaurantId') restaurantId: string,
+    @Param('orderId') orderId: string,
+    @Body() body: { text: string },
+  ) {
+    return this.service.sendMessage(req.user.id, restaurantId, orderId, body?.text);
   }
 }

@@ -135,9 +135,9 @@ export default function Landing() {
 
           <div className="flex items-center gap-6 text-xs text-white/50">
             <a href={import.meta.env.VITE_CUSTOMER_URL || "http://localhost:5173"} className="hover:text-white transition">Order</a>
-            <a href={import.meta.env.VITE_DRIVER_URL || "http://localhost:5174"} className="hover:text-white transition">Ride</a>
-            <a href={import.meta.env.VITE_MERCHANT_URL || "http://localhost:5175"} className="hover:text-white transition">Kitchen</a>
-            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5176"} className="hover:text-white transition">HQ</a>
+            <a href={import.meta.env.VITE_DRIVER_URL || "http://localhost:5174"} className="hover:text-white transition">Driver</a>
+            <a href={import.meta.env.VITE_MERCHANT_URL || "http://localhost:5175"} className="hover:text-white transition">Restaurant</a>
+            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5176"} className="hover:text-white transition">Admin</a>
           </div>
         </div>
       </footer>

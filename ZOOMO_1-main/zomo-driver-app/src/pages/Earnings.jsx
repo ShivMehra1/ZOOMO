@@ -205,12 +205,14 @@ export default function Earnings() {
     const today = dayKey(new Date());
 
     const pay = (o) => o.deliveryFee ?? o.total ?? 0;
+    const tipOf = (o) => Number(o.tip || 0) + Number(o.postDeliveryTip || 0);
 
     const todayEarnings = delivered
       .filter((o) => o.actualDeliveryTime && dayKey(o.actualDeliveryTime) === today)
-      .reduce((s, o) => s + pay(o), 0);
+      .reduce((s, o) => s + pay(o) + tipOf(o), 0);
 
-    const weekEarnings = delivered.reduce((s, o) => s + pay(o), 0);
+    const weekEarnings = delivered.reduce((s, o) => s + pay(o) + tipOf(o), 0);
+    const tipsTotal = delivered.reduce((s, o) => s + tipOf(o), 0);
 
     const buckets = new Map();
     for (let i = 6; i >= 0; i--) {
@@ -237,6 +239,7 @@ export default function Earnings() {
     return {
       todayEarnings,
       weekEarnings,
+      tipsTotal,
       totalDeliveries: delivered.length,
       onTimeRate,
       onTimeSample: onTimeEligible.length,
@@ -246,7 +249,7 @@ export default function Earnings() {
 
   return (
     <div className="min-h-screen bg-z-page pb-28">
-      <Header title="Rider" />
+      <Header title="Driver" />
       <div className="mx-auto max-w-xl px-4 py-6">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-bold text-z-sub mb-3">
           <FiChevronLeft size={16} /> Back
@@ -290,6 +293,10 @@ export default function Earnings() {
                   <p className="text-z-muted text-xs mt-1">Completed deliveries</p>
                 </div>
                 <div>
+                  <p className="display text-xl text-z-ink">₹{stats.tipsTotal.toFixed(0)}</p>
+                  <p className="text-z-muted text-xs mt-1">Tips from customers</p>
+                </div>
+                <div>
                   <p className="display text-xl text-z-ink">
                     {stats.onTimeRate === null ? "—" : `${stats.onTimeRate}%`}
                   </p>
@@ -323,6 +330,11 @@ export default function Earnings() {
                         {statusLabel(o.status)}
                       </span>
                     </p>
+                    {(Number(o.tip) > 0 || Number(o.postDeliveryTip) > 0) && (
+                      <p className="text-xs font-bold text-z-primary mt-0.5">
+                        Tip ₹{Math.round(Number(o.tip || 0) + Number(o.postDeliveryTip || 0))}
+                      </p>
+                    )}
                   </div>
                   <p className="text-sm font-bold text-z-ink shrink-0">₹{(o.deliveryFee ?? o.total).toFixed(0)}</p>
                 </div>

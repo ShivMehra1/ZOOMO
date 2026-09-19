@@ -8,7 +8,10 @@ import {
   fetchOrderDetails,
   fetchOrderMessages,
   sendOrderMessage,
+  uploadDeliveryProof,
 } from "../services/driverApi";
+import { formatWhen } from "../lib/when";
+import { isCashCollect, payLabel } from "../lib/pay";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { useDriverLocation } from "../hooks/useDriverLocation";
 import { useDriverSocket, useOrderRoom } from "../hooks/useDriverSocket";
@@ -25,6 +28,7 @@ import {
   FiCheckCircle,
   FiMessageCircle,
   FiSend,
+  FiCamera,
 } from "react-icons/fi";
 
 const PICKUP_RADIUS = 150;
@@ -48,12 +52,15 @@ export default function OrderDetails() {
   const [messages, setMessages] = useState([]);
   const [chatText, setChatText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [proofUrl, setProofUrl] = useState("");
+  const [proofBusy, setProofBusy] = useState(false);
+  const [pin, setPin] = useState("");
 
   const isOnline = Boolean(driver?.isAvailable);
 
   useEffect(() => {
-    if (!isOnline) navigate("/home", { replace: true });
-  }, [isOnline, navigate]);
+    if (driver && !isOnline) navigate("/home", { replace: true });
+  }, [driver, isOnline, navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -131,8 +138,8 @@ export default function OrderDetails() {
       : distance <= DELIVERY_RADIUS;
   }, [distance, isPickupPhase]);
 
-  const paymentMethod = order?.payment?.method || "ONLINE";
-  const isCOD = paymentMethod === "COD";
+  const paymentMethod = order?.payment?.method || "COD";
+  const isCOD = isCashCollect(paymentMethod);
 
   const customerName = order?.customer?.name || "Customer";
   const customerPhone = order?.customer?.phone || null;
@@ -156,11 +163,11 @@ export default function OrderDetails() {
     try {
       setUpdating(true);
       setUpdateError("");
-      await markOrderDelivered(order.id);
+      await markOrderDelivered(order.id, proofUrl || undefined, isCOD ? undefined : pin);
       navigate("/delivery-complete");
     } catch (err) {
       console.error(err);
-      setUpdateError("Failed to mark as delivered. Try again.");
+      setUpdateError(err.message || "Failed to mark as delivered. Try again.");
     } finally {
       setUpdating(false);
     }
@@ -217,7 +224,7 @@ export default function OrderDetails() {
         </button>
         <div className="absolute bottom-3 left-4 text-white">
           <p className="text-[11px] font-bold tracking-wide uppercase text-white/70">
-            #{order.id?.slice(0, 8)}
+            #{order.id?.slice(0, 8)} · {formatWhen(order.createdAt)}
           </p>
           <h1 className="display text-lg">{order.restaurant?.name}</h1>
         </div>
@@ -228,6 +235,11 @@ export default function OrderDetails() {
         <div className={`badge ${isPickupPhase ? "tone-wait" : "tone-go"} block w-fit`}>
           {isPickupPhase ? "Navigate to restaurant for pickup" : "Deliver order to customer"}
         </div>
+        {order.adminAssigned && (
+          <p className="rounded-xl bg-z-sage px-3 py-2 text-xs font-bold text-z-primary">
+            Assigned by Admin — this drop needs to be completed.
+          </p>
+        )}
 
         {/* MAP */}
         <DriverMap
@@ -288,6 +300,11 @@ export default function OrderDetails() {
                     m.sender === "DRIVER" ? "bg-z-primary text-white" : "bg-z-sage text-z-ink"
                   }`}
                 >
+                  {m.sender !== "DRIVER" && (
+                    <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide opacity-70">
+                      {m.sender === "RESTAURANT" ? "Restaurant" : "Customer"}
+                    </p>
+                  )}
                   {m.text}
                 </div>
               </div>
@@ -335,11 +352,19 @@ export default function OrderDetails() {
             <FiCreditCard size={14} /> Payment
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-z-sub">{paymentMethod}</span>
+            <span className="text-z-sub">{payLabel(paymentMethod)}</span>
             <span className="font-bold text-z-ink">
               ₹{Number(order.total).toFixed(2)}
             </span>
           </div>
+          <p className={`text-sm font-bold ${isCOD ? "text-z-primary" : "text-z-ink"}`}>
+            {isCOD ? `Collect ₹${Math.round(Number(order.total))} in cash` : "Already paid — collect ₹0. Ask for the PIN."}
+          </p>
+          {(Number(order.tip) > 0 || Number(order.postDeliveryTip) > 0) && (
+            <p className="text-sm font-bold text-z-primary">
+              Tip ₹{Math.round(Number(order.tip || 0) + Number(order.postDeliveryTip || 0))} from this customer
+            </p>
+          )}
 
           {isCOD && status === "OUT_FOR_DELIVERY" && (
             <button
@@ -385,9 +410,7 @@ export default function OrderDetails() {
             {...swipeHandlers}
             onClick={handlePickup}
             disabled={loading}
-            className="w-full h-14 rounded-xl font-bold flex items-center justify-center gap-2
-                       bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60
-                       transition-all active:scale-[0.98]"
+            className="btn-primary w-full h-14 text-base disabled:opacity-60"
           >
             <FiChevronRight />
             {loading ? "Confirming..." : "Confirm pickup"}
@@ -395,23 +418,71 @@ export default function OrderDetails() {
         )}
 
         {status === "OUT_FOR_DELIVERY" && (
-          <button
-            {...swipeHandlers}
-            onClick={handleMarkDelivered}
-            disabled={updating || (isCOD && !codPaymentConfirmed)}
-            className={`w-full h-14 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-              isCOD && !codPaymentConfirmed
-                ? "bg-z-line text-z-muted cursor-not-allowed"
-                : "bg-z-primary text-white hover:bg-z-hover"
-            }`}
-          >
-            <FiChevronRight />
-            {updating
-              ? "Completing..."
-              : isCOD && !codPaymentConfirmed
-              ? "Confirm cash first"
-              : "Confirm delivery"}
-          </button>
+          <div className="rounded-card p-4 shadow-card bg-z-surface space-y-3">
+            <div className="flex items-center gap-2 text-[11px] font-bold tracking-wide text-z-muted uppercase">
+              <FiCamera size={14} /> Proof of delivery
+            </div>
+            <p className="text-xs text-z-sub">
+              Photo of the bag at the gate. The customer sees this after you complete.
+            </p>
+            {proofUrl ? (
+              <img src={proofUrl} alt="Delivery proof" className="h-40 w-full rounded-xl object-cover" />
+            ) : null}
+            <label className="btn-ghost h-11 w-full text-sm flex items-center justify-center cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setProofBusy(true);
+                  try {
+                    const { url } = await uploadDeliveryProof(file);
+                    setProofUrl(url);
+                  } catch (err) {
+                    setUpdateError(err.message || "Could not upload photo");
+                  } finally {
+                    setProofBusy(false);
+                  }
+                }}
+              />
+              {proofBusy ? "Uploading…" : proofUrl ? "Replace photo" : "Take or upload photo"}
+            </label>
+            {!isCOD && (
+              <input
+                inputMode="numeric"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="4-digit PIN from customer"
+                className="field h-12 tracking-[0.4em] text-center text-lg font-bold"
+              />
+            )}
+            <button
+              {...swipeHandlers}
+              onClick={handleMarkDelivered}
+              disabled={updating || proofBusy || (isCOD && !codPaymentConfirmed) || (!isCOD && pin.length !== 4)}
+              className={`btn-primary w-full h-14 text-base ${
+                (isCOD && !codPaymentConfirmed) || (!isCOD && pin.length !== 4)
+                  ? "opacity-45 cursor-not-allowed shadow-none"
+                  : ""
+              }`}
+            >
+              <FiChevronRight />
+              {updating
+                ? "Completing..."
+                : isCOD && !codPaymentConfirmed
+                ? "Confirm cash first"
+                : !isCOD && pin.length !== 4
+                ? "Enter customer PIN"
+                : proofUrl
+                ? "Confirm delivery"
+                : "Complete without photo"}
+            </button>
+          </div>
         )}
       </div>
       <BottomNav />

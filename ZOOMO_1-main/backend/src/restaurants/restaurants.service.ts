@@ -12,6 +12,7 @@ export class RestaurantsService {
       include: {
         reviews: { include: { user: { select: { name: true } } } },
         dishes: { where: { isAvailable: true }, include: { sizes: true } },
+        promotions: { where: { isActive: true } },
       },
     });
   }
@@ -62,7 +63,7 @@ export class RestaurantsService {
       orderBy: { createdAt: "desc" },
     });
     if (!delivered) {
-      throw new BadRequestException("You can review a kitchen after an order from there is delivered");
+      throw new BadRequestException("You can review a restaurant after an order from there is delivered");
     }
 
     const review = await this.prisma.review.create({
@@ -94,6 +95,12 @@ export class RestaurantsService {
       include: { restaurant: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  async rainSurgeOn() {
+    const row = await this.prisma.platformSetting.findUnique({ where: { key: "rainSurge" } });
+    const pct = await this.prisma.platformSetting.findUnique({ where: { key: "rainSurgePct" } });
+    return { rainSurge: row?.value === "on", pct: Number(pct?.value) || 25 };
   }
 
   listAllActivePromotions() {

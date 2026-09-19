@@ -94,7 +94,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="min-h-screen bg-z-page pb-28">
-        <Header title="Rider" />
+        <Header title="Driver" />
         <p className="text-center text-sm text-z-sub mt-20">Loading profile...</p>
         <BottomNav />
       </div>
@@ -103,109 +103,114 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-z-page pb-28">
-      <Header title="Rider" />
+      <Header title="Driver" />
       <div className="mx-auto max-w-xl px-4 py-6">
-        <p className="kicker mb-1">Account</p>
-        <h1 className="display text-2xl text-z-ink mb-6">Your profile</h1>
-
         {error && (
           <p className="mb-4 rounded-xl bg-z-danger/10 px-3 py-2 text-[13px] text-z-danger">{error}</p>
         )}
 
-        <div className="rounded-card p-5 shadow-card bg-z-surface mb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current.click()}
-                className="w-20 h-20 rounded-full overflow-hidden bg-z-sage flex items-center justify-center border border-z-line"
-              >
-                {profile?.user?.avatarUrl ? (
-                  <img src={profile.user.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="display text-2xl text-z-primary">
-                    {(name || "D").charAt(0).toUpperCase()}
-                  </span>
-                )}
-                {uploading && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
-                    <span className="text-white text-[10px] font-bold">Uploading</span>
-                  </div>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current.click()}
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-z-primary text-white flex items-center justify-center border-2 border-z-surface"
-                aria-label="Change photo"
-              >
-                <FiCamera size={12} />
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-            </div>
+        <section className="mb-8 flex flex-col items-center text-center">
+          <div className="relative mb-4">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current.click()}
+              className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-z-sage text-[28px] font-bold text-z-primary ring-4 ring-white shadow-card"
+            >
+              {profile?.user?.avatarUrl ? (
+                <img src={profile.user.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                (name || "D").charAt(0).toUpperCase()
+              )}
+              {uploading && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-[10px] font-bold text-white">
+                  Uploading
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current.click()}
+              className="absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full bg-z-primary text-white ring-2 ring-white"
+              aria-label="Change photo"
+            >
+              <FiCamera size={13} />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+          </div>
+          <p className="text-[11px] font-bold tracking-[0.14em] text-z-accent uppercase">Zoomo Eats</p>
+          <h2 className="mt-1 text-[22px] font-bold tracking-tight text-z-ink">{name || "Driver"}</h2>
+          <p className="mt-0.5 text-[13px] text-z-muted">{profile?.user?.email}</p>
+          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-z-sage px-2.5 py-1 text-[12px] font-bold text-z-primary">
+            <FiStar size={12} /> {profile?.rating ?? "—"} rating
+          </p>
+        </section>
 
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-z-ink truncate">{name || "Driver"}</p>
-              <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-z-sage px-2.5 py-1 text-[11px] font-bold text-z-primary">
-                <FiStar size={11} />
-                {profile?.rating ?? "—"} rating
-              </div>
-            </div>
-          </div>
-        </div>
+        <Group title="Personal" extra={saved ? "Saved" : null}>
+          <Row label="Name">
+            <input className="min-w-0 flex-1 bg-transparent text-right text-[15px] text-z-ink outline-none" value={name} onChange={(e) => setName(e.target.value)} />
+          </Row>
+          <Row label="Phone">
+            <input className="min-w-0 flex-1 bg-transparent text-right text-[15px] text-z-ink outline-none" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </Row>
+          <Row label="Email">
+            <span className="max-w-[60%] truncate text-[13px] text-z-ink">{profile?.user?.email || ""}</span>
+          </Row>
+        </Group>
 
-        <div className="rounded-card p-5 shadow-card bg-z-surface mb-4 space-y-3">
-          <p className="text-[11px] font-bold tracking-wide text-z-muted uppercase">Personal details</p>
-          <div>
-            <label className="text-xs font-semibold text-z-sub">Name</label>
-            <input className="field mt-1" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-z-sub">Phone</label>
-            <input className="field mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-z-sub">Email</label>
-            <input className="field mt-1 opacity-60" value={profile?.user?.email || ""} disabled />
-          </div>
-        </div>
-
-        <div className="rounded-card p-5 shadow-card bg-z-surface mb-4 space-y-3">
-          <p className="text-[11px] font-bold tracking-wide text-z-muted uppercase">Vehicle</p>
-          <div>
-            <label className="text-xs font-semibold text-z-sub">Vehicle type</label>
+        <Group title="Vehicle">
+          <Row label="Type">
             <input
-              className="field mt-1"
-              placeholder="e.g. Bike, Scooter, Car"
+              className="min-w-0 flex-1 bg-transparent text-right text-[15px] text-z-ink outline-none"
+              placeholder="Bike, Scooter, Car"
               value={vehicleType}
               onChange={(e) => setVehicleType(e.target.value)}
             />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-z-sub">Plate number</label>
-            <input className="field mt-1" value={vehiclePlate} onChange={(e) => setVehiclePlate(e.target.value)} />
-          </div>
-        </div>
+          </Row>
+          <Row label="Plate">
+            <input className="min-w-0 flex-1 bg-transparent text-right text-[15px] text-z-ink outline-none" value={vehiclePlate} onChange={(e) => setVehiclePlate(e.target.value)} />
+          </Row>
+        </Group>
 
-        <button className="btn-primary h-12 w-full mb-3" onClick={saveProfile} disabled={saving}>
-          {saving ? "Saving..." : saved ? "Saved ✓" : "Save changes"}
+        <button className="btn-primary mb-2 h-12 w-full" onClick={saveProfile} disabled={saving}>
+          {saving ? "Saving..." : saved ? "Saved" : "Save changes"}
         </button>
 
         <button
-          className="btn-ghost h-11 w-full mb-3 flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-2 py-4 text-[15px] font-semibold text-z-ink"
           onClick={() => navigate("/support")}
         >
-          <FiHelpCircle size={15} /> Help & support
+          <FiHelpCircle size={16} /> Help & support
         </button>
 
         <button
-          className="w-full h-11 rounded-xl border border-z-line text-z-danger font-bold flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-2 py-3 text-[15px] font-semibold text-z-danger"
           onClick={logout}
         >
           <FiLogOut size={15} /> Sign out
         </button>
       </div>
       <BottomNav />
+    </div>
+  );
+}
+
+function Group({ title, extra, children }) {
+  return (
+    <section className="mb-6">
+      <div className="mb-2 flex items-end justify-between px-1">
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-z-accent">{title}</h3>
+        {extra ? <span className="text-[12px] font-bold text-z-accent">{extra}</span> : null}
+      </div>
+      <div className="divide-y divide-z-line-soft overflow-hidden rounded-[20px] bg-white shadow-card">{children}</div>
+    </section>
+  );
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+      <span className="shrink-0 text-[13px] text-z-muted">{label}</span>
+      {children}
     </div>
   );
 }

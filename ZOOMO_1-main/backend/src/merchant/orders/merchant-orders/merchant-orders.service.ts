@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma.service';
-import { OrderStatus } from '@prisma/client';
+import { MessageSender, OrderStatus } from '@prisma/client';
 import { RealtimeGateway } from '../../../realtime/realtime.gateway';
 import { canTransition } from '../../../common/order-status-flow.util';
 
@@ -169,5 +169,30 @@ export class MerchantOrdersService {
     });
     this.emitOrderUpdate(updated);
     return updated;
+  }
+
+  async getMessages(merchantId: string, restaurantId: string, orderId: string) {
+    await this.assertRestaurantOwnership(merchantId, restaurantId);
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, restaurantId } });
+    if (!order) throw new NotFoundException('Order not found');
+    return this.prisma.orderMessage.findMany({
+      where: { orderId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async sendMessage(merchantId: string, restaurantId: string, orderId: string, text: string) {
+    await this.assertRestaurantOwnership(merchantId, restaurantId);
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, restaurantId } });
+    if (!order) throw new NotFoundException('Order not found');
+    const trimmed = (text || '').trim();
+    if (!trimmed) throw new BadRequestException("Message can't be empty");
+    const message = await this.prisma.orderMessage.create({
+      data: { orderId, sender: MessageSender.RESTAURANT, text: trimmed.slice(0, 500) },
+    });
+    const rooms = [`order:${orderId}`, `user:${order.userId}`, `restaurant:${restaurantId}`];
+    if (order.driverId) rooms.push(`driver:${order.driverId}`);
+    this.realtime.emitToRooms(rooms, 'order:message', message);
+    return message;
   }
 }

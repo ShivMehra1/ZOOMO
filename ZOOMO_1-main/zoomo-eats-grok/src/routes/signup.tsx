@@ -44,7 +44,7 @@ function SignupPage() {
         password,
         phone: phone.replace(/\D/g, "").slice(-10),
       });
-      login(user.name, user.email, user.phone ?? "", user.id);
+      login(user.name, user.email, user.phone ?? "", user.id, user.avatarUrl || undefined);
       nav({ to: "/" });
     } catch (err) {
       setErr(err instanceof Error ? err.message : "Could not create your account.");
@@ -86,7 +86,7 @@ function SignupPage() {
             <>
               <GoogleAuthButton
                 onSuccess={(user) => {
-                  login(user.name, user.email, user.phone ?? "", user.id);
+                  login(user.name, user.email, user.phone ?? "", user.id, user.avatarUrl || undefined);
                   nav({ to: "/" });
                 }}
               />

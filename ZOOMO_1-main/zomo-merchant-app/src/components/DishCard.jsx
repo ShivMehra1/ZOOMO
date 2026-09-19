@@ -1,3 +1,5 @@
+import GreenSwitch from "./GreenSwitch";
+
 export default function DishCard({ dish, onEdit, onToggle }) {
   return (
     <div className="card overflow-hidden transition hover:shadow-lift">
@@ -45,18 +47,16 @@ export default function DishCard({ dish, onEdit, onToggle }) {
       </div>
 
       {/* ================= ACTIONS ================= */}
-      <div className="px-4 py-3 border-t border-z-line-soft flex gap-2">
+      <div className="px-4 py-3 border-t border-z-line-soft flex items-center gap-2">
         <button onClick={onEdit} className="btn-ghost flex-1 h-10 text-sm py-0">
           Edit
         </button>
-        <button
-          onClick={onToggle}
-          className={`flex-1 h-10 rounded-xl text-sm font-bold transition ${
-            dish.isAvailable ? "tone-stop" : "tone-go"
-          }`}
-        >
-          {dish.isAvailable ? "Disable" : "Enable"}
-        </button>
+        <GreenSwitch
+          on={Boolean(dish.isAvailable)}
+          caption="Active"
+          label={dish.isAvailable ? "Available" : "Unavailable"}
+          onToggle={onToggle}
+        />
       </div>
     </div>
   );

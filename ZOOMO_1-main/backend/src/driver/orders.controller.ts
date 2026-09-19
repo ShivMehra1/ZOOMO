@@ -47,6 +47,16 @@ export class DriverOrdersController {
     );
   }
 
+  @Patch(":id/accept")
+  accept(@Param("id") orderId: string, @Req() req) {
+    return this.driverOrdersService.acceptOrder(orderId, req.user.id);
+  }
+
+  @Patch(":id/reject")
+  reject(@Param("id") orderId: string, @Req() req) {
+    return this.driverOrdersService.rejectOrder(orderId, req.user.id);
+  }
+
   @Patch(":id/pickup")
   markPickedUp(
     @Param("id") orderId: string,
@@ -61,11 +71,14 @@ export class DriverOrdersController {
   @Patch(":id/deliver")
   markDelivered(
     @Param("id") orderId: string,
-    @Req() req
+    @Req() req,
+    @Body() body: { proofUrl?: string; pin?: string },
   ) {
     return this.driverOrdersService.markDelivered(
       orderId,
-      req.user.id
+      req.user.id,
+      body?.proofUrl,
+      body?.pin,
     );
   }
 

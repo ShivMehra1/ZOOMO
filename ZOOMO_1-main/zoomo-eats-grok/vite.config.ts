@@ -161,6 +161,14 @@ export default defineConfig(({ command, isPreview }) => ({
         ws: true,
         rewrite: (path) => path.replace(/^\/backend/, ""),
       },
+      "/static": {
+        target:
+          process.env.ZOOMO_API_URL ||
+          (process.env.VITE_API_URL && /^https?:\/\//.test(process.env.VITE_API_URL)
+            ? process.env.VITE_API_URL
+            : "http://localhost:3000"),
+        changeOrigin: true,
+      },
     },
   },
   preview: {

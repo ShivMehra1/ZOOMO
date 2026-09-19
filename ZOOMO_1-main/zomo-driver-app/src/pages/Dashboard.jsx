@@ -21,7 +21,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-z-page pb-28">
-      <Header title="Rider" />
+      <Header title="Driver" />
 
       {loading ? (
         <p className="text-center text-sm text-z-sub mt-20">Loading dashboard...</p>

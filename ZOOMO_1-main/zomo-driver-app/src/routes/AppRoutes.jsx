@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "../pages/Landing";
 import Login from "../pages/login";
 import Home from "../pages/Home";
+import { useDriverAuth } from "../context/DriverAuthContext";
 import Orders from "../pages/Orders";
 import OrderDetails from "../pages/OrderDetails";
 import ProtectedRoute from "./ProtectedRoute";
@@ -11,11 +12,18 @@ import Profile from "../pages/Profile";
 import Earnings from "../pages/Earnings";
 import Support from "../pages/Support";
 
+function LandingOrHome() {
+  const { isAuthenticated, loading } = useDriverAuth();
+  if (loading) return null;
+  if (isAuthenticated) return <Navigate to="/home" replace />;
+  return <Landing />;
+}
+
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<LandingOrHome />} />
         <Route path="/login" element={<Login />} />
 
         <Route
@@ -88,7 +96,7 @@ export default function AppRoutes() {
           }
         />
 
-        <Route path="*" element={<Login />} />
+        <Route path="*" element={<LandingOrHome />} />
       </Routes>
     </BrowserRouter>
   );

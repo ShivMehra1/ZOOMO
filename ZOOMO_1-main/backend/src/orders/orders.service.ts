@@ -16,6 +16,7 @@ import {
 import { haversineKm } from "../common/geo.util";
 import { resolveJourianCoords } from "../common/jourian-areas.util";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { makeDeliveryPin } from "../common/pay.util";
 
 @Injectable()
 export class OrdersService {
@@ -192,6 +193,14 @@ export class OrdersService {
     /* ── Promo (Postgres Promotion table — platform + kitchen codes) ── */
     let discount = 0;
     let deliveryFee = isDelivery ? computeDeliveryFee(subtotal, distanceKm as number) : 0;
+    if (isDelivery) {
+      const rain = await this.prisma.platformSetting.findUnique({ where: { key: "rainSurge" } });
+      if (rain?.value === "on") {
+        const pctRow = await this.prisma.platformSetting.findUnique({ where: { key: "rainSurgePct" } });
+        const pct = Number(pctRow?.value) || 25;
+        deliveryFee = Math.min(80, Math.round(deliveryFee * (1 + pct / 100)));
+      }
+    }
     let validatedPromoCode: string | null = null;
 
     const code = typeof promoCode === "string" ? promoCode.trim() : "";
@@ -303,6 +312,7 @@ export class OrdersService {
           driverCommission,
           distanceKm,
           kmSlab,
+          deliveryPin: resolvedOrderType === OrderType.DELIVERY ? makeDeliveryPin() : null,
           items: {
             create: items.map((item: (typeof items)[number]) => ({
               dishId: item.dishId,
@@ -376,7 +386,7 @@ export class OrdersService {
   async rateOrder(orderId: string, userId: string, rating: number, comment?: string) {
     const order = await this.ownedOrder(orderId, userId);
     if (order.status !== OrderStatus.DELIVERED) {
-      throw new BadRequestException("You can review the kitchen after this order is delivered");
+      throw new BadRequestException("You can review the restaurant after this order is delivered");
     }
     if (rating < 1 || rating > 5) throw new BadRequestException("Rating must be 1-5");
     const note = comment?.trim() || null;
@@ -523,7 +533,7 @@ export class OrdersService {
     const message = await this.prisma.orderMessage.create({
       data: { orderId, sender: MessageSender.CUSTOMER, text: trimmed.slice(0, 500) },
     });
-    const rooms = [`order:${orderId}`];
+    const rooms = [`order:${orderId}`, `restaurant:${order.restaurantId}`, `user:${order.userId}`];
     if (order.driverId) rooms.push(`driver:${order.driverId}`);
     this.realtime.emitToRooms(rooms, "order:message", message);
     return message;

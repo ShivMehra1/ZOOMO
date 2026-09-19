@@ -100,6 +100,8 @@ export const getPromotions = () => adminApi.get("/promotions");
 export const createPromotion = (data) => adminApi.post("/promotions", data);
 export const updatePromotion = (id, data) => adminApi.patch(`/promotions/${id}`, data);
 export const deletePromotion = (id) => adminApi.delete(`/promotions/${id}`);
+export const getRainSurge = () => adminApi.get("/settings/rain-surge");
+export const setRainSurge = (on, pct) => adminApi.post("/settings/rain-surge", { on, pct });
 
 export async function uploadImage(file, folder = "restaurants") {
   const form = new FormData();

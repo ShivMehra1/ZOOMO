@@ -17,6 +17,7 @@ import {
   CATEGORIES,
   DISHES,
   IMG,
+  RAIN_SURGE,
   RESTAURANTS,
   TOWN,
   WHY,
@@ -104,10 +105,15 @@ function Home() {
 
   return (
     <AppShell footer>
-      <div className="landing-wash">
+      <div className="landing-wash pb-28 md:pb-12">
       <HomeHero onSearch={() => nav({ to: "/search" })} />
 
       <div className="relative z-10 mx-auto max-w-6xl space-y-4 px-5">
+        {RAIN_SURGE && (
+          <p className="rounded-[18px] bg-primary px-4 py-3 text-[13px] font-bold text-white">
+            Rain surge is on — delivery takes a bit longer and the fee is higher.
+          </p>
+        )}
         {activeOrder && (
           <ActiveOrderBanner
             order={activeOrder}
@@ -333,7 +339,7 @@ function Home() {
             </button>
           </div>
           <div className="relative min-h-[220px]">
-            <img src={IMG.trackPanel} alt="" className="absolute inset-0 size-full object-cover opacity-55" />
+            <img src={IMG.trackPanel} alt="Food leaving for delivery" className="absolute inset-0 size-full object-cover" />
           </div>
         </div>
 
@@ -365,7 +371,7 @@ function Home() {
         <button
           type="button"
           onClick={() => nav({ to: "/cart" })}
-          className="btn-primary fixed inset-x-4 bottom-24 z-30 mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 shadow-lift md:bottom-5"
+          className="btn-primary fixed bottom-24 left-4 right-[4.75rem] z-30 mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 shadow-lift md:bottom-5 md:right-24"
         >
           <span className="text-sm font-bold">
             View bag · {cart.reduce((s, i) => s + i.quantity, 0)}

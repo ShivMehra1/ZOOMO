@@ -47,7 +47,7 @@ export const IMG = {
   heroPoster: pic("1568901346375-23c9450c58cd", 1600, 900),
   loginBg: pic("1554118811-1e0d58224f24", 1600, 900),
   signupBg: pic("1495474472287-4c7e555e841d", 1600, 900),
-  trackPanel: pic("1559339352-11d035aa5170", 1200, 800),
+  trackPanel: "/Food-Delivery.jpg",
   offerZoomo50: pic("1546069901-ba9599a7e63c", 1200, 800),
   offerBogo: pic("1574071318508-1cdbab80d002", 1200, 800),
   offerFreeship: pic("1504674900247-0877df9cc836", 1200, 800),
@@ -137,6 +137,7 @@ export const REVIEWS: Record<string, { name: string; rating: number; text: strin
 
 /** Live reviews from Postgres, swapped in by loadRealCatalog(). */
 export let LIVE_REVIEWS: { id: string; restaurantId: string; name: string; rating: number; text: string }[] = [];
+export let RAIN_SURGE = false;
 
 export function etaMinOf(r?: Restaurant | null) {
   if (!r) return 22;
@@ -150,7 +151,7 @@ export function gateBy(mins = 22, from = Date.now()) {
 }
 
 export const ORDER_STATUS: Record<string, { label: string; tone: "wait" | "go" | "done" | "stop" }> = {
-  PENDING: { label: "Placed", tone: "wait" },
+  PENDING: { label: "Order placed", tone: "wait" },
   CONFIRMED: { label: "Confirmed", tone: "go" },
   PREPARING: { label: "Preparing", tone: "go" },
   READYFORPICKUP: { label: "Ready", tone: "go" },
@@ -162,20 +163,20 @@ export const ORDER_STATUS: Record<string, { label: string; tone: "wait" | "go" |
 export type TrackStep = { key: string; label: string; hint: string; at: number };
 
 export const TRACK_DELIVERY: TrackStep[] = [
-  { key: "PENDING", label: "Placed", hint: "Restaurant got the ticket", at: 0 },
-  { key: "CONFIRMED", label: "Confirmed", hint: "They're making your food", at: 8 },
-  { key: "PREPARING", label: "Preparing", hint: "On the stove now", at: 22 },
-  { key: "READYFORPICKUP", label: "Picking up", hint: "Rider heading to the restaurant", at: 52 },
-  { key: "OUTFORDELIVERY", label: "On the way", hint: "Bag is on the bike", at: 78 },
-  { key: "DELIVERED", label: "Delivered", hint: "At your gate", at: 145 },
+  { key: "PENDING", label: "Order placed", hint: "The restaurant has your order", at: 0 },
+  { key: "CONFIRMED", label: "Confirmed", hint: "The restaurant accepted it", at: 8 },
+  { key: "PREPARING", label: "Preparing", hint: "They are making your food", at: 22 },
+  { key: "READYFORPICKUP", label: "Packed", hint: "Waiting for your driver", at: 52 },
+  { key: "OUTFORDELIVERY", label: "On the way", hint: "Your driver has the order", at: 78 },
+  { key: "DELIVERED", label: "Delivered", hint: "Handed over", at: 145 },
 ];
 
 export const TRACK_PICKUP: TrackStep[] = [
-  { key: "PENDING", label: "Placed", hint: "Order received", at: 0 },
-  { key: "CONFIRMED", label: "Confirmed", hint: "Restaurant is on it", at: 12 },
-  { key: "PREPARING", label: "Preparing", hint: "Almost plated", at: 40 },
-  { key: "READYFORPICKUP", label: "Ready", hint: "Come collect", at: 95 },
-  { key: "DELIVERED", label: "Completed", hint: "Picked up", at: 160 },
+  { key: "PENDING", label: "Order placed", hint: "The restaurant has your order", at: 0 },
+  { key: "CONFIRMED", label: "Confirmed", hint: "The restaurant accepted it", at: 12 },
+  { key: "PREPARING", label: "Preparing", hint: "They are making your food", at: 40 },
+  { key: "READYFORPICKUP", label: "Ready", hint: "Collect from the restaurant", at: 95 },
+  { key: "DELIVERED", label: "Collected", hint: "Picked up", at: 160 },
 ];
 
 export function stepsFor(orderType: string): TrackStep[] {
@@ -358,4 +359,8 @@ export function setPromos(
 
 export function setLiveReviews(rows: typeof LIVE_REVIEWS) {
   LIVE_REVIEWS = rows;
+}
+
+export function setRainSurge(on: boolean) {
+  RAIN_SURGE = on;
 }

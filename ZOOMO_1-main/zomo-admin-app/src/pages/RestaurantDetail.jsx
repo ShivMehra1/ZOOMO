@@ -23,10 +23,9 @@ import {
   FiTrash2,
   FiCheck,
   FiX,
-  FiToggleLeft,
-  FiToggleRight,
   FiRefreshCw,
 } from "react-icons/fi";
+import GreenSwitch from "../components/GreenSwitch";
 
 const STATUS_COLORS = {
   SCHEDULED: "bg-amber-50 text-amber-700 border-amber-200",
@@ -261,14 +260,15 @@ export default function RestaurantDetail() {
         ) : (
           <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-z-danger border border-red-200">Rejected</span>
         )}
-        <button
-          onClick={handleToggleActive}
-          disabled={busy === "active"}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-z-line bg-z-surface disabled:opacity-50"
-        >
-          {restaurant.isActive ? <FiToggleRight className="text-z-primary" size={16} /> : <FiToggleLeft className="text-z-muted" size={16} />}
-          {restaurant.isActive ? "Open" : "Closed"}
-        </button>
+        <div className="flex items-center gap-3 px-3 py-1.5 rounded-full border border-z-line bg-z-surface">
+          <span className="text-xs font-semibold text-z-sub">{restaurant.isActive ? "Open" : "Closed"}</span>
+          <GreenSwitch
+            on={Boolean(restaurant.isActive)}
+            disabled={busy === "active"}
+            label="Restaurant open"
+            onToggle={handleToggleActive}
+          />
+        </div>
         {restaurant.isApproved ? (
           <button onClick={handleReject} disabled={busy === "approve"} className="px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-z-danger border border-red-200 text-xs font-semibold transition disabled:opacity-50">
             Reject restaurant
@@ -431,12 +431,12 @@ export default function RestaurantDetail() {
                     </td>
                     <td className="px-6 py-3">
                       {isEditing ? (
-                        <button
-                          onClick={() => setDishForm({ ...dishForm, isAvailable: !dishForm.isAvailable })}
-                          className="flex items-center gap-1.5 text-xs font-medium"
-                        >
-                          {dishForm.isAvailable ? <FiToggleRight className="text-z-primary" size={20} /> : <FiToggleLeft className="text-z-muted" size={20} />}
-                        </button>
+                        <GreenSwitch
+                          on={Boolean(dishForm.isAvailable)}
+                          caption="Active"
+                          label="Dish available"
+                          onToggle={() => setDishForm({ ...dishForm, isAvailable: !dishForm.isAvailable })}
+                        />
                       ) : (
                         <span className={d.isAvailable ? "text-z-primary text-xs font-semibold" : "text-z-muted text-xs"}>
                           {d.isAvailable ? "Available" : "Unavailable"}

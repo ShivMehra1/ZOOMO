@@ -7,6 +7,7 @@ import {
 import { PrismaService } from "../common/prisma.service";
 import { OrderStatus, MessageSender } from "@prisma/client";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { isCashCollect, resolveDeliveryPin } from "../common/pay.util";
 
 @Injectable()
 export class DriverOrdersService {
@@ -37,7 +38,7 @@ export class DriverOrdersService {
   async getAssignedOrders(userId: string) {
     const driverId = await this.getDriverId(userId);
 
-    return this.prisma.order.findMany({
+    const mine = await this.prisma.order.findMany({
       where: {
         driverId,
         status: {
@@ -52,6 +53,12 @@ export class DriverOrdersService {
         id: true,
         status: true,
         total: true,
+        tip: true,
+        postDeliveryTip: true,
+        adminAssigned: true,
+        driverId: true,
+        createdAt: true,
+        updatedAt: true,
         restaurant: {
           select: {
             name: true,
@@ -74,8 +81,69 @@ export class DriverOrdersService {
             phone: true,
           },
         },
+        payment: { select: { method: true, status: true } },
       },
     });
+    const open = await this.prisma.order.findMany({
+      where: {
+        driverId: null,
+        orderType: "DELIVERY",
+        status: OrderStatus.READY_FOR_PICKUP,
+      },
+      orderBy: { createdAt: "asc" },
+      take: 20,
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        tip: true,
+        postDeliveryTip: true,
+        adminAssigned: true,
+        driverId: true,
+        createdAt: true,
+        updatedAt: true,
+        restaurant: { select: { name: true, address: true, lat: true, lng: true } },
+        address: { select: { street: true, city: true, lat: true, lng: true } },
+        user: { select: { name: true, phone: true } },
+        payment: { select: { method: true, status: true } },
+      },
+    });
+    return [...mine, ...open.filter((o) => !mine.some((m) => m.id === o.id))];
+  }
+
+  async acceptOrder(orderId: string, userId: string) {
+    const driverId = await this.getDriverId(userId);
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+    if (order.driverId && order.driverId !== driverId) {
+      throw new BadRequestException("Already taken");
+    }
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { driverId },
+    });
+    await this.prisma.driver.update({ where: { id: driverId }, data: { isAvailable: false } });
+    this.emitOrderUpdate(updated);
+    return updated;
+  }
+
+  async rejectOrder(orderId: string, userId: string) {
+    const driverId = await this.getDriverId(userId);
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException("Order not found");
+    if (order.adminAssigned) {
+      throw new BadRequestException("Admin assigned this drop — you need to complete it");
+    }
+    if (order.driverId && order.driverId !== driverId) {
+      throw new ForbiddenException("Not your order");
+    }
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { driverId: null },
+    });
+    await this.prisma.driver.update({ where: { id: driverId }, data: { isAvailable: true } });
+    this.emitOrderUpdate(updated);
+    return updated;
   }
 
   /* ===========================
@@ -101,6 +169,8 @@ export class DriverOrdersService {
         actualDeliveryTime: true,
         estimatedDeliveryTime: true,
         rating: true,
+        tip: true,
+        postDeliveryTip: true,
         restaurant: { select: { name: true, imageUrl: true } },
         address: { select: { street: true, city: true } },
       },
@@ -141,7 +211,7 @@ export class DriverOrdersService {
   /* ===========================
      MARK DELIVERED (COD SAFE)
   ============================ */
-  async markDelivered(orderId: string, userId: string) {
+  async markDelivered(orderId: string, userId: string, proofUrl?: string, pin?: string) {
     const driverId = await this.getDriverId(userId);
 
     const order = await this.prisma.order.findFirst({
@@ -162,6 +232,13 @@ export class DriverOrdersService {
       throw new ForbiddenException("Order not out for delivery");
     }
 
+    if (!isCashCollect(order.payment?.method)) {
+      const expected = resolveDeliveryPin(order);
+      if ((pin || "").trim() !== expected) {
+        throw new BadRequestException("Ask the customer for the 4-digit PIN");
+      }
+    }
+
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
       // 1️⃣ Update order
       const updatedOrder = await tx.order.update({
@@ -169,6 +246,7 @@ export class DriverOrdersService {
         data: {
           status: OrderStatus.DELIVERED,
           actualDeliveryTime: new Date(),
+          deliveryProofUrl: proofUrl || undefined,
         },
       });
 
@@ -225,11 +303,17 @@ export class DriverOrdersService {
       id: order.id,
       status: order.status,
       total: order.total,
+      tip: order.tip,
+      postDeliveryTip: order.postDeliveryTip,
+      createdAt: order.createdAt,
+      adminAssigned: order.adminAssigned,
+      deliveryProofUrl: order.deliveryProofUrl,
 
       restaurant: {
         name: order.restaurant.name,
         address: order.restaurant.address,
         imageUrl: order.restaurant.imageUrl,
+        phone: order.restaurant.phone,
         lat: order.restaurant.lat,
         lng: order.restaurant.lng,
       },
@@ -247,7 +331,8 @@ export class DriverOrdersService {
       },
 
       payment: {
-        method: order.payment?.method ?? "ONLINE",
+        method: order.payment?.method ?? "COD",
+        status: order.payment?.status ?? "PENDING",
       },
 
       // 🔥 CRITICAL FIX — DO NOT CHANGE
@@ -282,7 +367,11 @@ export class DriverOrdersService {
     const message = await this.prisma.orderMessage.create({
       data: { orderId, sender: MessageSender.DRIVER, text: trimmed.slice(0, 500) },
     });
-    this.realtime.emitToRooms([`order:${orderId}`, `user:${order.userId}`], "order:message", message);
+    this.realtime.emitToRooms(
+      [`order:${orderId}`, `user:${order.userId}`, `restaurant:${order.restaurantId}`, `driver:${driverId}`],
+      "order:message",
+      message,
+    );
     return message;
   }
 }

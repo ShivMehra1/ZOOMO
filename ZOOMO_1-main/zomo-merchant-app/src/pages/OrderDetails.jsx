@@ -1,10 +1,11 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StatusBadge from "../components/StatusBadge";
 import OrderStatusActions from "../components/OrderStatusActions";
 import CancelOrderButton from "../components/CancelOrderButton";
 import api from "../services/api";
 import { formatWhen } from "../lib/when";
+import { joinRoom, leaveRoom, socket } from "../lib/socket";
 
 export default function OrderDetails() {
   const { restaurantId, orderId } = useParams();
@@ -12,6 +13,10 @@ export default function OrderDetails() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [chatText, setChatText] = useState("");
+  const [sending, setSending] = useState(false);
+  const chatEnd = useRef(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -47,6 +52,48 @@ export default function OrderDetails() {
 
     fetchOrder();
   }, [restaurantId, orderId]);
+
+  useEffect(() => {
+    if (!restaurantId || !orderId) return;
+    let mounted = true;
+    api
+      .get(`/merchant/restaurants/${restaurantId}/orders/${orderId}/messages`)
+      .then((res) => mounted && setMessages(res.data || []))
+      .catch(() => {});
+    joinRoom(`order:${orderId}`);
+    joinRoom(`restaurant:${restaurantId}`);
+    const onMessage = (msg) => {
+      if (msg.orderId !== orderId) return;
+      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+    };
+    socket.on("order:message", onMessage);
+    return () => {
+      mounted = false;
+      leaveRoom(`order:${orderId}`);
+      leaveRoom(`restaurant:${restaurantId}`);
+      socket.off("order:message", onMessage);
+    };
+  }, [restaurantId, orderId]);
+
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  async function sendChat(e) {
+    e.preventDefault();
+    const text = chatText.trim();
+    if (!text || sending) return;
+    setSending(true);
+    setChatText("");
+    try {
+      const res = await api.post(`/merchant/restaurants/${restaurantId}/orders/${orderId}/messages`, { text });
+      setMessages((prev) => (prev.some((m) => m.id === res.data.id) ? prev : [...prev, res.data]));
+    } catch {
+      setChatText(text);
+    } finally {
+      setSending(false);
+    }
+  }
 
   const updateStatus = async (nextStatus) => {
     try {
@@ -149,6 +196,43 @@ export default function OrderDetails() {
           <CancelOrderButton status={order.status} onCancel={cancelOrder} />
           <OrderStatusActions status={order.status} orderType={order.orderType} onUpdate={updateStatus} />
         </div>
+      </div>
+
+      <div className="card p-5 space-y-3">
+        <h2 className="text-base font-bold text-z-ink">Chat with customer</h2>
+        <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl bg-z-page p-3">
+          {messages.length === 0 && (
+            <p className="text-xs text-z-muted">No messages yet. Ask if they need cutlery, extra spice, or a gate code.</p>
+          )}
+          {messages.map((m) => (
+            <div key={m.id} className={`flex ${m.sender === "RESTAURANT" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+                  m.sender === "RESTAURANT" ? "bg-z-primary text-white" : "bg-white text-z-ink"
+                }`}
+              >
+                {m.sender !== "RESTAURANT" && (
+                  <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide opacity-70">
+                    {m.sender === "DRIVER" ? "Driver" : "Customer"}
+                  </p>
+                )}
+                {m.text}
+              </div>
+            </div>
+          ))}
+          <div ref={chatEnd} />
+        </div>
+        <form onSubmit={sendChat} className="flex gap-2">
+          <input
+            value={chatText}
+            onChange={(e) => setChatText(e.target.value)}
+            placeholder="Message the customer…"
+            className="field flex-1 h-11"
+          />
+          <button type="submit" disabled={sending || !chatText.trim()} className="btn-primary w-auto px-4 h-11 text-sm">
+            Send
+          </button>
+        </form>
       </div>
     </div>
   );

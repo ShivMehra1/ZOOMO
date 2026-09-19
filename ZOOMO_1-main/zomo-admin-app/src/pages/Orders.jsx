@@ -6,6 +6,7 @@ import { useConfirm } from "../context/ConfirmContext";
 import { formatWhen, rangePreset, toLocalInput } from "../lib/when";
 import { statusLabel } from "../lib/order-labels";
 import { FiRefreshCw, FiTruck, FiClock, FiAlertCircle, FiCheck, FiDownload, FiSearch } from "react-icons/fi";
+import GreenSwitch from "../components/GreenSwitch";
 
 const STATUS_COLORS = {
   SCHEDULED: "bg-amber-50 text-amber-700 border-amber-200",
@@ -238,10 +239,10 @@ export default function Orders() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-z-surface border border-z-line text-xs font-semibold text-z-sub">
-            <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} />
-            Live updates
-          </label>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-z-surface border border-z-line">
+            <span className="text-xs font-semibold text-z-sub">Live updates</span>
+            <GreenSwitch on={live} label="Live updates" onToggle={() => setLive((v) => !v)} />
+          </div>
           <button type="button" onClick={exportCsv} disabled={!orders.length} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-z-surface border border-z-line text-z-sub hover:text-z-primary text-sm disabled:opacity-50">
             <FiDownload size={14} /> Export CSV
           </button>

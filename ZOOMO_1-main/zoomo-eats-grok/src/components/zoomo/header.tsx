@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogIn, MapPin, ShoppingBag, User, UserPlus } from "lucide-react";
+import { LogIn, MapPin, ShoppingBag, UserPlus } from "lucide-react";
 import { ZoomoMark } from "./mark";
+import { Avatar } from "./avatar";
 import { useZoomo } from "@/lib/zoomo-store";
 
 export function Header({ onLocationClick }: { onLocationClick: () => void }) {
@@ -66,11 +67,11 @@ export function Header({ onLocationClick }: { onLocationClick: () => void }) {
           {user ? (
             <button
               onClick={() => setAccountOpen(true)}
-              className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink sm:h-10 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-[13px] sm:font-medium"
+              className="flex size-10 items-center overflow-hidden rounded-full border border-line bg-surface sm:h-10 sm:w-auto sm:gap-1.5 sm:pr-3 sm:pl-0.5 sm:text-[13px] sm:font-medium"
               aria-label="Profile"
             >
-              <User className="size-4" />
-              <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
+              <Avatar url={user.avatarUrl} name={user.name} className="size-9 text-xs sm:size-8" />
+              <span className="hidden sm:inline text-ink">{user.name.split(" ")[0]}</span>
             </button>
           ) : (
             <>

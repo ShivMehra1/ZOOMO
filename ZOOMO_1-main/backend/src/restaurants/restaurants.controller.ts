@@ -34,6 +34,11 @@ export class RestaurantsController {
     return this.restaurantsService.listAllActivePromotions();
   }
 
+  @Get("rain-surge")
+  async rainSurge() {
+    return this.restaurantsService.rainSurgeOn();
+  }
+
   @Get(":id")
   getOne(@Param("id") id: string) {
     return this.restaurantsService.findOne(id);

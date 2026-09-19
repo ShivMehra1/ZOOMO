@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Bike, Check, Star, UtensilsCrossed } from "lucide-react";
 import { inr, TIP_PRESETS } from "@/lib/zoomo-data";
+import { publicMedia } from "@/lib/api-base";
 import { useZoomo, type Order } from "@/lib/zoomo-store";
 
 const EXTRA_TIPS = TIP_PRESETS.filter((n) => n > 0);
@@ -66,10 +67,14 @@ export function PostDeliveryCard({ order }: { order: Order }) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-[24px] bg-sage px-5 py-4">
-        <p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">Delivered</p>
-        <h3 className="mt-1 text-[18px] font-bold tracking-tight text-ink">How was this bag?</h3>
-        <p className="mt-1 text-[13px] text-sub">Reviews go live on the restaurant after delivery. Tip the rider if they did it right.</p>
+      <div className="overflow-hidden rounded-[24px] border border-line bg-white">
+        {order.deliveryProofUrl && (
+          <img src={publicMedia(order.deliveryProofUrl)} alt="Delivery proof" className="h-40 w-full object-cover" />
+        )}
+        <div className="px-5 py-4">
+          <h3 className="text-[18px] font-bold tracking-tight text-ink">How was your order?</h3>
+          <p className="mt-1 text-[13px] text-sub">Rate the restaurant and the driver. Notes are optional.</p>
+        </div>
       </div>
 
       <div className="rounded-[24px] bg-surface p-5 shadow-card">
@@ -86,7 +91,7 @@ export function PostDeliveryCard({ order }: { order: Order }) {
             <textarea
               value={kitchenNote}
               onChange={(e) => setKitchenNote(e.target.value)}
-              placeholder="Food, packing, timing…"
+              placeholder="Optional notes — packing, heat, missing item…"
               rows={2}
               className="mt-3 w-full rounded-xl border-[1.5px] border-line bg-page px-3 py-2 text-sm"
             />
@@ -96,7 +101,7 @@ export function PostDeliveryCard({ order }: { order: Order }) {
               onClick={saveKitchen}
               className="btn-primary mt-3 w-full py-2.5 text-[13px] disabled:opacity-50"
             >
-              {busy === "k" ? "Saving…" : "Post kitchen review"}
+              {busy === "k" ? "Saving…" : "Post restaurant review"}
             </button>
           </>
         )}

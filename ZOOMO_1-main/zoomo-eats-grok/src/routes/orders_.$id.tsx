@@ -5,6 +5,7 @@ import { AppShell } from "@/components/zoomo/shell";
 import { OrderTracker, StatusPill, useTick } from "@/components/zoomo/tracker";
 import { UberTrack } from "@/components/zoomo/uber-track";
 import { inr, liveStatus, restaurantById } from "@/lib/zoomo-data";
+import { payLabel } from "@/lib/pay";
 import { formatWhen } from "@/lib/when";
 import { useZoomo, type Order } from "@/lib/zoomo-store";
 import { realGetOrder, toStoreOrder } from "@/lib/real-api";
@@ -131,6 +132,7 @@ function OrderDetailPage() {
             <span>Total</span>
             <span className="tabular text-primary">{inr(order.total)}</span>
           </div>
+          <p className="mt-2 text-[13px] font-semibold text-ink">Paid with {payLabel(order.paymentMethod)}</p>
         </div>
 
         {status === "DELIVERED" && (

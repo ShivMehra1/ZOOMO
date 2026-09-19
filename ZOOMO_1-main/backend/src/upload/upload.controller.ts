@@ -9,6 +9,7 @@ import {
     UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -24,15 +25,18 @@ export class UploadController {
     @Post('image')
     @UseInterceptors(
         FileInterceptor('file', {
+            storage: memoryStorage(),
             limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
         }),
     )
     async uploadImage(
         @UploadedFile() file: Express.Multer.File,
-        @Query('folder') folder: 'restaurants' | 'dishes' | 'avatars' = 'restaurants',
+        @Query('folder') folder: 'restaurants' | 'dishes' | 'avatars' | 'payouts' | 'proofs' = 'restaurants',
         @Req() req,
     ) {
-        if (folder !== 'avatars' && req.user?.role !== 'MERCHANT') {
+        const role = req.user?.role;
+        const openFolders = folder === 'avatars' || folder === 'proofs' || folder === 'payouts';
+        if (!openFolders && role !== 'MERCHANT' && role !== 'ADMIN') {
             throw new ForbiddenException('Only merchants can upload restaurant/dish images');
         }
         const url = await this.uploadService.uploadImage(file, folder);

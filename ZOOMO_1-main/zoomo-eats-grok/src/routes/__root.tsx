@@ -60,7 +60,7 @@ function ToastHost() {
   const toast = useZoomo((s) => s.toast);
   if (!toast) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-28 z-[100] flex justify-center px-4 md:bottom-10">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(4.75rem+env(safe-area-inset-top))] z-[100] flex justify-center px-4">
       <p className="rounded-full bg-primary px-4 py-2.5 text-[13px] font-bold text-white shadow-lift">{toast}</p>
     </div>
   );

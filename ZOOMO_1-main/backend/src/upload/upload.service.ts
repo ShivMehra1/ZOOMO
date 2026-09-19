@@ -25,7 +25,7 @@ export class UploadService {
 
     async uploadImage(
         file: Express.Multer.File,
-        folder: 'restaurants' | 'dishes' | 'avatars' | 'payouts',
+        folder: 'restaurants' | 'dishes' | 'avatars' | 'payouts' | 'proofs',
     ): Promise<string> {
         if (!file) {
             throw new BadRequestException('No file uploaded');
@@ -93,7 +93,7 @@ export class UploadService {
 
     private async saveLocal(
         file: Express.Multer.File,
-        folder: 'restaurants' | 'dishes' | 'avatars' | 'payouts',
+        folder: 'restaurants' | 'dishes' | 'avatars' | 'payouts' | 'proofs',
         buffer: Buffer,
     ): Promise<string> {
         const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';

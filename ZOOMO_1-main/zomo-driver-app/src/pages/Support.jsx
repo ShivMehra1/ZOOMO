@@ -62,7 +62,7 @@ export default function Support() {
 
   return (
     <div className="min-h-screen bg-z-page pb-28">
-      <Header title="Rider" />
+      <Header title="Driver" />
       <div className="mx-auto max-w-xl px-4 py-6">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-bold text-z-sub mb-3">
           <FiChevronLeft size={16} /> Back

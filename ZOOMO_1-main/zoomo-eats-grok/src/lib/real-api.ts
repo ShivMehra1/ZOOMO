@@ -1,6 +1,6 @@
 // Bridges this frontend to the real NestJS + Postgres backend. Menus, cart,
 // orders, and reviews all use live dish/restaurant ids from GET /restaurants.
-import { IMG, TOWN, setCatalog, setLiveReviews, setPromos, type Dish, type Restaurant } from "./zoomo-data";
+import { IMG, TOWN, setCatalog, setLiveReviews, setPromos, setRainSurge, type Dish, type Restaurant } from "./zoomo-data";
 import { getApiBase, publicMedia } from "./api-base";
 
 const TOKEN_KEY = "zoomo_real_token";
@@ -147,10 +147,16 @@ export type CatalogPayload = {
   reviews: { id: string; restaurantId: string; name: string; rating: number; text: string }[];
   coupons: Record<string, { type: string; value: number; label: string; max?: number | null }>;
   offers: { code: string; title: string; subtitle: string; expires: string; image: string; restaurantId: string | null }[];
+  rainSurge?: boolean;
 };
 
 function toRestaurant(r: any): Restaurant {
   const area = (r.address || "").split(",")[1]?.trim() || TOWN;
+  const reviewAvg = Array.isArray(r.reviews) && r.reviews.length
+    ? r.reviews.reduce((s: number, x: any) => s + Number(x.rating || 0), 0) / r.reviews.length
+    : 0;
+  const stored = Number(r.rating) || 0;
+  const rating = reviewAvg > 0 ? reviewAvg : stored > 0 ? stored : 4.2;
   return {
     id: r.id,
     name: String(r.name || "").trim(),
@@ -160,12 +166,15 @@ function toRestaurant(r: any): Restaurant {
     area,
     cuisineType: r.cuisineType || "Various",
     priceRange: r.priceRange || "$$",
-    rating: Number(r.rating) || 4.3,
+    rating: Number(rating.toFixed(1)),
     openingHours: r.openingHours || "",
     eta: r.etaMin ? `${r.etaMin}–${r.etaMin + 10} min` : "25–40 min",
     costForTwo: r.costForTwo ?? 400,
     phone: r.phone ?? undefined,
     etaMin: r.etaMin ?? 25,
+    coupon: (r.promotions || []).find((p: any) => p.showOnCard)?.badgeLabel
+      || (r.promotions || []).find((p: any) => p.showOnCard)?.code
+      || undefined,
   };
 }
 
@@ -195,6 +204,7 @@ export function applyCatalog(payload?: CatalogPayload | null) {
   setCatalog(payload.restaurants, payload.dishes);
   setLiveReviews(payload.reviews);
   if (payload.offers.length) setPromos(payload.coupons, payload.offers);
+  setRainSurge(Boolean(payload.rainSurge));
   catalogLoaded = true;
 }
 
@@ -205,7 +215,7 @@ export function isCatalogLoaded(): boolean {
 }
 
 function emptyCatalog(): CatalogPayload {
-  return { restaurants: [], dishes: [], reviews: [], coupons: {}, offers: [] };
+  return { restaurants: [], dishes: [], reviews: [], coupons: {}, offers: [], rainSurge: false };
 }
 
 export async function loadRealCatalog(): Promise<CatalogPayload> {
@@ -219,6 +229,12 @@ export async function loadRealCatalog(): Promise<CatalogPayload> {
         if (attempt === 2) throw err;
         await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
       }
+    }
+    try {
+      const rain = await realApi.get("/restaurants/rain-surge");
+      payload.rainSurge = Boolean(rain?.rainSurge);
+    } catch {
+      payload.rainSurge = false;
     }
     if (Array.isArray(rows)) {
       for (const r of rows) {
@@ -626,6 +642,8 @@ export function toStoreOrder(o: any) {
     status: o.status,
     orderType: o.orderType === "PICKUP" ? "TAKEAWAY" : o.orderType === "DINE_IN" ? "DINE_IN" : "DELIVERY",
     paymentMethod: o.payment?.method ?? "COD",
+    paymentStatus: o.payment?.status ?? undefined,
+    deliveryPin: o.deliveryPin || undefined,
     promoCode: o.promoCode ?? null,
     address: o.address ? { id: o.address.id, street: o.address.street, city: o.address.city, state: o.address.state, zipCode: o.address.zipCode } : null,
     guestCount: null,
@@ -643,9 +661,15 @@ export function toStoreOrder(o: any) {
     kitchenComment: o.kitchenComment ?? "",
     driverComment: o.driverComment ?? "",
     postDeliveryTip: o.postDeliveryTip ?? 0,
+    deliveryProofUrl: o.deliveryProofUrl || undefined,
     dropOff: (o.dropOffPreference ?? "MEET_DOOR") as any,
     dropNote: o.dropOffNote ?? "",
-    chat: (o.messages ?? []).map((m: any) => ({ id: m.id, from: m.sender === "CUSTOMER" ? "me" : "rider", text: m.text, at: m.createdAt })),
+    chat: (o.messages ?? []).map((m: any) => ({
+      id: m.id,
+      from: m.sender === "CUSTOMER" ? "me" : m.sender === "RESTAURANT" ? "kitchen" : "rider",
+      text: m.text,
+      at: m.createdAt,
+    })),
     proofAt: null,
     noCutlery: o.includeCutlery === false,
     passUsed: false,

@@ -75,7 +75,7 @@ function OrdersPage() {
             </div>
             <p className="display mb-1 text-xl text-ink">{tab === "active" ? "Nothing moving" : "No past orders"}</p>
             <p className="mb-6 text-sm text-sub">
-              {tab === "active" ? "Place a bag and you’ll watch it leave the kitchen." : "Your delivered and cancelled bags land here."}
+              {tab === "active" ? "Place an order and track it here." : "Delivered and cancelled orders land here."}
             </p>
             <button onClick={() => nav({ to: "/restaurants" })} className="btn-primary px-5 py-2.5 text-sm">
               Browse restaurants
@@ -132,7 +132,7 @@ function OrdersPage() {
                       className="flex w-full items-center justify-between border-t border-line-soft px-4 py-2.5"
                     >
                       <span className="text-[12px] text-sub">
-                        {rider ? `Picked up by ${rider.name}` : "Kitchen has the ticket"}
+                        {rider ? `Picked up by ${rider.name}` : "The restaurant has your order"}
                       </span>
                       <span className="text-[12px] font-bold text-primary">Track</span>
                     </button>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../services/api";
+import GreenSwitch from "./GreenSwitch";
 
 export default function DishForm({ initialData = {}, onSubmit, saving = false }) {
   const [form, setForm] = useState({
@@ -208,9 +209,15 @@ function Field({ label, children, required }) {
 
 function Toggle({ label, name, checked, onChange }) {
   return (
-    <label className="flex items-center justify-between px-4 py-3 rounded-xl bg-z-page text-z-ink">
+    <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-z-page text-z-ink">
       <span className="text-sm font-bold">{label}</span>
-      <input type="checkbox" name={name} checked={checked} onChange={onChange} className="h-5 w-5 accent-z-primary" />
-    </label>
+      <GreenSwitch
+        on={Boolean(checked)}
+        label={label}
+        onToggle={() =>
+          onChange({ target: { name, type: "checkbox", checked: !checked } })
+        }
+      />
+    </div>
   );
 }

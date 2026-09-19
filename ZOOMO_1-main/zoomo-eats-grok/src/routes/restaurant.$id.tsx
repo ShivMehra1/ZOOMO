@@ -131,6 +131,10 @@ function RestaurantPage() {
           <div className="flex flex-col justify-center gap-3 px-4 py-5 sm:gap-4 sm:px-6 md:px-7">
             {r.cuisineType && <p className="kicker">{r.cuisineType}</p>}
             <h1 className="display text-[clamp(1.7rem,3vw,2.35rem)] text-ink">{r.name}</h1>
+            <p className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
+              <Star className="size-4 fill-primary text-primary" /> {Number(r.rating || 0).toFixed(1)}
+              {r.coupon ? <span className="ml-2 rounded-full bg-sage px-2 py-0.5 text-[11px] font-bold text-primary">{r.coupon}</span> : null}
+            </p>
             <div className="space-y-3">
               {(r.address || r.area) && (
                 <p className="flex items-start gap-3 text-[14px] leading-6 text-sub">

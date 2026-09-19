@@ -5,7 +5,7 @@ import { ZoomoMark } from "./mark";
 
 export function Footer() {
   return (
-    <footer className="relative overflow-hidden bg-primary px-5 pt-16 pb-28 text-white md:pb-12">
+    <footer data-zoomo-footer className="relative overflow-hidden bg-primary px-5 pt-16 pb-28 text-white md:pb-12">
 
       <div className="relative mx-auto max-w-6xl">
         <div className="mb-12 flex flex-col justify-between gap-6 rounded-[28px] bg-white/8 px-6 py-6 sm:flex-row sm:items-center">

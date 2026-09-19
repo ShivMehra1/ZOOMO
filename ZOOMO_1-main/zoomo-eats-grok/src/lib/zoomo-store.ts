@@ -100,7 +100,7 @@ export type Address = {
 };
 
 export type OrderType = "DELIVERY" | "DINE_IN" | "TAKEAWAY";
-export type RideMsg = { id: string; from: "me" | "rider"; text: string; at: string };
+export type RideMsg = { id: string; from: "me" | "rider" | "kitchen"; text: string; at: string };
 export type Review = { id: string; restaurantId: string; name: string; rating: number; text: string; at: string };
 
 export type Order = {
@@ -117,6 +117,8 @@ export type Order = {
   status: string;
   orderType: OrderType;
   paymentMethod: string;
+  paymentStatus?: string;
+  deliveryPin?: string;
   promoCode: string | null;
   address?: Address | null;
   guestCount?: number | null;
@@ -149,6 +151,7 @@ export type Order = {
   kitchenComment?: string;
   driverComment?: string;
   postDeliveryTip?: number;
+  deliveryProofUrl?: string;
   proofAt?: string | null;
   noCutlery?: boolean;
   passUsed?: boolean;
@@ -187,7 +190,7 @@ type State = {
   lastError: string | null;
   toast: string | null;
   showToast: (msg: string) => void;
-  login: (name: string, email: string, phone?: string, id?: string) => void;
+  login: (name: string, email: string, phone?: string, id?: string, avatarUrl?: string) => void;
   logout: () => void;
   updateUser: (patch: Partial<User>) => void;
   toggleFavorite: (id: string) => void;
@@ -294,7 +297,7 @@ export const useZoomo = create<State>()(
           if (get().toast === msg) set({ toast: null });
         }, 2400);
       },
-      login: (name, email, phone = "", id) => {
+      login: (name, email, phone = "", id, avatarUrl) => {
         const prev = get().user;
         const same = prev?.email.toLowerCase() === email.toLowerCase();
         set({
@@ -303,6 +306,7 @@ export const useZoomo = create<State>()(
             name,
             email,
             phone: phone || (same ? prev?.phone || "" : ""),
+            avatarUrl: avatarUrl || (same ? prev?.avatarUrl : undefined),
             vegOnly: same ? Boolean(prev?.vegOnly) : false,
             notifyOrders: same ? prev?.notifyOrders !== false : true,
             paymentPref: same ? prev?.paymentPref || "UPI" : "UPI",
@@ -348,10 +352,15 @@ export const useZoomo = create<State>()(
         }
       },
       uploadAvatar: async (file: File) => {
+        const prev = get().user;
+        if (!prev) return;
+        const preview = URL.createObjectURL(file);
+        set({ user: { ...prev, avatarUrl: preview } });
         try {
           const { url } = await realUploadAvatar(file);
           get().updateUser({ avatarUrl: url });
         } catch (err) {
+          set({ user: { ...prev } });
           get().handleApiError(err, "Could not upload that photo.");
         }
       },
@@ -615,7 +624,7 @@ export const useZoomo = create<State>()(
             });
           }
         } catch (err) {
-          get().handleApiError(err, "Could not save your kitchen review.");
+          get().handleApiError(err, "Could not save your restaurant review.");
           throw err;
         }
       },

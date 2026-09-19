@@ -21,8 +21,16 @@ export class AdminPromotionsService {
     minOrderValue?: number;
     restaurantId?: string | null;
     expiresAt?: string | null;
+    showOnCard?: boolean;
+    badgeLabel?: string | null;
   }) {
     if (!data?.code) throw new BadRequestException("code is required");
+    if (data.showOnCard && data.restaurantId) {
+      await this.prisma.promotion.updateMany({
+        where: { restaurantId: data.restaurantId, showOnCard: true },
+        data: { showOnCard: false },
+      });
+    }
     return this.prisma.promotion.create({
       data: {
         code: data.code.toUpperCase().trim(),
@@ -34,6 +42,8 @@ export class AdminPromotionsService {
         restaurantId: data.restaurantId || null,
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
         isActive: true,
+        showOnCard: Boolean(data.showOnCard),
+        badgeLabel: data.badgeLabel?.trim() || data.code.toUpperCase().trim(),
       },
     });
   }
@@ -41,6 +51,12 @@ export class AdminPromotionsService {
   async update(id: string, data: any) {
     const existing = await this.prisma.promotion.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException("Promotion not found");
+    if (data.showOnCard && existing.restaurantId) {
+      await this.prisma.promotion.updateMany({
+        where: { restaurantId: existing.restaurantId, showOnCard: true, NOT: { id } },
+        data: { showOnCard: false },
+      });
+    }
     return this.prisma.promotion.update({
       where: { id },
       data: {
@@ -51,8 +67,33 @@ export class AdminPromotionsService {
         minOrderValue: data.minOrderValue,
         isActive: data.isActive,
         expiresAt: data.expiresAt === undefined ? undefined : data.expiresAt ? new Date(data.expiresAt) : null,
+        showOnCard: data.showOnCard,
+        badgeLabel: data.badgeLabel,
       },
     });
+  }
+
+  async getRainSurge() {
+    const row = await this.prisma.platformSetting.findUnique({ where: { key: "rainSurge" } });
+    const pct = await this.prisma.platformSetting.findUnique({ where: { key: "rainSurgePct" } });
+    return { rainSurge: row?.value === "on", pct: Number(pct?.value) || 25 };
+  }
+
+  async setRainSurge(on: boolean, pct?: number) {
+    await this.prisma.platformSetting.upsert({
+      where: { key: "rainSurge" },
+      update: { value: on ? "on" : "off" },
+      create: { key: "rainSurge", value: on ? "on" : "off" },
+    });
+    if (pct != null && Number.isFinite(pct)) {
+      const n = Math.min(100, Math.max(5, Math.round(pct)));
+      await this.prisma.platformSetting.upsert({
+        where: { key: "rainSurgePct" },
+        update: { value: String(n) },
+        create: { key: "rainSurgePct", value: String(n) },
+      });
+    }
+    return this.getRainSurge();
   }
 
   async remove(id: string) {

@@ -20,21 +20,23 @@ export function RestaurantCard({ r, onOpen }: { r: Restaurant; onOpen: () => voi
             className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
-          {r.coupon && (
-            <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-primary/92 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
-              <Tag className="size-3" /> {r.coupon}
+          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[11px] font-bold text-ink tabular shadow-sm">
+              <Star className="size-3 fill-primary text-primary" /> {Number(r.rating || 0).toFixed(1)}
             </div>
-          )}
+            {r.coupon && (
+              <div className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
+                <Tag className="size-3" /> {r.coupon}
+              </div>
+            )}
+          </div>
           {etaMinOf(r) <= 20 && (
-            <div className={`absolute top-3 rounded-full bg-accent px-2 py-1 text-[10px] font-bold tracking-wide text-white uppercase ${r.busy ? "left-16" : "left-3"}`}>
+            <div className="absolute top-3 left-3 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold tracking-wide text-primary uppercase">
               Zoom 15
             </div>
           )}
-          <div className={`absolute top-3 flex items-center gap-1 rounded-full bg-surface/95 px-2 py-1 text-[11px] font-bold text-ink tabular ${etaMinOf(r) <= 20 ? "right-12" : "left-3"}`}>
-            <Star className="size-3 fill-primary text-primary" /> {r.rating.toFixed(1)}
-          </div>
           {regular && (
-            <div className="absolute top-3 right-12 rounded-full bg-white px-2 py-1 text-[10px] font-bold tracking-wide text-primary uppercase">
+            <div className="absolute bottom-3 left-3 rounded-full bg-white px-2 py-1 text-[10px] font-bold tracking-wide text-primary uppercase">
               Regular
             </div>
           )}

@@ -1,16 +1,18 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { driverLogin } from "../services/driverApi";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useDriverAuth();
+  const { login, isAuthenticated, loading: authLoading } = useDriverAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  if (!authLoading && isAuthenticated) return <Navigate to="/home" replace />;
 
   const handleLogin = async () => {
     setError("");
@@ -40,7 +42,7 @@ export default function Login() {
           </span>
         </div>
 
-        <p className="kicker mb-2">Rider</p>
+        <p className="kicker mb-2">Driver</p>
         <h1 className="display mb-2 text-[32px] text-z-ink">
           Sign in
         </h1>

@@ -187,7 +187,7 @@ export class AdminOrdersService {
     const result = await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
-        data: { driverId },
+        data: { driverId, adminAssigned: true },
       }),
       this.prisma.driver.update({
         where: { id: driverId },

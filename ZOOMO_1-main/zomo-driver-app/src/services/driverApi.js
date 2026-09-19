@@ -64,6 +64,18 @@ export async function fetchAssignedOrders() {
 /* ===========================
    ORDER STATUS UPDATES
 =========================== */
+export async function acceptOrder(orderId) {
+  const res = await authFetch(`${API_BASE}/driver/orders/${orderId}/accept`, { method: "PATCH" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "Could not accept");
+  return res.json();
+}
+
+export async function rejectOrder(orderId) {
+  const res = await authFetch(`${API_BASE}/driver/orders/${orderId}/reject`, { method: "PATCH" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "Could not reject");
+  return res.json();
+}
+
 export async function markOrderPickedUp(orderId) {
   const token = localStorage.getItem("driverToken");
 
@@ -84,23 +96,32 @@ export async function markOrderPickedUp(orderId) {
   return res.json();
 }
 
-export async function markOrderDelivered(orderId) {
-  const token = localStorage.getItem("driverToken");
-
-  const res = await fetch(
-    `${API_BASE}/driver/orders/${orderId}/deliver`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+export async function markOrderDelivered(orderId, proofUrl, pin) {
+  const res = await authFetch(`${API_BASE}/driver/orders/${orderId}/deliver`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      ...(proofUrl ? { proofUrl } : {}),
+      ...(pin ? { pin } : {}),
+    }),
+  });
 
   if (!res.ok) {
-    throw new Error("Failed to mark delivered");
+    throw new Error((await res.json().catch(() => ({}))).message || "Failed to mark delivered");
   }
 
+  return res.json();
+}
+
+export async function uploadDeliveryProof(file) {
+  const token = localStorage.getItem("driverToken");
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/upload/image?folder=proofs`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Could not upload proof");
   return res.json();
 }
 
@@ -141,16 +162,19 @@ export async function sendHeartbeat() {
    DRIVER SESSION SYNC
 =========================== */
 export async function fetchDriverMe() {
-  const res = await authFetch(
-    `${API_BASE}/driver/me`,
-    { method: "POST" }
-  );
+  const res = await authFetch(`${API_BASE}/driver/me`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch driver");
   }
 
-  return res.json();
+  const data = await res.json();
+  return {
+    ...data,
+    name: data.user?.name || data.name,
+    email: data.user?.email || data.email,
+    phone: data.user?.phone || data.phone,
+  };
 }
 
 export async function sendDriverLocation(lat, lng) {

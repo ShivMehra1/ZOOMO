@@ -1,7 +1,7 @@
 import { FiLogOut } from "react-icons/fi";
 import { useDriverAuth } from "../context/DriverAuthContext";
 
-export default function Header({ title = "Rider" }) {
+export default function Header({ title = "Driver" }) {
   const { driver, logout } = useDriverAuth();
 
   return (

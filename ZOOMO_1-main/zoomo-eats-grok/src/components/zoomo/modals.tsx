@@ -99,7 +99,7 @@ export function SearchOverlay({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search kitchens, dishes, mohallas…"
+            placeholder="Search restaurants, dishes, mohallas…"
             className="flex-1 bg-transparent text-[15px] outline-none"
           />
           <button onClick={onClose} className="rounded-lg p-1 text-muted hover:text-ink">
@@ -141,7 +141,7 @@ export function ConflictModal({ onCancel, onConfirm }: { onCancel: () => void; o
         </div>
         <h2 className="display mb-2 text-xl text-ink">Start a new cart?</h2>
         <p className="mb-6 text-sm leading-6 text-sub">
-          Your cart has items from another kitchen. Adding this will clear the current bag.
+          Your cart has items from another restaurant. Adding this will clear the current bag.
         </p>
         <div className="flex gap-2.5">
           <button onClick={onCancel} className="btn-ghost flex-1 py-2.5 text-sm">

@@ -84,7 +84,7 @@ function SearchPage() {
           <EmptyState
             icon={<UtensilsCrossed className="size-7" />}
             title="Nothing matches"
-            sub="Try a kitchen name or a dish"
+            sub="Try a restaurant name or a dish"
             cta="Clear"
             onCta={() => setQ("")}
           />
@@ -116,7 +116,7 @@ function SearchPage() {
               </div>
             )}
 
-            <h2 className="mb-3 text-sm font-bold text-ink">{query ? "Restaurants" : "All kitchens"}</h2>
+            <h2 className="mb-3 text-sm font-bold text-ink">{query ? "Restaurants" : "All restaurants"}</h2>
             {kitchens.length === 0 ? (
               <p className="text-sm text-muted">No restaurants yet.</p>
             ) : (

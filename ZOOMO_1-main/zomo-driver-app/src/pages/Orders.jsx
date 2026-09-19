@@ -2,11 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import BottomNav from "../components/BottomNav";
 import Header from "../components/Header";
-import { fetchAssignedOrders } from "../services/driverApi";
+import { acceptOrder, fetchAssignedOrders, rejectOrder } from "../services/driverApi";
 import { useDriverAuth } from "../context/DriverAuthContext";
 import { useDriverSocket } from "../hooks/useDriverSocket";
 import { formatWhen } from "../lib/when";
 import { statusLabel } from "../lib/order-labels";
+import { isCashCollect, payLabel } from "../lib/pay";
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -108,7 +109,18 @@ export default function Orders() {
                     </span>
                   </div>
 
-                  <p className="text-xs text-z-muted mb-2">Assigned {formatWhen(order.createdAt)}</p>
+                  <p className="text-xs text-z-muted mb-2">
+                    {formatWhen(order.createdAt)}
+                    {order.adminAssigned ? " · Admin assigned" : !order.driverId ? " · Open drop" : ""}
+                  </p>
+                  <p className="text-xs font-bold text-z-primary mb-2">
+                    {isCashCollect(order.payment?.method)
+                      ? `Collect ₹${Math.round(Number(order.total))} · ${payLabel(order.payment?.method)}`
+                      : `Already paid · ${payLabel(order.payment?.method)} · ask for PIN`}
+                    {(Number(order.tip) > 0 || Number(order.postDeliveryTip) > 0)
+                      ? ` · Tip ₹${Math.round(Number(order.tip || 0) + Number(order.postDeliveryTip || 0))}`
+                      : ""}
+                  </p>
                   <div className="space-y-1 text-sm text-z-sub mb-4">
                     <p>
                       <span className="font-semibold text-z-ink">Pickup: </span>
@@ -116,20 +128,52 @@ export default function Orders() {
                     </p>
                     <p>
                       <span className="font-semibold text-z-ink">Drop: </span>
-                      {order.address.street}, {order.address.city}
+                      {order.address?.street || "Address pending"}, {order.address?.city || ""}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-bold text-z-ink">
-                      ₹{order.total}
-                    </span>
-                    <button
-                      onClick={() => navigate(`/orders/${order.id}`)}
-                      className="btn-primary w-auto px-5 h-10 text-sm"
-                    >
-                      View details
-                    </button>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-base font-bold text-z-ink">₹{order.total}</span>
+                    {order.driverId ? (
+                      <button
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                        className="btn-primary w-auto px-5 h-10 text-sm"
+                      >
+                        {order.adminAssigned ? "Complete drop" : "Open"}
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await rejectOrder(order.id);
+                              const data = await fetchAssignedOrders();
+                              setOrders(data);
+                            } catch (e) {
+                              alert(e.message);
+                            }
+                          }}
+                          className="h-10 rounded-xl border border-z-line px-4 text-sm font-bold text-z-danger"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await acceptOrder(order.id);
+                              navigate(`/orders/${order.id}`);
+                            } catch (e) {
+                              alert(e.message);
+                            }
+                          }}
+                          className="btn-primary w-auto px-5 h-10 text-sm"
+                        >
+                          Accept
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

@@ -33,6 +33,7 @@ enum OrderType {
 enum MessageSender {
   CUSTOMER
   DRIVER
+  RESTAURANT
 }
 
 model User {
@@ -188,6 +189,9 @@ model Order {
   driverRating          Int?
   driverComment         String?
   postDeliveryTip       Float       @default(0)
+  adminAssigned         Boolean     @default(false)
+  deliveryProofUrl      String?
+  deliveryPin           String?
   gatePingAt            DateTime?
   promisedAt            DateTime?
   lateCreditApplied     Float?
@@ -327,8 +331,15 @@ model Promotion {
 
   restaurantId String?
   restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  showOnCard   Boolean   @default(false)
+  badgeLabel   String?
 
   @@unique([restaurantId, code])
+}
+
+model PlatformSetting {
+  key   String @id
+  value String
 }
 
 model Payout {

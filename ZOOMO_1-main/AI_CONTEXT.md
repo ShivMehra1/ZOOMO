@@ -7,6 +7,8 @@ same day — this project moves fast). Keep it updated as the project moves;
 treat anything below as a snapshot, not a guarantee — verify against the
 actual code before relying on specifics like file paths or line numbers.
 
+Written 2026-09-17, **last updated 2026-09-18**.
+
 ## What this is
 
 Zoomo Eats — a food-delivery platform for one town (Jourian), built as a
@@ -78,7 +80,7 @@ history" below). Current state:
 | I Love Pizza | `pizza-palace` | 89 | Owner-supplied menu, real prices/photos |
 | In The Hood Cafe | `moonlight-cafe` | 154 | Owner-supplied menu, real prices/photos |
 | Moonlight Cafe | `ml-moonlight` | 43 | Owner-supplied menu (a **separate, distinct** business from "In The Hood Cafe" above — don't confuse the two despite the similar name and the fact that "moonlight-cafe" the *id* now belongs to In The Hood Cafe, a historical accident from how they were seeded in sequence) |
-| Coffee Xpress | `coffee-xpress` | 0 | Real business, verified via web search (Justdial), no menu given yet |
+| Coffee Xpress | `coffee-xpress` | seeded menu | Real business (Justdial). Menu via `backend/scripts/seed-coffee-xpress-menu.ts`. Rating 4.2. |
 
 All four are real Jourian addresses: `Jourian, Jammu & Kashmir 181202`,
 lat/lng `32.834, 74.577` (verified via web search, not fabricated).
@@ -137,10 +139,36 @@ The three staff apps (`zomo-admin-app`, `zomo-merchant-app`,
   green accents — NOT a full dark-green theme. Full green is reserved for
   bookends (footer bands, login-page side panels), not the whole page. An
   earlier all-dark-green redesign of `zomo-portal` was explicitly rejected
-  by the owner as "too ugly."
+  by the owner as "too ugly." Profile / account menus: sage icon wells,
+  accent-green kickers and stat numbers, logo-green text — not a green slab.
 - Grok (`zoomo-eats-grok`) has its own parallel but consistent token set in
   `src/styles.css` (`--color-primary: #0f3d2d`, `--color-accent: #1f7a52` —
   same colors, CSS custom properties instead of Tailwind config).
+
+### Copy — never these words in UI
+Use **Restaurant / Admin / Driver**. Never Kitchen, HQ, Rider, or Ride as
+product names. Tracking says “driver” and “restaurant”. First timeline
+step is **Order placed**. Section heading is **Order status** (once). Do
+not put the tagline “Zoom it. Eat it. Love it.” on the order-tracking
+screen.
+
+### Oval switch (on/off — not a green button)
+Shared `GreenSwitch` in:
+- `zoomo-eats-grok/src/components/zoomo/switch.tsx`
+- `zomo-driver-app/src/components/GreenSwitch.jsx`
+- `zomo-admin-app/src/components/GreenSwitch.jsx`
+- `zomo-merchant-app/src/components/GreenSwitch.jsx`
+
+Oval track, white trigger **stays inside**. Off: `#E6E6EA`, trigger
+leftmost (`translate-x-0` inside 3px padding). On: logo `#0F3D2D`, trigger
+slides to the right (`translate-x-[20px]` md / `32px` lg) still inside
+`overflow-hidden`. Driver Home online/offline uses `size="lg"` — **no**
+Go online / Go offline button.
+
+### Shared buttons
+`.btn-primary` / `.btn-ghost` / `.btn-danger` in each app’s CSS: 14px
+radius, primary fill `#1F4D3A` with inset highlight + lift shadow, ghost
+white hairline `#DCE6E0`. Press: `translateY(1px) scale(0.985)`.
 
 ## Brand voice
 
@@ -246,33 +274,75 @@ the symptom to check for regressing.
    `assignDriver`, `toggleDishOff`, `STAFF_ACCOUNTS`) — verified via grep
    that nothing else referenced them before removing.
 
-Everything above except the in-flight items noted below is committed and
-pushed to `origin/main` as of this doc's last update.
+## 2026-09-18 (Grok session — current product)
 
-## Known in-progress / uncommitted work (as of this doc)
+Working tree is `Downloads/ZOOMO-Grok/ZOOMO-Grok-Main`. Push path: rsync
+into `/Users/shivmehra/ZOOMO_Claude/ZOOMO_1-main` (exclude `node_modules`,
+`dist`, `.env`, `.git`) then commit/push `github.com/ShivMehra1/ZOOMO`
+`main`. Do not push unless Shiv asks.
 
-`zoomo-eats-grok/src/routes/checkout.tsx` and
-`zoomo-eats-grok/src/styles.css` have **uncommitted local changes**, and
-have had for the whole 2026-09-17 session — every commit made this session
-deliberately excluded these two files. Two different things are mixed
-together in that uncommitted diff:
+### Prisma / API (run `npx prisma migrate deploy` after pull)
+- `Order.adminAssigned`, `deliveryProofUrl`, `deliveryPin`, `driverRating`,
+  `kitchenComment`, `postDeliveryTip`, `gatePingAt`, `promisedAt`.
+- `Promotion.showOnCard`, `badgeLabel`. One card badge per restaurant.
+- `PlatformSetting` keys `rainSurge` (`on`/`off`) and `rainSurgePct`
+  (default 25). Public `GET /restaurants/rain-surge`. When on, delivery
+  fee × (1 + pct/100).
+- `MessageSender` enum: `CUSTOMER` | `DRIVER` | `RESTAURANT`.
+- Merchant `GET/POST /merchant/restaurants/:id/orders/:orderId/messages`.
+- Driver `POST /driver/orders/:id/accept`, `.../reject` (reject blocked if
+  `adminAssigned`). `PATCH .../deliver` body `{ proofUrl?, pin? }`. Prepaid
+  (not COD/CASH/PAY_AT_RESTAURANT) requires the 4-digit PIN. PIN is **not**
+  returned to the driver; customer sees it. Fallback `pinFromId` in
+  `backend/src/common/pay.util.ts`.
+- Driver session restore: **GET** `/driver/me` (JWT `driver-jwt`). POST is
+  wrong and used to log drivers out.
+- Upload: `POST /upload/image?folder=avatars|proofs|payouts|restaurants|dishes`
+  with `memoryStorage`. Avatars/proofs/payouts any authenticated role.
+- Login token payload includes `phone` and `avatarUrl`. Customer aliases:
+  `customer@customer.com`, `customer@zoomo.com`, `customer@` →
+  `customer@zoomoeats.com`.
+- Jourian: if GPS is >20km away but city is Jourian, clamp to town coords.
+  Delivery fee 6% + ₹6/km, clamp ₹15–50, tax 5%, min cart ₹50, max 8km.
+- Zustand persist customer: user/location/favorites/visits/offers/activeBag
+  — **not** cart or orders.
 
-1. A verified-working, already-tested fix (also from this session, also
-   never committed) that made the checkout total update live when the
-   quantity stepper changes — was keyed on `bag.length` (item count) so
-   quantity bumps to an already-added item didn't refresh it; fixed by
-   keying on a `dishId:quantity` signature instead, plus debouncing the
-   backend re-quote so it doesn't race the quantity-update PATCH.
-2. The project owner's own in-progress work: an "order placed" success
-   modal with a checkmark-draw animation (`success-ring-pop`,
-   `success-check-draw` keyframes in `styles.css`) and a `submitError`
-   message path on checkout.
+### Tracking (`uber-track.tsx`)
+- White sheet, Jourian map (Google embed cropped, no title box).
+- Heading **Order status** once. Steps: Order placed → Confirmed →
+  Preparing → Packed → On the way → Delivered.
+- Payment card: method label, **Pay the driver ₹X** (COD) or **₹0 already
+  paid** + PIN. Bill is green with Paid with / Pay the driver.
+- Help sheet: dummy FAQ, opens Zoomo chat (`zoomo:open-chat`), WhatsApp
+  `https://wa.me/14377345009`.
+- Restaurant Call | Chat as text on a card, not fat green pills. Map
+  chrome: white circles. Post-delivery popup: restaurant + driver ratings,
+  optional notes, proof photo via `publicMedia`.
 
-Don't assume either is finished-and-abandoned or safe to discard — both
-are real, intentional, uncommitted work. If you need to commit checkout.tsx
-changes for an unrelated reason, be careful not to silently sweep in or
-revert either of these; ask first, same as any commit involving this file
-this session did.
+### Driver
+- Home: Online/Offline + **lg oval switch**. Jourian map. View deliveries.
+- Orders list: date/time (`formatWhen`), tip, Accept/Reject or Complete
+  drop if admin-assigned. Collect ₹X vs already paid / ask PIN.
+- Complete: proof photo optional, PIN required if prepaid.
+
+### Admin offers
+- Click row to edit. Rain surge oval + `% hike`. Card badge oval. One
+  `showOnCard` per restaurant.
+
+### Profile / landing account
+- Customer `profile.tsx` + `account-sheet.tsx`: centered avatar, sage ring,
+  accent kicker, green stat numbers, sage icon wells, grouped lists.
+- Header chip shows avatar. `Avatar` uses `publicMedia` so `/static/avatars`
+  loads via `/backend` (customer Vite also proxies `/static`).
+- Photo upload: optimistic blob, then PATCH `/users/me` `avatarUrl`.
+
+### Chat
+- One order thread. Senders CUSTOMER / DRIVER / RESTAURANT. Sockets
+  `order:message` to `order:`, `user:`, `restaurant:`, `driver:` rooms.
+
+## Known leftover (not Zomato-class yet)
+Live Mapbox GPS on the map, Razorpay capture, SMS OTP, LLM support chat
+(keyword bot today). Do not re-run `prisma/seed.ts`.
 
 ## Login credentials (dev only — obviously rotate before any real launch)
 
@@ -282,7 +352,7 @@ this session did.
 - Merchant, Coffee Xpress: `owner-coffeexpress@zoomoeats.com` / `owner123`
 - Admin: `admin@zoomoeats.com` / `admin123` — restored by `backend/scripts/seed-platform.ts`
 - Driver: `driver@zoomoeats.com` / `driver123` — same script (bike, Jourian coords)
-- Customer: `customer@zoomoeats.com` / `customer123` — same script, Jourian default address
+- Customer: `customer@zoomoeats.com` / `customer123` — aliases `customer@customer.com`, `customer@zoomo.com`, `customer@`
 - Regular customer users can also sign up fresh through grok's `/signup`.
 
 **One-time after pull:** from `backend/`, run the platform-promotions migration then the staff seed:
@@ -313,3 +383,7 @@ Do **not** run `prisma db seed` — `prisma/seed.ts` is the old SF demo and woul
   change, see the SSR caching "Gotcha" above before assuming the data is
   wrong — check whether the grok dev server needs a restart (should no
   longer be necessary after the 2026-09-17 fix, but verify).
+- Never call a restaurant a kitchen in UI. Driver Home is an oval switch,
+  not Go online/offline buttons. Tracking first step is Order placed.
+- Customer avatars: always `publicMedia(url)` (or `<Avatar />`). Raw
+  `/static/...` 404s on :5173 without the proxy.

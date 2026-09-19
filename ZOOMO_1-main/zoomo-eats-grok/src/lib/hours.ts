@@ -61,7 +61,7 @@ export function sellState(openingHours?: string | null): SellState {
     const urgent = closesInMin <= 45;
     return {
       open: true,
-      label: urgent ? `Last orders · ${closesInMin} min` : "Kitchens open now",
+      label: urgent ? `Last orders · ${closesInMin} min` : "Restaurants open now",
       detail: urgent ? `Order before ${lastOrderAt}` : `Until ${closesAt} · last order ${lastOrderAt}`,
       closesInMin,
       opensAt,
@@ -73,7 +73,7 @@ export function sellState(openingHours?: string | null): SellState {
   if (now >= last && now < close) {
     return {
       open: false,
-      label: "Kitchen wrapping up",
+      label: "Restaurants wrapping up",
       detail: `Last order was ${lastOrderAt}. Opens ${opensAt}.`,
       closesInMin: 0,
       opensAt,

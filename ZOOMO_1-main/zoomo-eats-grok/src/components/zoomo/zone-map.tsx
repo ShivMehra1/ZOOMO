@@ -1,30 +1,31 @@
 import { MAP_NODES, TOWN } from "@/lib/zoomo-data";
 import { useZoomo } from "@/lib/zoomo-store";
 
-function mapSrc(area: string | null | undefined) {
-  const q = encodeURIComponent(`${area && area !== TOWN ? `${area}, ` : ""}Jourian, Jammu and Kashmir, India`);
-  return `https://www.google.com/maps?q=${q}&z=14&hl=en&output=embed`;
+function mapSrc() {
+  return "https://maps.google.com/maps?ll=32.834,74.577&z=14&hl=en&output=embed&iwloc=";
 }
 
 export function JourianMap({
-  area,
   className,
   title = "Jourian map",
+  cropChrome = false,
 }: {
   area?: string | null;
   className?: string;
   title?: string;
+  cropChrome?: boolean;
 }) {
-  return (
+  const frame = (
     <iframe
       title={title}
-      src={mapSrc(area)}
-      className={className ?? "absolute inset-0 size-full border-0"}
+      src={mapSrc()}
+      className={cropChrome ? "absolute -top-14 -left-10 h-[calc(100%+7rem)] w-[calc(100%+5rem)] max-w-none border-0" : (className ?? "absolute inset-0 size-full border-0")}
       loading="lazy"
       referrerPolicy="no-referrer-when-downgrade"
-      allowFullScreen
     />
   );
+  if (!cropChrome) return frame;
+  return <div className={className ?? "absolute inset-0 overflow-hidden"}>{frame}</div>;
 }
 
 export function ZoneMap({ onPick }: { onPick: (area: string) => void }) {

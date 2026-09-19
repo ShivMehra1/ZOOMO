@@ -31,7 +31,7 @@ function LoginPage() {
     setErr("");
     try {
       const user = await realLogin(email.trim(), password);
-      login(user.name, user.email, user.phone ?? "", user.id);
+      login(user.name, user.email, user.phone ?? "", user.id, user.avatarUrl || undefined);
       nav({ to: "/" });
     } catch (err) {
       setErr(err instanceof Error ? err.message : "Could not sign in.");
@@ -63,7 +63,7 @@ function LoginPage() {
     setErr("");
     try {
       const user = await realVerifyOtp(p, otp);
-      login(user.name, user.email, user.phone ?? "", user.id);
+      login(user.name, user.email, user.phone ?? "", user.id, user.avatarUrl || undefined);
       nav({ to: "/" });
     } catch (err) {
       setErr(err instanceof Error ? err.message : "Incorrect code.");
@@ -104,7 +104,7 @@ function LoginPage() {
           <div className="mb-5">
             <GoogleAuthButton
               onSuccess={(user) => {
-                login(user.name, user.email, user.phone ?? "", user.id);
+                login(user.name, user.email, user.phone ?? "", user.id, user.avatarUrl || undefined);
                 nav({ to: "/" });
               }}
             />
